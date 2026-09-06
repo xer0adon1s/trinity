@@ -11,6 +11,9 @@ from trinity.explain import build_escalation_prompt, get_explanation, save_expla
 from trinity.kb.seed import seed
 from trinity.match.engine import match_finding
 from trinity.parsers.nmap import parse_nmap_xml
+from trinity.report.data import gather_report_data
+from trinity.report.educational import generate_educational_report
+from trinity.report.professional import generate_professional_report
 from trinity.suggest.engine import suggest_next_commands
 from trinity.timeline import log_event
 
@@ -229,6 +232,82 @@ def cache_explanation_cmd(command: str, explanation: str):
     conn = connect()
     save_explanation(conn, command, explanation)
     console.print(f"[green]Cached.[/green] `trinity explain \"{command}\"` will be instant from now on.")
+
+
+@cli.command("engagement-set")
+@click.option("--box", "box_name", required=True, help="Box name.")
+@click.option("--client", "client_name", default=None)
+@click.option("--scope", default=None)
+@click.option("--auth-ref", "authorization_ref", default=None, help="Authorization reference (e.g. HTB username, signed letter ref).")
+@click.option("--tester", "tester_name", default=None)
+@click.option("--start", "start_date", default=None)
+@click.option("--end", "end_date", default=None)
+@click.option("--notes", default=None)
+def engagement_set_cmd(box_name, client_name, scope, authorization_ref, tester_name, start_date, end_date, notes):
+    """Set engagement front matter for a box (used in professional-mode
+    reports). Only overwrites fields you actually pass — safe to call
+    repeatedly to fill in details as they become known."""
+    conn = connect()
+    box = get_or_create_box(conn, box_name)
+
+    existing = conn.execute(
+        "SELECT * FROM engagement_meta WHERE box_id = ?", (box.id,)
+    ).fetchone()
+    current = dict(existing) if existing else {}
+
+    updated = {
+        "client_name": client_name if client_name is not None else current.get("client_name"),
+        "scope": scope if scope is not None else current.get("scope"),
+        "authorization_ref": authorization_ref if authorization_ref is not None else current.get("authorization_ref"),
+        "tester_name": tester_name if tester_name is not None else current.get("tester_name"),
+        "start_date": start_date if start_date is not None else current.get("start_date"),
+        "end_date": end_date if end_date is not None else current.get("end_date"),
+        "notes": notes if notes is not None else current.get("notes"),
+    }
+
+    conn.execute(
+        """
+        INSERT INTO engagement_meta (box_id, client_name, scope, authorization_ref, tester_name, start_date, end_date, notes)
+        VALUES (:box_id, :client_name, :scope, :authorization_ref, :tester_name, :start_date, :end_date, :notes)
+        ON CONFLICT(box_id) DO UPDATE SET
+            client_name = excluded.client_name, scope = excluded.scope,
+            authorization_ref = excluded.authorization_ref, tester_name = excluded.tester_name,
+            start_date = excluded.start_date, end_date = excluded.end_date, notes = excluded.notes
+        """,
+        {"box_id": box.id, **updated},
+    )
+    conn.commit()
+    console.print(f"[green]Engagement details updated for {box_name}.[/green]")
+
+
+@cli.command("report")
+@click.option("--box", "box_name", required=True, help="Box name.")
+@click.option("--mode", default=None, type=click.Choice(["educational", "professional"]),
+              help="Override the box's stored mode for this report only.")
+@click.option("--output", "output_path", default=None, type=click.Path(), help="Write to a file instead of stdout.")
+def report_cmd(box_name: str, mode: str | None, output_path: str | None):
+    """Generate a report for a box: an educational walkthrough or a
+    professional pentest deliverable, read from the same timeline data
+    either way — mode only changes the formatting."""
+    conn = connect()
+    box = get_or_create_box(conn, box_name)
+    effective_mode = mode or box.mode
+
+    data = gather_report_data(conn, box.id)
+    if effective_mode == "professional":
+        content = generate_professional_report(data)
+    else:
+        content = generate_educational_report(data)
+
+    if output_path:
+        from pathlib import Path
+        Path(output_path).write_text(content)
+        console.print(f"[green]Report written to {output_path}[/green] ({effective_mode} mode).")
+    else:
+        # Report content is Markdown, not Rich markup — printing it through
+        # Rich's normal path would misinterpret things like "[fill in]" as
+        # bracket-tag syntax and silently eat the text. Print it raw.
+        console.print(content, markup=False, highlight=False)
 
 
 if __name__ == "__main__":
