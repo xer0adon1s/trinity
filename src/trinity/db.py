@@ -108,13 +108,18 @@ CREATE TRIGGER IF NOT EXISTS kb_entries_au AFTER UPDATE ON kb_entries BEGIN
     VALUES (new.id, new.title, new.summary, new.detail, new.tags);
 END;
 
--- Every command Trinity has ever suggested + its ELI5 explanation, cached
+-- Every command Trinity has ever explained + its ELI5 explanation, cached
 -- locally so the same flag combo never needs re-explaining (and never
--- costs a token twice).
+-- costs a token twice). 'source' distinguishes pre-seeded/bulk-authored
+-- entries (trinity_preseed) from ones an operator personally verified via
+-- the escalation flow (ai_escalation) or hand-wrote (user_curated) — a
+-- pre-seeded explanation not yet been checked against a live command is
+-- worth trusting less than one an operator confirmed themselves.
 CREATE TABLE IF NOT EXISTS command_explanations (
     id INTEGER PRIMARY KEY,
     command TEXT NOT NULL UNIQUE,     -- normalized command string
     explanation TEXT NOT NULL,        -- ELI5 explanation
+    source TEXT DEFAULT 'ai_escalation',  -- 'trinity_preseed', 'ai_escalation', 'user_curated'
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 

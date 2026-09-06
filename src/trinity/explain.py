@@ -24,19 +24,45 @@ def get_explanation(conn: sqlite3.Connection, command: str) -> str | None:
     return row["explanation"] if row else None
 
 
-def save_explanation(conn: sqlite3.Connection, command: str, explanation: str) -> None:
+def save_explanation(
+    conn: sqlite3.Connection, command: str, explanation: str, source: str = "ai_escalation"
+) -> None:
     """Cache an ELI5 explanation for a command. Overwrites any existing
     entry for the same normalized command (e.g. if the user wants to
-    correct/improve a prior explanation)."""
+    correct/improve a prior explanation). Default source is
+    'ai_escalation' (the normal explain -> cache-explanation flow);
+    pass 'trinity_preseed' for bulk-authored library entries or
+    'user_curated' for hand-written ones."""
     conn.execute(
         """
-        INSERT INTO command_explanations (command, explanation)
-        VALUES (?, ?)
-        ON CONFLICT(command) DO UPDATE SET explanation = excluded.explanation
+        INSERT INTO command_explanations (command, explanation, source)
+        VALUES (?, ?, ?)
+        ON CONFLICT(command) DO UPDATE SET explanation = excluded.explanation, source = excluded.source
         """,
-        (normalize(command), explanation),
+        (normalize(command), explanation, source),
     )
     conn.commit()
+
+
+def seed_explanations(conn: sqlite3.Connection, entries: dict[str, str]) -> int:
+    """Bulk-insert pre-authored explanations, skipping any command that
+    already has a cached explanation (never overwrites something an
+    operator may have personally verified/corrected via the normal
+    explain flow). Returns the number of entries actually inserted."""
+    inserted = 0
+    for command, explanation in entries.items():
+        exists = conn.execute(
+            "SELECT 1 FROM command_explanations WHERE command = ?", (normalize(command),)
+        ).fetchone()
+        if exists:
+            continue
+        conn.execute(
+            "INSERT INTO command_explanations (command, explanation, source) VALUES (?, ?, 'trinity_preseed')",
+            (normalize(command), explanation),
+        )
+        inserted += 1
+    conn.commit()
+    return inserted
 
 
 def build_escalation_prompt(command: str) -> str:

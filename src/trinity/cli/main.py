@@ -8,6 +8,7 @@ from rich.table import Table
 from trinity.boxes import get_or_create_box, list_boxes, set_mode
 from trinity.db import connect
 from trinity.explain import build_escalation_prompt, get_explanation, save_explanation
+from trinity.explain_seed.combine import seed_all as seed_all_explanations
 from trinity.kb.seed import seed
 from trinity.match.engine import match_finding
 from trinity.parsers.nmap import parse_nmap_xml
@@ -35,10 +36,24 @@ def cli():
 
 @cli.command()
 def init():
-    """Initialize the local database and seed the starter knowledge base."""
+    """Initialize the local database and seed the starter knowledge base
+    plus the pre-authored command-explanation library."""
     conn = connect()
     count = seed(conn)
-    console.print(f"[green]Trinity DB ready.[/green] Seeded {count} new KB entries.")
+    explain_count = seed_all_explanations(conn)
+    console.print(f"[green]Trinity DB ready.[/green] Seeded {count} new KB entries "
+                  f"and {explain_count} new command explanations.")
+
+
+@cli.command("seed-explanations")
+def seed_explanations_cmd():
+    """(Re-)seed the pre-authored command-explanation library. Safe to
+    run any time — never overwrites an explanation you've already
+    cached (e.g. via the normal explain/cache-explanation flow)."""
+    conn = connect()
+    count = seed_all_explanations(conn)
+    console.print(f"[green]Seeded {count} new command explanations[/green] "
+                  f"({'nothing new to add' if count == 0 else 'library up to date'}).")
 
 
 @cli.command("box-list")
