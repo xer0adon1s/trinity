@@ -1,0 +1,9 @@
+{
+  "host": "target",
+  "ip": "10.10.10.3",
+  "port": "80",
+  "vulnerabilities": [
+    {"id": "999100", "method": "GET", "url": "/", "msg": "The X-Content-Type-Options header is not set."},
+    {"id": "999101", "method": "GET", "url": "/admin/", "msg": "Directory indexing found."}
+  ]
+}

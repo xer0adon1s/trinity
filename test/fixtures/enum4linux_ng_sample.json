@@ -1,0 +1,15 @@
+{
+  "target": "10.10.10.3",
+  "users": {
+    "5000 (bob)": {"username": "bob"},
+    "5001 (alice)": {"username": "alice"}
+  },
+  "shares": {
+    "C$": {"comment": "Default share"},
+    "backup": {"comment": "Backup files"}
+  },
+  "os_info": {
+    "OS version": "Windows Server 2019",
+    "Server type": "Windows"
+  }
+}

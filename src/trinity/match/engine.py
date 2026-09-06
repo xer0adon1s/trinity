@@ -4,20 +4,25 @@ should resolve instantly and for free, right here.
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 
 from pydantic import BaseModel
 
+from trinity.kb import searchsploit
+from trinity.kb.severity import rate_severity
 from trinity.parsers.nmap import Finding
 
 
 class KBMatch(BaseModel):
-    kb_id: int
+    kb_id: int | None = None          # None for live searchsploit results
     title: str
     summary: str
     detail: str | None = None
     source: str
     score: float
+    severity: str = "medium"          # heuristic unless the entry carries a
+                                       # real CVSS score (see kb.severity)
 
 
 def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) -> list[KBMatch]:
@@ -39,7 +44,7 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
         placeholders = ",".join("?" for _ in candidates)
         rows = conn.execute(
             f"""
-            SELECT id, title, summary, detail, source
+            SELECT id, title, summary, detail, source, severity, tags
             FROM kb_entries
             WHERE match_service IN ({placeholders})
             """,
@@ -69,6 +74,7 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
                     detail=row["detail"],
                     source=row["source"],
                     score=score,
+                    severity=row["severity"] or rate_severity(row["title"], row["tags"]),
                 )
             )
             seen_ids.add(row["id"])
@@ -84,7 +90,8 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
             rows = conn.execute(
                 """
                 SELECT kb_entries.id, kb_entries.title, kb_entries.summary,
-                       kb_entries.detail, kb_entries.source, kb_fts.rank
+                       kb_entries.detail, kb_entries.source, kb_entries.severity,
+                       kb_entries.tags, kb_fts.rank
                 FROM kb_fts
                 JOIN kb_entries ON kb_entries.id = kb_fts.rowid
                 WHERE kb_fts MATCH ?
@@ -109,11 +116,39 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
                     detail=row["detail"],
                     source=row["source"],
                     score=0.6,
+                    severity=row["severity"] or rate_severity(row["title"], row["tags"]),
                 )
             )
             seen_ids.add(row["id"])
 
     matches.sort(key=lambda m: m.score, reverse=True)
+
+    # Stage 3: live searchsploit lookup. Always runs when there's a
+    # product+version to query — a specific, version-matched exploit from
+    # ExploitDB is more actionable than a generic KB entry, so this isn't
+    # gated on "nothing found yet." searchsploit's mirror is much larger
+    # than Trinity's own curated KB and needs no network call, so it's
+    # cheap insurance either way, run before ever considering AI escalation.
+    if finding.product:
+        query_terms_ss = _searchsploit_query_terms(finding.product, finding.version)
+        for result in searchsploit.search(*query_terms_ss):
+            matches.append(
+                KBMatch(
+                    kb_id=None,
+                    title=result.title,
+                    summary=(
+                        f"Found in local ExploitDB (EDB-ID {result.edb_id})"
+                        + (f", {result.codes}" if result.codes else "")
+                        + (". Verified working." if result.verified else ".")
+                    ),
+                    detail=f"PoC: {result.path}" if result.path else None,
+                    source="searchsploit",
+                    score=0.95 if result.verified else 0.8,
+                    severity=rate_severity(result.title, result.codes),
+                )
+            )
+        matches.sort(key=lambda m: m.score, reverse=True)
+
     return matches[:limit]
 
 
@@ -124,3 +159,33 @@ def _fts_query(text: str) -> str:
     if not tokens:
         return '""'
     return " OR ".join(f'"{t}"' for t in tokens)
+
+
+# Service daemon suffixes that appear in nmap's product field but confuse
+# searchsploit's fuzzy matching (e.g. "Samba smbd" finds nothing, "Samba"
+# finds plenty). Stripped, not the whole product string, so genuine
+# multi-word products (e.g. "Apache httpd") still search sensibly since
+# only known noisy suffixes are removed.
+_NOISY_PRODUCT_SUFFIXES = re.compile(r"\b(smbd|httpd|daemon)\b", re.IGNORECASE)
+
+# Distro/packaging suffixes nmap tacks onto version strings (e.g.
+# "3.0.20-Debian", "4.7p1 Debian 8ubuntu1") that searchsploit's search
+# doesn't expect — only the leading version number is useful to it.
+_VERSION_LEADING_NUMBER = re.compile(r"^[\d.]+[a-z]?\d*")
+
+
+def _searchsploit_query_terms(product: str, version: str | None) -> list[str]:
+    """Clean nmap's product/version strings into terms searchsploit can
+    actually match against. nmap's fingerprints are written for humans
+    (e.g. "Samba smbd" / "3.0.20-Debian"), not for exact-ish search tools."""
+    clean_product = _NOISY_PRODUCT_SUFFIXES.sub("", product).strip()
+    clean_product = re.sub(r"\s+", " ", clean_product)
+
+    terms = [clean_product] if clean_product else [product]
+
+    if version:
+        match = _VERSION_LEADING_NUMBER.match(version.strip())
+        if match:
+            terms.append(match.group(0))
+
+    return terms

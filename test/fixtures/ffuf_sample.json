@@ -1,0 +1,7 @@
+{
+  "commandline": "ffuf -u http://target/FUZZ -w wordlist.txt -o out.json -of json",
+  "results": [
+    {"input": {"FUZZ": "admin"}, "url": "http://target/admin", "host": "target", "status": 301, "length": 178, "words": 10, "lines": 5},
+    {"input": {"FUZZ": "api"}, "url": "http://target/api", "host": "target", "status": 200, "length": 42, "words": 4, "lines": 1}
+  ]
+}

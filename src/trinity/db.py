@@ -18,8 +18,30 @@ CREATE TABLE IF NOT EXISTS boxes (
     target TEXT,                      -- IP or hostname
     platform TEXT,                    -- 'htb', 'thm', 'ctf', 'other'
     status TEXT DEFAULT 'active',     -- 'active', 'rooted', 'abandoned'
+    mode TEXT DEFAULT 'educational',  -- 'educational' or 'professional' —
+                                       -- governs explanation verbosity while
+                                       -- working and which report template
+                                       -- runs at the end. Both modes log to
+                                       -- the same timeline; mode is a lens
+                                       -- over one dataset, not a fork of it.
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Engagement front matter, used by professional-mode reports (and
+-- optionally shown in educational mode too). One row per box; all
+-- fields optional since educational/CTF use rarely needs them filled.
+CREATE TABLE IF NOT EXISTS engagement_meta (
+    box_id INTEGER PRIMARY KEY REFERENCES boxes(id),
+    client_name TEXT,
+    scope TEXT,                       -- what's in/out of scope, in the
+                                       -- operator's own words
+    authorization_ref TEXT,           -- e.g. HTB/THM platform + username,
+                                       -- or a signed engagement letter ref
+    tester_name TEXT,
+    start_date TEXT,
+    end_date TEXT,
+    notes TEXT
 );
 
 -- Every parsed finding from every scan, tied to a box.
@@ -54,6 +76,12 @@ CREATE TABLE IF NOT EXISTS kb_entries (
     match_service TEXT,               -- e.g. 'vsftpd' — cheap pre-filter
     match_version TEXT,               -- e.g. '2.3.4' or a semver range string
     tags TEXT,                        -- comma-separated: 'ftp,backdoor,rce'
+    severity TEXT,                    -- 'critical', 'high', 'medium', 'low',
+                                       -- 'info' — heuristic unless sourced
+                                       -- from a real CVSS feed (see
+                                       -- trinity.kb.severity)
+    cvss_score REAL,                  -- populated once a local CVE/CVSS feed
+                                       -- is wired in; NULL until then
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -103,10 +131,35 @@ CREATE TABLE IF NOT EXISTS suggestions (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+-- The chronological spine both report modes read from. Every notable
+-- thing that happens on a box — a scan run, a finding matched, a command
+-- suggested, an ELI5 explanation given, a manual note — gets one row
+-- here, in order. Educational-mode reports narrate this timeline;
+-- professional-mode reports group and re-format it. One shared log,
+-- two different lenses at report time — never two separate code paths
+-- collecting different data depending on mode.
+CREATE TABLE IF NOT EXISTS timeline (
+    id INTEGER PRIMARY KEY,
+    box_id INTEGER NOT NULL REFERENCES boxes(id),
+    ts TEXT DEFAULT CURRENT_TIMESTAMP,
+    phase TEXT,                       -- 'recon', 'enum', 'foothold', 'privesc', 'post'
+    event_type TEXT NOT NULL,         -- 'scan', 'finding', 'match', 'suggestion',
+                                       -- 'explanation', 'note', 'milestone'
+    summary TEXT NOT NULL,            -- one-line, human-readable
+    detail TEXT,                      -- longer text if useful in the report
+    severity TEXT,                    -- carried over from the KBMatch that
+                                       -- produced this event, if any
+    ref_id INTEGER,                   -- optional FK into findings/kb_entries/
+                                       -- suggestions, loosely typed on purpose
+                                       -- so one table serves every event kind
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_findings_box ON findings(box_id);
 CREATE INDEX IF NOT EXISTS idx_findings_matched ON findings(matched);
 CREATE INDEX IF NOT EXISTS idx_kb_service ON kb_entries(match_service);
 CREATE INDEX IF NOT EXISTS idx_suggestions_box ON suggestions(box_id);
+CREATE INDEX IF NOT EXISTS idx_timeline_box ON timeline(box_id, ts);
 """
 
 

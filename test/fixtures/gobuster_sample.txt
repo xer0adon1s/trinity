@@ -1,0 +1,4 @@
+/admin                (Status: 301) [Size: 178] [--> http://target/admin/]
+/login.php            (Status: 200) [Size: 2421]
+/backup.zip           (Status: 200) [Size: 891022]
+/.git                 (Status: 403) [Size: 278]

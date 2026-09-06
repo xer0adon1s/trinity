@@ -25,6 +25,7 @@ SEED_ENTRIES = [
         "match_service": "ftp",
         "match_version": "2.3.4",
         "tags": "ftp,backdoor,rce,vsftpd,cve-2011-2523",
+        "severity": "critical",
     },
     {
         "source": "user_curated",
@@ -37,6 +38,7 @@ SEED_ENTRIES = [
         "match_service": "ftp",
         "match_version": None,
         "tags": "ftp,anonymous,misconfiguration",
+        "severity": "medium",
     },
     {
         "source": "user_curated",
@@ -52,6 +54,7 @@ SEED_ENTRIES = [
         "match_service": "microsoft-ds",
         "match_version": None,
         "tags": "smb,enumeration,null-session,windows",
+        "severity": "medium",
     },
     {
         "source": "user_curated",
@@ -65,6 +68,7 @@ SEED_ENTRIES = [
         "match_service": "ssh",
         "match_version": None,
         "tags": "ssh,version-check",
+        "severity": "info",
     },
     {
         "source": "user_curated",
@@ -81,6 +85,7 @@ SEED_ENTRIES = [
         "match_service": "http",
         "match_version": None,
         "tags": "http,enumeration,gobuster,directory-bruteforce",
+        "severity": "info",
     },
     {
         "source": "user_curated",
@@ -97,6 +102,7 @@ SEED_ENTRIES = [
         "match_service": None,
         "match_version": None,
         "tags": "privesc,suid,linux,gtfobins",
+        "severity": "high",
     },
 ]
 
@@ -115,8 +121,8 @@ def seed(conn: sqlite3.Connection) -> int:
         conn.execute(
             """
             INSERT INTO kb_entries
-                (source, title, summary, detail, match_service, match_version, tags)
-            VALUES (:source, :title, :summary, :detail, :match_service, :match_version, :tags)
+                (source, title, summary, detail, match_service, match_version, tags, severity)
+            VALUES (:source, :title, :summary, :detail, :match_service, :match_version, :tags, :severity)
             """,
             entry,
         )
