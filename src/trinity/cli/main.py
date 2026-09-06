@@ -7,9 +7,11 @@ from rich.table import Table
 
 from trinity.boxes import get_or_create_box, list_boxes, set_mode
 from trinity.db import connect
+from trinity.explain import build_escalation_prompt, get_explanation, save_explanation
 from trinity.kb.seed import seed
 from trinity.match.engine import match_finding
 from trinity.parsers.nmap import parse_nmap_xml
+from trinity.suggest.engine import suggest_next_commands
 from trinity.timeline import log_event
 
 console = Console()
@@ -141,6 +143,92 @@ def parse_nmap_cmd(xml_path: str, box_name: str, target: str | None, platform: s
             f"{finding.host}:{finding.port} matched: {top.title}",
             phase="recon", detail=top.summary, severity=top.severity, ref_id=finding_id,
         )
+
+    suggestions = suggest_next_commands(conn, box.id)
+    if suggestions:
+        console.rule("[bold magenta]Suggested next commands[/bold magenta]")
+        for s in suggestions:
+            cursor = conn.execute(
+                "INSERT INTO suggestions (box_id, phase, command, rationale) VALUES (?, ?, ?, ?)",
+                (box.id, s.phase, s.command, s.rationale),
+            )
+            conn.commit()
+            log_event(
+                conn, box.id, "suggestion", f"suggested: {s.command}",
+                phase=s.phase, detail=s.rationale, ref_id=cursor.lastrowid,
+            )
+            console.print(f"  [bold]{s.command}[/bold]")
+            console.print(f"  [dim]{s.rationale}[/dim]")
+            console.print(f"  [dim](run `trinity explain \"{s.command}\"` to break this down)[/dim]")
+            console.print()
+
+
+@cli.command("suggest")
+@click.option("--box", "box_name", required=True, help="Box name.")
+def suggest_cmd(box_name: str):
+    """Show suggested next commands for a box, based on findings so far."""
+    conn = connect()
+    box = get_or_create_box(conn, box_name)
+    suggestions = suggest_next_commands(conn, box.id)
+
+    if not suggestions:
+        console.print("[dim]No new suggestions — either nothing's been parsed yet, "
+                       "or everything obvious has already been suggested.[/dim]")
+        return
+
+    for s in suggestions:
+        cursor = conn.execute(
+            "INSERT INTO suggestions (box_id, phase, command, rationale) VALUES (?, ?, ?, ?)",
+            (box.id, s.phase, s.command, s.rationale),
+        )
+        conn.commit()
+        log_event(
+            conn, box.id, "suggestion", f"suggested: {s.command}",
+            phase=s.phase, detail=s.rationale, ref_id=cursor.lastrowid,
+        )
+        console.print(f"[bold]{s.command}[/bold]")
+        console.print(f"[dim]{s.rationale}[/dim]\n")
+
+
+@cli.command("explain")
+@click.argument("command")
+@click.option("--box", "box_name", default=None, help="Box name, to log this explanation to its timeline.")
+def explain_cmd(command: str, box_name: str | None):
+    """Explain a command in plain (ELI5) terms. Checks the local cache
+    first — free and instant if this exact command has been explained
+    before, on any box, ever. Only asks you to bring in AI help on a
+    genuine cache miss."""
+    conn = connect()
+    cached = get_explanation(conn, command)
+
+    if cached:
+        console.print("[green]From local cache (no tokens spent):[/green]\n")
+        console.print(cached)
+    else:
+        console.print("[yellow]Not in the local cache yet.[/yellow] Bring this to your AI assistant:\n")
+        console.print(f"[dim]{'-' * 60}[/dim]")
+        console.print(build_escalation_prompt(command))
+        console.print(f"[dim]{'-' * 60}[/dim]\n")
+        console.print(
+            "Once you have an answer, save it locally with:\n"
+            f"  [bold]trinity cache-explanation \"{command}\" \"<the explanation>\"[/bold]"
+        )
+        return
+
+    if box_name:
+        box = get_or_create_box(conn, box_name)
+        log_event(conn, box.id, "explanation", f"explained: {command}", detail=cached)
+
+
+@cli.command("cache-explanation")
+@click.argument("command")
+@click.argument("explanation")
+def cache_explanation_cmd(command: str, explanation: str):
+    """Save an ELI5 explanation for a command to the local cache, so it
+    never needs to be re-explained (by anyone, on any box) again."""
+    conn = connect()
+    save_explanation(conn, command, explanation)
+    console.print(f"[green]Cached.[/green] `trinity explain \"{command}\"` will be instant from now on.")
 
 
 if __name__ == "__main__":
