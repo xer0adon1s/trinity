@@ -5,18 +5,24 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from trinity.boxes import get_or_create_box, list_boxes, set_mode
+from trinity.boxes import get_box_or_fail, get_or_create_box, list_boxes, set_mode, set_status, touch_active_box
+from trinity.coach import get_recommendation, set_accepted
 from trinity.db import connect
+from trinity.errors import build_error_escalation_prompt, find_error_match, save_error_fix
 from trinity.explain import build_escalation_prompt, get_explanation, save_explanation
 from trinity.explain_seed.combine import seed_all as seed_all_explanations
+from trinity.hints import get_hint
 from trinity.kb.seed import seed
-from trinity.match.engine import match_finding
-from trinity.parsers.nmap import parse_nmap_xml
+from trinity.platform_registry import get_platform, list_platform_ids, resolve_theme
+from trinity.process import process_scan_file
 from trinity.report.data import gather_report_data
 from trinity.report.educational import generate_educational_report
 from trinity.report.professional import generate_professional_report
+from trinity.sharing import is_sharing_enabled, set_sharing_enabled, write_share_bundle
 from trinity.suggest.engine import suggest_next_commands
 from trinity.timeline import log_event
+from trinity.wizard import launch as launch_wizard
+from trinity.wordlists import NO_WORDLIST_GUIDANCE
 
 console = Console()
 
@@ -29,20 +35,31 @@ _SEVERITY_COLOR = {
 }
 
 
-@click.group()
-def cli():
-    """Trinity — local-first CTF/HTB recon copilot."""
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx: click.Context):
+    """Trinity — local-first CTF/HTB recon copilot.
+
+    Run with no arguments to launch the interactive wizard (setup /
+    resume a project / start a new one). Every other command below
+    still works standalone for anyone who wants to drive directly."""
+    if ctx.invoked_subcommand is None:
+        conn = connect()
+        launch_wizard(conn)
 
 
 @cli.command()
 def init():
     """Initialize the local database and seed the starter knowledge base
-    plus the pre-authored command-explanation library."""
+    plus the pre-authored command-explanation and error-pattern libraries."""
+    from trinity.errors_seed import seed_error_patterns
+
     conn = connect()
     count = seed(conn)
     explain_count = seed_all_explanations(conn)
-    console.print(f"[green]Trinity DB ready.[/green] Seeded {count} new KB entries "
-                  f"and {explain_count} new command explanations.")
+    error_count = seed_error_patterns(conn)
+    console.print(f"[green]Trinity DB ready.[/green] Seeded {count} new KB entries, "
+                  f"{explain_count} new command explanations, and {error_count} new error patterns.")
 
 
 @cli.command("seed-explanations")
@@ -83,7 +100,7 @@ def box_list():
 def box_mode(box_name: str, mode: str):
     """Set a box's mode: educational or professional."""
     conn = connect()
-    box = get_or_create_box(conn, box_name)
+    box = get_box_or_fail(conn, box_name)
     set_mode(conn, box.id, mode)
     console.print(f"[green]{box_name}[/green] set to [bold]{mode}[/bold] mode.")
 
@@ -92,59 +109,42 @@ def box_mode(box_name: str, mode: str):
 @click.argument("xml_path", type=click.Path(exists=True))
 @click.option("--box", "box_name", required=True, help="Box name (created if new).")
 @click.option("--target", default=None, help="Target IP/hostname (stored on first creation).")
-@click.option("--platform", default=None, type=click.Choice(["htb", "thm", "ctf", "other"]))
+@click.option("--platform", default=None, type=click.Choice(list_platform_ids()))
 @click.option("--mode", default="educational", type=click.Choice(["educational", "professional"]))
 def parse_nmap_cmd(xml_path: str, box_name: str, target: str | None, platform: str | None, mode: str):
     """Parse an nmap XML scan, match every finding against the local KB,
     and persist findings + matches + a timeline entry for the box."""
+    from pathlib import Path
+
     conn = connect()
     box = get_or_create_box(conn, box_name, target=target, platform=platform, mode=mode)
+    touch_active_box(conn, box.id)
 
-    findings = parse_nmap_xml(xml_path)
-    if not findings:
+    result = process_scan_file(conn, box.id, Path(xml_path))
+    if result is None:
+        console.print(
+            "[yellow]That file wasn't recognized as nmap XML output "
+            "(or any other known scan format).[/yellow]"
+        )
+        return
+    if not result.findings:
         console.print("[yellow]No open ports found in that scan.[/yellow]")
         return
 
-    log_event(
-        conn, box.id, "scan", f"nmap scan parsed: {len(findings)} open port(s) found",
-        phase="recon", detail=str(xml_path),
-    )
-
-    for finding in findings:
-        cursor = conn.execute(
-            """
-            INSERT INTO findings
-                (box_id, source_tool, kind, host, port, service, product, version, detail, raw_ref)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                box.id, finding.source_tool, finding.kind, finding.host, finding.port,
-                finding.service, finding.product, finding.version, finding.detail, finding.raw_ref,
-            ),
-        )
-        conn.commit()
-        finding_id = cursor.lastrowid
-
-        header = f"[bold cyan]{finding.host}:{finding.port}[/bold cyan] {finding.service or '?'}"
-        if finding.product:
-            header += f" ({finding.product} {finding.version or ''})"
+    for fr in result.findings:
+        f = fr.finding
+        header = f"[bold cyan]{f.host}:{f.port}[/bold cyan] {f.service or '?'}"
+        if f.product:
+            header += f" ({f.product} {f.version or ''})"
         console.rule(header)
 
-        matches = match_finding(conn, finding)
-        if not matches:
+        if not fr.matches:
             console.print(
                 "  [dim]No local match — this would be a candidate for AI escalation.[/dim]"
             )
-            log_event(
-                conn, box.id, "finding", f"{finding.host}:{finding.port} — no local match",
-                phase="recon", ref_id=finding_id,
-            )
             continue
 
-        conn.execute("UPDATE findings SET matched = 1 WHERE id = ?", (finding_id,))
-        conn.commit()
-
-        for m in matches:
+        for m in fr.matches:
             color = _SEVERITY_COLOR.get(m.severity, "white")
             console.print(
                 f"  [bold green]{m.title}[/bold green]  "
@@ -155,29 +155,11 @@ def parse_nmap_cmd(xml_path: str, box_name: str, target: str | None, platform: s
                 console.print(f"  [dim]{m.detail}[/dim]")
             console.print()
 
-        top = matches[0]
-        log_event(
-            conn, box.id, "match",
-            f"{finding.host}:{finding.port} matched: {top.title}",
-            phase="recon", detail=top.summary, severity=top.severity, ref_id=finding_id,
-        )
-
-    suggestions = suggest_next_commands(conn, box.id)
-    if suggestions:
+    if result.suggestions:
         console.rule("[bold magenta]Suggested next commands[/bold magenta]")
-        for s in suggestions:
-            cursor = conn.execute(
-                "INSERT INTO suggestions (box_id, phase, command, rationale) VALUES (?, ?, ?, ?)",
-                (box.id, s.phase, s.command, s.rationale),
-            )
-            conn.commit()
-            log_event(
-                conn, box.id, "suggestion", f"suggested: {s.command}",
-                phase=s.phase, detail=s.rationale, ref_id=cursor.lastrowid,
-            )
-            console.print(f"  [bold]{s.command}[/bold]")
-            console.print(f"  [dim]{s.rationale}[/dim]")
-            console.print(f"  [dim](run `trinity explain \"{s.command}\"` to break this down)[/dim]")
+        for command in result.suggestions:
+            console.print(f"  [bold]{command}[/bold]")
+            console.print(f"  [dim](run `trinity explain \"{command}\"` to break this down)[/dim]")
             console.print()
 
 
@@ -196,8 +178,9 @@ def suggest_cmd(box_name: str):
 
     for s in suggestions:
         cursor = conn.execute(
-            "INSERT INTO suggestions (box_id, phase, command, rationale) VALUES (?, ?, ?, ?)",
-            (box.id, s.phase, s.command, s.rationale),
+            "INSERT INTO suggestions (box_id, phase, command, rationale, nudge, required_tool, finding_id) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (box.id, s.phase, s.command, s.rationale, s.nudge, s.required_tool, s.finding_id),
         )
         conn.commit()
         log_event(
@@ -305,7 +288,7 @@ def report_cmd(box_name: str, mode: str | None, output_path: str | None):
     professional pentest deliverable, read from the same timeline data
     either way — mode only changes the formatting."""
     conn = connect()
-    box = get_or_create_box(conn, box_name)
+    box = get_box_or_fail(conn, box_name)
     effective_mode = mode or box.mode
 
     data = gather_report_data(conn, box.id)
@@ -323,6 +306,324 @@ def report_cmd(box_name: str, mode: str | None, output_path: str | None):
         # Rich's normal path would misinterpret things like "[fill in]" as
         # bracket-tag syntax and silently eat the text. Print it raw.
         console.print(content, markup=False, highlight=False)
+
+
+@cli.command("watch")
+@click.option("--box", "box_name", required=True, help="Box name (must already exist).")
+@click.option("--dir", "watch_dir", default=".", type=click.Path(exists=True, file_okay=False),
+              help="Directory to watch for new/changed scan output (default: current directory).")
+def watch_cmd(box_name: str, watch_dir: str):
+    """Launch the live watch-mode dashboard: watches a directory for new
+    scan output (nmap XML, gobuster/ffuf/nikto/whatweb/enum4linux-ng),
+    auto-parses and matches it the moment it lands, and shows a live
+    feed alongside suggested next commands. Meant to run in one terminal
+    tile while you run the actual recon tools in an adjacent one — "I
+    do" (Trinity narrates) next to "we do" (you run the real tool)."""
+    from pathlib import Path
+
+    from trinity.boxes import get_box_by_name
+    from trinity.tui.dashboard import run_dashboard
+
+    conn = connect()
+    box = get_box_by_name(conn, box_name)
+    if box:
+        touch_active_box(conn, box.id)
+
+    run_dashboard(box_name, Path(watch_dir).resolve())
+
+
+@cli.command("setup")
+def setup_cmd():
+    """Re-run the intro/onboarding walkthrough on demand (intro text +
+    theme tip). Doesn't touch any existing project data."""
+    from trinity.wizard import run_intro
+
+    conn = connect()
+    run_intro(conn)
+
+
+@cli.command("box-status")
+@click.argument("box_name")
+@click.argument("status", type=click.Choice(["active", "rooted", "abandoned"]))
+def box_status_cmd(box_name: str, status: str):
+    """Mark a box active / rooted / abandoned. Marking a box rooted or
+    abandoned closes it out — the next bare `trinity` launch will offer
+    to start a new project instead of resuming this one."""
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+    set_status(conn, box.id, status)
+    log_event(conn, box.id, "milestone", f"box marked {status}")
+
+    label = {"rooted": "Rooted! 🎉", "abandoned": "Marked abandoned.", "active": "Marked active."}[status]
+    console.print(f"[green]{label}[/green] ({box_name})")
+    if status == "rooted":
+        console.print(
+            "[dim]Nice work. Generate a report with:[/dim]\n"
+            f"  [bold]trinity report --box \"{box_name}\"[/bold]"
+        )
+
+
+@cli.command("theme")
+@click.argument("name", required=False)
+@click.option("--omarchy", is_flag=True, help="Use your live Omarchy desktop theme's colors instead of a platform theme.")
+def theme_cmd(name: str | None, omarchy: bool):
+    """Show or preview a theme. Pass a platform id (htb, thm, ...) to
+    preview its colors, or --omarchy to preview your current Omarchy
+    desktop theme's colors instead. With no arguments, lists all known
+    platform ids."""
+    if name is None and not omarchy:
+        console.print("[bold]Known platforms:[/bold] " + ", ".join(list_platform_ids()))
+        console.print("[dim]Usage: trinity theme <platform> | trinity theme --omarchy[/dim]")
+        return
+
+    theme = resolve_theme(name, prefer_omarchy=omarchy)
+    if omarchy:
+        label = "your Omarchy desktop theme"
+    else:
+        platform = get_platform(name)
+        label = platform.name if platform else f"{name} (unknown platform, using default theme)"
+    console.print(f"[bold]{label}[/bold]")
+    console.print(f"  accent:     [{theme.accent}]███[/{theme.accent}] {theme.accent}")
+    console.print(f"  background: [{theme.background}]███[/{theme.background}] {theme.background}")
+    console.print(f"  foreground: [{theme.foreground}]███[/{theme.foreground}] {theme.foreground}")
+
+
+@cli.command("share-export")
+@click.option("--box", "box_name", required=True, help="Box name.")
+@click.option("--output", "output_path", default="trinity_share_bundle.json", type=click.Path(),
+              help="Where to write the exportable bundle (default: trinity_share_bundle.json).")
+@click.option("--enable", is_flag=True, help="Also turn on opt-in sharing for future sessions.")
+def share_export_cmd(box_name: str, output_path: str, enable: bool):
+    """Export this box's AI-escalation explanations and unmatched
+    findings as an anonymized, shareable bundle — nothing is sent
+    anywhere automatically. Review the file, then contribute it
+    upstream (e.g. via a PR) if you want to help grow the shared KB."""
+    from pathlib import Path
+
+    conn = connect()
+    box = get_or_create_box(conn, box_name)
+
+    if enable:
+        set_sharing_enabled(conn, True)
+        console.print("[green]Opt-in sharing enabled.[/green]")
+
+    count = write_share_bundle(conn, box.id, Path(output_path))
+    console.print(f"[green]Wrote {count} shareable item(s) to {output_path}.[/green]")
+    console.print(
+        "[dim]Nothing was sent anywhere — review the file, then contribute it "
+        "upstream yourself if you'd like to help grow the shared knowledge base.[/dim]"
+    )
+
+
+@cli.command("next")
+@click.option("--box", "box_name", required=True, help="Box name.")
+def next_cmd(box_name: str):
+    """Recommend exactly one next command to run, with the reasoning
+    for why it's first — instead of a flat list of equally-weighted
+    suggestions. The rest of the valid suggestions are still listed
+    underneath as secondary options (annotated installed/not-installed
+    once Hole C makes more than one live at once). In professional
+    mode, the WHY narration is skipped -- just the command and
+    secondary options."""
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+
+    rec = get_recommendation(conn, box.id)
+    if rec is None:
+        console.print(
+            "[dim]Nothing to recommend yet — either nothing's been parsed for "
+            "this box, or every obvious next step has already been suggested.[/dim]"
+        )
+        return
+
+    console.rule("[bold green]Recommended next[/bold green]")
+    console.print(f"[bold]{rec.top.command}[/bold]\n")
+
+    if rec.wordlist_missing:
+        console.print(f"[yellow]{NO_WORDLIST_GUIDANCE}[/yellow]\n")
+
+    if rec.tool_missing:
+        # `next` is "tell me what to do" -- naming the missing tool here
+        # is correct (unlike `hint`, see hint_cmd below, where naming it
+        # early would leak the answer). We do NOT early-return: the
+        # operator should still see the secondary suggestions while they
+        # go install the tool, not just a dead end (see
+        # docs/CLAUDE_CURSOR_DEBATE.md Part B.2 -- this early-return used
+        # to hide `also_worth_trying` entirely).
+        console.print(f"[yellow]{rec.install_guidance}[/yellow]\n")
+        console.print(
+            "[dim]Once that's installed, just run this same command again -- "
+            f"I'll pick up right where we left off: `trinity next --box \"{box_name}\"`[/dim]\n"
+        )
+    elif box.mode == "professional":
+        # Professional mode: mode is a lens, not a fork -- same
+        # ranking, same data, but the teaching narration is stripped
+        # to keep this a fast reference rather than a lesson.
+        console.print(f"[dim](run `trinity explain \"{rec.top.command}\"` for a command breakdown)[/dim]")
+    else:
+        console.print(f"[dim]{rec.why}[/dim]\n")
+        quoted_command = f'"{rec.top.command}"'
+        quoted_box = f'"{box_name}"'
+        console.print(
+            f"[dim](run `trinity explain {quoted_command}` for a command breakdown, "
+            f"or `trinity hint --box {quoted_box}` if you want to work it out yourself first)[/dim]"
+        )
+
+    console.print(
+        f"[dim](done? `trinity did --box \"{box_name}\"`  ·  "
+        f"skipping this one? `trinity skip --box \"{box_name}\"`)[/dim]"
+    )
+
+    if rec.also_worth_trying:
+        console.print()
+        console.rule("[dim]Also worth trying[/dim]")
+        for s, installed in zip(rec.also_worth_trying, rec.also_worth_trying_installed):
+            marker = "" if installed else "  [dim](tool not installed)[/dim]"
+            console.print(f"  [dim]{s.command}[/dim]{marker}")
+
+
+@cli.command("did")
+@click.option("--box", "box_name", required=True, help="Box name.")
+def did_cmd(box_name: str):
+    """Mark the current top recommendation as done. The coach will not
+    recommend it again -- `trinity next` moves on to whatever's next
+    (Hole A: before this command existed, nothing in Trinity ever set
+    a suggestion's accepted flag, so `next` recommended the same
+    command forever)."""
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+
+    rec = get_recommendation(conn, box.id)
+    if rec is None:
+        console.print("[dim]Nothing outstanding to mark done for this box.[/dim]")
+        return
+
+    set_accepted(conn, rec.suggestion_id)
+    log_event(conn, box.id, "milestone", f"did: {rec.top.command}", phase=rec.top.phase, ref_id=rec.suggestion_id)
+    console.print(f"[green]Marked done:[/green] {rec.top.command}")
+
+    next_rec = get_recommendation(conn, box.id)
+    if next_rec:
+        console.print(f"\n[dim]Next up:[/dim] [bold]{next_rec.top.command}[/bold]")
+    else:
+        console.print("\n[dim]Nothing else outstanding right now — keep scanning, or check `trinity report`.[/dim]")
+
+
+@cli.command("skip")
+@click.option("--box", "box_name", required=True, help="Box name.")
+def skip_cmd(box_name: str):
+    """Park the current top recommendation without running it, and move
+    on to the next phase-appropriate suggestion. Same underlying
+    mechanism as `did` (accepted=1) -- the distinction is in the
+    timeline wording, not the schema (see
+    docs/CLAUDE_CURSOR_DEBATE.md, Part E item 3)."""
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+
+    rec = get_recommendation(conn, box.id)
+    if rec is None:
+        console.print("[dim]Nothing outstanding to skip for this box.[/dim]")
+        return
+
+    set_accepted(conn, rec.suggestion_id)
+    log_event(conn, box.id, "note", f"skipped: {rec.top.command}", phase=rec.top.phase, ref_id=rec.suggestion_id)
+    console.print(f"[yellow]Skipped:[/yellow] {rec.top.command}")
+    console.print("[dim]That's normal — parked it. Moving on.[/dim]")
+
+    next_rec = get_recommendation(conn, box.id)
+    if next_rec:
+        console.print(f"\n[dim]Next up:[/dim] [bold]{next_rec.top.command}[/bold]")
+    else:
+        console.print("\n[dim]Nothing else outstanding right now — keep scanning, or check `trinity report`.[/dim]")
+
+
+@cli.command("hint")
+@click.option("--box", "box_name", required=True, help="Box name.")
+def hint_cmd(box_name: str):
+    """Get a graduated hint toward the current recommended next step —
+    starts with a nudge, escalates to a stronger nudge, then the full
+    answer, the more times you ask about the SAME stuck point. A new
+    finding/recommendation always starts back at a nudge. In
+    professional mode, the Socratic ladder is skipped entirely --
+    this just gives the full answer immediately, since a pentest
+    deliverable has no use for being coy about the next step."""
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+
+    rec = get_recommendation(conn, box.id)
+    if rec is None:
+        console.print("[dim]Nothing to hint about yet — nothing's been parsed for this box.[/dim]")
+        return
+
+    if box.mode == "professional":
+        console.rule("[bold green]Next step[/bold green]")
+        console.print(f"{rec.top.rationale}\n\nThe command to run: {rec.top.command}")
+        if rec.tool_missing:
+            console.print(f"\n[yellow]{rec.install_guidance}[/yellow]")
+        return
+
+    hint = get_hint(conn, box.id, rec.suggestion_id, rec.top.phase, rec.top.nudge, rec.top.rationale, rec.top.command)
+
+    # Install guidance NAMES the required tool -- that's the same kind
+    # of answer-leak as putting the command in level 2, so it can only
+    # appear alongside the full answer (level 3), never earlier. The
+    # previous version gated on `get_hint_level(...) >= 2` measured
+    # BEFORE this call advanced the level, which meant install guidance
+    # actually appeared on the third ask (bundled with L3) despite the
+    # comment claiming "level 2+" -- an untested off-by-one in the same
+    # family as this project's earlier hint-leak bug. See
+    # docs/CLAUDE_CURSOR_DEBATE.md, Part A.3.
+    if rec.tool_missing and hint.level == 3:
+        console.rule("[bold yellow]Heads up[/bold yellow]")
+        console.print(f"{rec.install_guidance}\n")
+
+    level_label = {1: "Nudge", 2: "Stronger nudge", 3: "Full answer"}[hint.level]
+    console.rule(f"[bold yellow]{level_label} ({hint.level}/3)[/bold yellow]")
+    console.print(hint.text)
+    if hint.level < 3:
+        console.print("\n[dim](ask again for a stronger hint on this same step)[/dim]")
+
+
+@cli.command("error")
+@click.argument("error_text")
+@click.option("--box", "box_name", default=None, help="Box name, to log this to its timeline.")
+def error_cmd(error_text: str, box_name: str | None):
+    """Diagnose an error/failure. Checks the local cache first — free
+    and instant if this cause has been seen before, on any box, ever.
+    Only asks you to bring in AI help on a genuine cache miss."""
+    conn = connect()
+    match = find_error_match(conn, error_text)
+
+    if match:
+        console.print("[green]From local cache (no tokens spent):[/green]\n")
+        console.print(f"[bold]Cause:[/bold] {match.cause}")
+        console.print(f"[bold]Fix:[/bold] {match.fix}")
+    else:
+        console.print("[yellow]Not in the local cache yet.[/yellow] Bring this to your AI assistant:\n")
+        console.print(f"[dim]{'-' * 60}[/dim]")
+        console.print(build_error_escalation_prompt(error_text))
+        console.print(f"[dim]{'-' * 60}[/dim]\n")
+        console.print(
+            "Once you have a confirmed fix, save it locally with:\n"
+            f"  [bold]trinity cache-error \"{error_text}\" \"<cause>\" \"<fix>\"[/bold]"
+        )
+        return
+
+    if box_name:
+        box = get_or_create_box(conn, box_name)
+        log_event(conn, box.id, "explanation", f"diagnosed error: {error_text[:80]}", detail=match.fix)
+
+
+@cli.command("cache-error")
+@click.argument("error_text")
+@click.argument("cause")
+@click.argument("fix")
+def cache_error_cmd(error_text: str, cause: str, fix: str):
+    """Save a confirmed cause/fix for an error to the local cache, so
+    it never needs AI escalation again (by anyone, on any box)."""
+    conn = connect()
+    save_error_fix(conn, error_text, cause, fix)
+    console.print("[green]Cached.[/green] `trinity error \"...\"` will catch similar errors from now on.")
 
 
 if __name__ == "__main__":

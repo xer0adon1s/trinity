@@ -16,6 +16,7 @@ class Box(BaseModel):
 
 
 VALID_MODES = {"educational", "professional"}
+VALID_STATUSES = {"active", "rooted", "abandoned"}
 
 
 def create_box(
@@ -62,6 +63,35 @@ def get_or_create_box(
     return create_box(conn, name, target=target, platform=platform, mode=mode)
 
 
+def get_box_or_fail(conn: sqlite3.Connection, name: str) -> Box:
+    """For administrative/read commands (box-status, report, next, hint,
+    did, skip, box-mode, explain, error) that look a box up by name but
+    should NOT silently create a ghost project on a typo -- only wizard/
+    parse/watch (which represent the operator actually starting to work
+    a box) should create. Raises click.ClickException with a clear
+    message rather than a bare KeyError."""
+    import click
+
+    box = get_box_by_name(conn, name)
+    if box is None:
+        raise click.ClickException(
+            f"No box named {name!r}. Start one via the wizard (`trinity`) or "
+            f"`trinity parse-nmap ... --box {name!r}` / `trinity watch --box {name!r}`."
+        )
+    return box
+
+
+def touch_active_box(conn: sqlite3.Connection, box_id: int) -> None:
+    """Marks a box as the 'active' one for the wizard's Resume option.
+    Called explicitly from commands that represent actually *working*
+    a box (parse-nmap, watch) -- NOT from get_or_create_box in general,
+    since plenty of commands (box-status, report, explain, box-mode)
+    look a box up by name without that meaning 'I am now working this
+    box' in the resume-tracking sense."""
+    from trinity.state import ACTIVE_BOX_ID, set_state
+    set_state(conn, ACTIVE_BOX_ID, str(box_id))
+
+
 def list_boxes(conn: sqlite3.Connection) -> list[Box]:
     rows = conn.execute("SELECT * FROM boxes ORDER BY updated_at DESC").fetchall()
     return [Box(**dict(row)) for row in rows]
@@ -75,3 +105,22 @@ def set_mode(conn: sqlite3.Connection, box_id: int, mode: str) -> None:
         (mode, box_id),
     )
     conn.commit()
+
+
+def set_status(conn: sqlite3.Connection, box_id: int, status: str) -> None:
+    """Marks a box active/rooted/abandoned. Closing a box out (rooted
+    or abandoned) also clears it as the wizard's 'active' box, so the
+    next bare `trinity` launch correctly offers 'start a new project'
+    instead of endlessly offering to resume a box that's already done."""
+    if status not in VALID_STATUSES:
+        raise ValueError(f"status must be one of {VALID_STATUSES}, got {status!r}")
+    conn.execute(
+        "UPDATE boxes SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (status, box_id),
+    )
+    conn.commit()
+
+    if status in ("rooted", "abandoned"):
+        from trinity.state import ACTIVE_BOX_ID, get_state, clear_state
+        if get_state(conn, ACTIVE_BOX_ID) == str(box_id):
+            clear_state(conn, ACTIVE_BOX_ID)

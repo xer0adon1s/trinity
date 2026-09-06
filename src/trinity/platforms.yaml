@@ -1,0 +1,135 @@
+# Trinity's platform registry. One entry per known CTF/lab platform.
+# Not a fixed enum in code -- this file is the source of truth, and
+# it's meant to grow: add an entry here and send a PR, or drop a
+# personal override at ~/.trinity/platforms.yaml (same shape, merged on
+# top of this file -- your local entries win on id collisions).
+#
+# Fields:
+#   id            short identifier used everywhere else (box.platform)
+#   name          display name
+#   theme:
+#     accent, background, foreground   base colors for Trinity's own
+#                                       Rich console theming
+#   scope_hint    plain-language description of how this platform
+#                 defines "in scope" -- shown to the operator, and used
+#                 to decide whether the VPN-check step is relevant at
+#                 all (some platforms need no VPN)
+#   needs_vpn     true/false -- whether to run the VPN check step
+#   vpn_help      platform-specific connection instructions (only
+#                 shown if needs_vpn is true)
+
+platforms:
+  htb:
+    name: Hack The Box
+    theme:
+      accent: "#9fef00"
+      background: "#141d2b"
+      foreground: "#d6d6d6"
+    scope_hint: >
+      Only the specific machine IP assigned to you over the HTB VPN is
+      in scope -- never scan the wider VPN subnet.
+    needs_vpn: true
+    vpn_help: >
+      Download your VPN config from the HTB Access page, then run:
+        sudo openvpn <yourfile>.ovpn
+      (or connect via HTB's Pwnbox if you're using that instead).
+
+  thm:
+    name: TryHackMe
+    theme:
+      accent: "#c02942"
+      background: "#0d1117"
+      foreground: "#e6e6e6"
+    scope_hint: >
+      Only the room's assigned machine IP is in scope, reached over
+      THM's VPN (OpenVPN or WireGuard, depending on your access mode).
+    needs_vpn: true
+    vpn_help: >
+      Connect via the OpenVPN config from your THM access page, or use
+      the WireGuard option if you've set that up instead.
+
+  portswigger:
+    name: PortSwigger Web Security Academy
+    theme:
+      accent: "#ff6633"
+      background: "#1a1a1a"
+      foreground: "#f0f0f0"
+    scope_hint: >
+      Only PortSwigger's own lab domains (issued per-exercise) are in
+      scope -- this is web-only, no VPN involved.
+    needs_vpn: false
+    vpn_help: ""
+
+  overthewire:
+    name: OverTheWire
+    theme:
+      accent: "#00ff00"
+      background: "#000000"
+      foreground: "#00ff00"
+    scope_hint: >
+      Only the named wargame host (e.g. bandit.labs.overthewire.org)
+      you're working on is in scope -- reached directly over SSH, no
+      VPN required.
+    needs_vpn: false
+    vpn_help: ""
+
+  vulnhub:
+    name: VulnHub
+    theme:
+      accent: "#7f00ff"
+      background: "#0f0f1a"
+      foreground: "#e0e0ff"
+    scope_hint: >
+      A downloaded VM you run yourself (VirtualBox/VMware) -- scope is
+      whatever IP that VM gets on your local/host-only network. No
+      VPN involved.
+    needs_vpn: false
+    vpn_help: ""
+
+  picoctf:
+    name: picoCTF
+    theme:
+      accent: "#48b9c7"
+      background: "#141414"
+      foreground: "#f2f2f2"
+    scope_hint: >
+      Challenge-specific hosts/ports issued per-challenge -- no VPN,
+      usually reached directly over the internet at a given host:port.
+    needs_vpn: false
+    vpn_help: ""
+
+  rootme:
+    name: Root-Me
+    theme:
+      accent: "#e2001a"
+      background: "#111111"
+      foreground: "#eeeeee"
+    scope_hint: >
+      Challenge-specific, mostly no VPN -- some network-based
+      challenges may require their VPN; check the challenge page.
+    needs_vpn: false
+    vpn_help: ""
+
+  ctf:
+    name: Generic CTF
+    theme:
+      accent: "#ffb000"
+      background: "#101010"
+      foreground: "#e8e8e8"
+    scope_hint: >
+      Whatever the CTF's own rules define as in scope -- check the
+      event's rules page.
+    needs_vpn: false
+    vpn_help: ""
+
+  other:
+    name: Other / Unspecified
+    theme:
+      accent: "#5f87ff"
+      background: "#101010"
+      foreground: "#e0e0e0"
+    scope_hint: >
+      Scope not yet described for this platform -- double-check with
+      whatever platform/lab you're using before scanning anything.
+    needs_vpn: false
+    vpn_help: ""

@@ -1,0 +1,258 @@
+"""Trinity's watch-mode dashboard: the technical centerpiece of the
+dual-pane "I do / we do" workflow. Watches a working directory, and the
+moment a new/changed scan file lands (saved by the student running the
+real tool in their own adjacent terminal pane), auto-parses it, matches
+it, and live-updates a feed of findings and suggestions — no manual
+"trinity parse-*" invocation needed on the watched side.
+"""
+from __future__ import annotations
+
+import asyncio
+import hashlib
+from pathlib import Path
+
+from rich.text import Text
+from textual.app import App, ComposeResult
+from textual.containers import Horizontal, Vertical
+from textual.widgets import Footer, Header, ListItem, ListView, Static
+from watchfiles import Change, awatch
+
+from trinity.boxes import Box, get_box
+from trinity.coach import get_recommendation, set_accepted
+from trinity.db import connect
+from trinity.hints import get_hint
+from trinity.process import ProcessResult, process_scan_file
+
+_SEVERITY_STYLE = {
+    "critical": "bold red",
+    "high": "red",
+    "medium": "yellow",
+    "low": "cyan",
+    "info": "dim",
+}
+
+_PHASES = ["recon", "enum", "foothold", "privesc", "post"]
+_PHASE_LABELS = {"recon": "Recon", "enum": "Enum", "foothold": "Foothold", "privesc": "Privesc", "post": "Root"}
+
+# Which file extensions/patterns are even worth reacting to — anything
+# else in the watched directory (editor swap files, .git internals,
+# unrelated downloads) is ignored without touching the DB or parsers.
+_WATCHED_SUFFIXES = {".xml", ".json", ".jsonl", ".txt", ".out"}
+
+
+class TrinityDashboard(App):
+    """Live watch-mode dashboard. Run alongside the student's own
+    terminal (a second tile, side by side) — this pane never runs
+    recon tools itself, only reacts to their output."""
+
+    CSS = """
+    Screen {
+        layout: vertical;
+    }
+    #status {
+        height: 4;
+        content-align: center middle;
+        border: solid $accent;
+    }
+    #body {
+        height: 1fr;
+    }
+    #feed {
+        width: 2fr;
+        border: solid $primary;
+    }
+    #suggestions {
+        width: 1fr;
+        border: solid $secondary;
+    }
+    """
+
+    BINDINGS = [
+        ("q", "quit", "Quit"),
+        ("d", "mark_did", "Did it"),
+        ("s", "mark_skip", "Skip"),
+        ("h", "show_hint", "Hint"),
+    ]
+
+    def __init__(self, box_name: str, watch_dir: Path):
+        super().__init__()
+        self.box_name = box_name
+        self.watch_dir = watch_dir
+        self.conn = connect()
+        box = get_box_by_name_or_raise(self.conn, box_name)
+        self.box: Box = box
+        # Tracks the content hash of the last-processed version of each
+        # path, so a filesystem event that fires twice for the same
+        # save (e.g. a paired "added" + "modified" event, or an editor
+        # writing the file in two syscalls) doesn't insert the same
+        # findings/timeline events twice. Keyed by absolute path string.
+        self._last_processed_hash: dict[str, str] = {}
+
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=True)
+        yield Static(id="status")
+        with Horizontal(id="body"):
+            yield ListView(id="feed")
+            yield ListView(id="suggestions")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self._refresh_status()
+        self.run_worker(self._watch_loop(), exclusive=True)
+
+    def _refresh_status(self) -> None:
+        status = self.query_one("#status", Static)
+        rec = get_recommendation(self.conn, self.box.id)
+        current_phase = rec.top.phase if rec else None
+        parts = []
+        for p in _PHASES:
+            label = _PHASE_LABELS[p]
+            parts.append(f"[bold green]> {label}[/bold green]" if p == current_phase else f"[dim]{label}[/dim]")
+        rail = "  ".join(parts)
+        status.update(
+            Text.from_markup(
+                f"[bold]{self.box.name}[/bold]  ·  {self.box.target or 'no target set'}  ·  "
+                f"watching [italic]{self.watch_dir}[/italic]  ·  mode: {self.box.mode}\n{rail}"
+            )
+        )
+
+    async def _watch_loop(self) -> None:
+        """Background worker: watches the directory forever, reacting to
+        each new/modified file that looks like scan output."""
+        async for changes in awatch(self.watch_dir):
+            for change_type, changed_path in changes:
+                if change_type not in (Change.added, Change.modified):
+                    continue
+                path = Path(changed_path)
+                if path.suffix.lower() not in _WATCHED_SUFFIXES:
+                    continue
+                # Debounce: a file mid-write (the scanning tool still
+                # flushing output) shouldn't be parsed half-finished.
+                await asyncio.sleep(0.3)
+                self._handle_file(path)
+
+    def _handle_file(self, path: Path) -> None:
+        try:
+            content_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError:
+            return  # file vanished/unreadable between the event and now
+
+        key = str(path.resolve())
+        if self._last_processed_hash.get(key) == content_hash:
+            # Same content already processed for this path -- a
+            # duplicate filesystem event (a paired added+modified pair,
+            # or a debounced re-fire) for a save that already landed.
+            # Processing it again would duplicate findings/timeline
+            # events, since process_scan_file always INSERTs.
+            return
+
+        try:
+            result = process_scan_file(self.conn, self.box.id, path)
+        except Exception as exc:  # noqa: BLE001 — surface any parse/DB
+            # error in the feed itself rather than crashing the dashboard;
+            # a malformed/partial scan file should never take the whole
+            # watch session down.
+            self._append_feed(f"[red]Error processing {path.name}: {exc}[/red]")
+            return
+
+        self._last_processed_hash[key] = content_hash
+
+        if result is None:
+            return  # not a recognized scan format — silently ignored
+
+        self._render_result(path, result)
+
+        # Optional auto-accept (docs/CLAUDE_CURSOR_DEBATE.md, Part E:
+        # "only if it is obvious, do not invent a contracts framework"):
+        # if this file produced new path findings, whatever outstanding
+        # gobuster suggestion exists for this box is done -- the
+        # artifact IS the evidence, no need to wait for the operator to
+        # press `d` on something that visibly already happened.
+        if result.tool == "gobuster" and result.findings:
+            self._auto_accept_gobuster_suggestion()
+
+    def _auto_accept_gobuster_suggestion(self) -> None:
+        row = self.conn.execute(
+            "SELECT id, command FROM suggestions WHERE box_id = ? AND accepted = 0 "
+            "AND command LIKE 'gobuster%' ORDER BY id DESC LIMIT 1",
+            (self.box.id,),
+        ).fetchone()
+        if row is None:
+            return
+        set_accepted(self.conn, row["id"])
+        self._append_feed(f"[dim](auto-marked done: {row['command']})[/dim]")
+
+    def _render_result(self, path: Path, result: ProcessResult) -> None:
+        feed = self.query_one("#feed", ListView)
+        suggestions = self.query_one("#suggestions", ListView)
+
+        self._append_feed(f"[bold cyan]{path.name}[/bold cyan] ({result.tool}) — "
+                           f"{len(result.findings)} finding(s)")
+
+        for fr in result.findings:
+            f = fr.finding
+            label = f"{f.host}:{f.port}" if f.port else (f.path or f.host or "?")
+            if not fr.matches:
+                self._append_feed(f"  {label} — [dim]no local match[/dim]")
+                continue
+            top = fr.matches[0]
+            style = _SEVERITY_STYLE.get(top.severity, "white")
+            self._append_feed(f"  {label} — [{style}][{top.severity.upper()}][/{style}] {top.title}")
+
+        for command in result.suggestions:
+            suggestions.append(ListItem(Static(Text.from_markup(f"[bold]{command}[/bold]"))))
+
+    def _append_feed(self, markup: str) -> None:
+        feed = self.query_one("#feed", ListView)
+        feed.append(ListItem(Static(Text.from_markup(markup))))
+        feed.scroll_end(animate=False)
+
+    def action_mark_did(self) -> None:
+        """`d` key: mark the current top recommendation done, same
+        mechanism as `trinity did` on the CLI (Hole A). Beginner path
+        never has to type a CLI verb -- see docs/CLAUDE_CURSOR_DEBATE.md,
+        Part E."""
+        rec = get_recommendation(self.conn, self.box.id)
+        if rec is None:
+            self._append_feed("[dim]Nothing outstanding to mark done.[/dim]")
+            return
+        set_accepted(self.conn, rec.suggestion_id)
+        self._append_feed(f"[green]Did:[/green] {rec.top.command}")
+        self._refresh_status()
+
+    def action_mark_skip(self) -> None:
+        """`s` key: park the current top recommendation, same mechanism
+        as `trinity skip`."""
+        rec = get_recommendation(self.conn, self.box.id)
+        if rec is None:
+            self._append_feed("[dim]Nothing outstanding to skip.[/dim]")
+            return
+        set_accepted(self.conn, rec.suggestion_id)
+        self._append_feed(f"[yellow]Skipped:[/yellow] {rec.top.command}")
+        self._refresh_status()
+
+    def action_show_hint(self) -> None:
+        """`h` key: one step up the graduated hint ladder for the
+        current recommendation, same mechanism as `trinity hint`."""
+        rec = get_recommendation(self.conn, self.box.id)
+        if rec is None:
+            self._append_feed("[dim]Nothing to hint about yet.[/dim]")
+            return
+        hint = get_hint(self.conn, self.box.id, rec.suggestion_id, rec.top.phase, rec.top.nudge, rec.top.rationale, rec.top.command)
+        self._append_feed(f"[bold yellow]Hint ({hint.level}/3):[/bold yellow] {hint.text}")
+
+
+def get_box_by_name_or_raise(conn, name: str) -> Box:
+    from trinity.boxes import get_box_by_name
+    box = get_box_by_name(conn, name)
+    if box is None:
+        raise ValueError(
+            f"No box named {name!r} yet. Create it first, e.g.:\n"
+            f"  trinity parse-nmap <scan.xml> --box \"{name}\" --target <ip>"
+        )
+    return box
+
+
+def run_dashboard(box_name: str, watch_dir: Path) -> None:
+    app = TrinityDashboard(box_name=box_name, watch_dir=watch_dir)
+    app.run()

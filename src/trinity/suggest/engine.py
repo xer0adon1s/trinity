@@ -14,6 +14,30 @@ class Suggestion(BaseModel):
     phase: str
     command: str
     rationale: str
+    nudge: str
+    required_tool: str
+    finding_id: int | None = None
+    # `nudge` is a deliberately vaguer description of WHY this step matters,
+    # with no tool name and no answer-shaped content -- used by the graduated
+    # hint ladder's level 2 (hints.py). `rationale` is the full detail (may
+    # name the tool/technique) and is only ever shown at hint level 3 or in
+    # `trinity next`'s always-visible output. Keeping these separate is what
+    # stops the hint ladder from just repeating the answer one level early.
+    # `required_tool` names the binary this command needs (e.g. "gobuster")
+    # so the coach layer can check whether it's actually installed before
+    # recommending it -- see tools.py. `finding_id` is the specific finding
+    # row this suggestion is tied to (when there is one), so coach.py can
+    # rank by THIS suggestion's actual severity instead of parsing prose --
+    # see docs/CLAUDE_CURSOR_DEBATE.md, Part B.3.
+
+
+# Paths (from gobuster/ffuf) that are worth flagging as an immediate next
+# move rather than "keep brute-forcing" -- these are the classic first
+# places a beginner should actually look, not just enumerate further.
+_INTERESTING_PATH_MARKERS = (
+    "admin", "login", "backup", "upload", "wp-admin", ".git",
+    "phpmyadmin", "config", "dashboard", "panel", "api",
+)
 
 
 # Rules are (predicate, builder) pairs, checked per-finding. Each rule
@@ -24,8 +48,26 @@ class Suggestion(BaseModel):
 
 
 def _suggest_for_finding(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+    kind = finding["kind"]
+    if kind == "port":
+        return _suggest_for_port(finding, already_suggested)
+    if kind == "path":
+        return _suggest_for_path(finding, already_suggested)
+    if kind == "share":
+        return _suggest_for_share(finding, already_suggested)
+    if kind == "user":
+        return _suggest_for_user(finding, already_suggested)
+    if kind == "header":
+        return _suggest_for_header(finding, already_suggested)
+    if kind == "vuln":
+        return _suggest_for_vuln(finding, already_suggested)
+    return None
+
+
+def _suggest_for_port(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
     service = (finding["service"] or "").lower()
     product = (finding["product"] or "").lower()
+    detail = (finding["detail"] or "").lower()
     port = finding["port"]
     host = finding["host"] or "<target>"
 
@@ -51,6 +93,13 @@ def _suggest_for_finding(finding: sqlite3.Row, already_suggested: set[str]) -> S
                     "is the standard next step to find hidden admin panels, "
                     "backups, or API routes before anything else."
                 ),
+                nudge=(
+                    f"Port {port} is a web service. Web services usually have "
+                    "more hiding on them than what's visible on the surface — "
+                    "what kind of tool finds things that aren't linked anywhere?"
+                ),
+                required_tool="gobuster",
+                finding_id=finding["id"],
             )
 
     # SMB: enumerate shares/users before anything else.
@@ -65,6 +114,39 @@ def _suggest_for_finding(finding: sqlite3.Row, already_suggested: set[str]) -> S
                     "groups, and OS info in one pass, often without needing "
                     "credentials at all."
                 ),
+                nudge=(
+                    f"Port {port} is a Windows file-sharing service. These "
+                    "often leak information about shares and users to anyone "
+                    "who asks, no login required — what would you check first?"
+                ),
+                required_tool="enum4linux-ng",
+                finding_id=finding["id"],
+            )
+
+    # FTP: if nmap's own script output already confirmed anonymous
+    # login works, don't insult the operator by suggesting they go
+    # check for it -- suggest the actual next move (list/get) instead.
+    # This is a "free win" per docs/CLAUDE_CURSOR_DEBATE.md Hole C: the
+    # finding already has this fact in `detail`, ignoring it in favor of
+    # a generic check is Trinity looking dumber than it actually is.
+    if service == "ftp" and "anonymous ftp login allowed" in detail:
+        cmd = fresh(f"ftp {host}  # login as anonymous, then: ls -la && get any interesting files")
+        if cmd:
+            return Suggestion(
+                phase="enum",
+                command=cmd,
+                rationale=(
+                    f"Port {port}'s nmap scripts already confirmed anonymous FTP "
+                    "login works — don't re-check it, go straight to listing and "
+                    "pulling whatever files are there."
+                ),
+                nudge=(
+                    f"Port {port} already told you something useful in the scan "
+                    "output itself, not just in what's open — what did the script "
+                    "output say, and what's the obvious next action given that?"
+                ),
+                required_tool="ftp",
+                finding_id=finding["id"],
             )
 
     # FTP: check anonymous login before anything else.
@@ -79,6 +161,13 @@ def _suggest_for_finding(finding: sqlite3.Row, already_suggested: set[str]) -> S
                     "login check (username 'anonymous', any password) "
                     "before assuming credentials are needed."
                 ),
+                nudge=(
+                    f"Port {port} is a file-transfer service. Some file-"
+                    "transfer servers let absolutely anyone log in without "
+                    "a real account — is that worth ruling out first?"
+                ),
+                required_tool="ftp",
+                finding_id=finding["id"],
             )
 
     # SSH: no active enum step (brute-forcing SSH isn't a sane default
@@ -94,16 +183,181 @@ def _suggest_for_finding(finding: sqlite3.Row, already_suggested: set[str]) -> S
                     "the local exploit database is worth doing early, even "
                     "though SSH itself is rarely the first foothold."
                 ),
+                nudge=(
+                    f"Port {port} is a remote-login service. Its exact "
+                    "version number is visible in the scan — is that version "
+                    "worth checking against anything?"
+                ),
+                required_tool="searchsploit",
+                finding_id=finding["id"],
             )
 
     return None
+
+
+def _suggest_for_path(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+    """A gobuster/ffuf hit worth looking at directly, not just noting
+    and continuing to brute-force. Hole C item: parsers already store
+    these as kind='path'; before this rule existed, they were parsed
+    and then never fed back into 'what next'."""
+    path = (finding["path"] or "").lower()
+    status = finding["status_code"]
+    host = finding["host"] or "<target>"
+
+    if status not in (200, 301, 302, 401, 403) and status is not None:
+        return None
+    if not any(marker in path for marker in _INTERESTING_PATH_MARKERS):
+        return None
+
+    cmd = f"curl -i {host.rstrip('/')}{finding['path']}"
+    cmd = cmd if cmd not in already_suggested else None
+    if not cmd:
+        return None
+    return Suggestion(
+        phase="foothold",
+        command=cmd,
+        rationale=(
+            f"'{finding['path']}' (status {status}) looks like an admin/login/"
+            "backup-shaped path, not just a generic hit — open it, look at any "
+            "forms, and try default credentials before brute-forcing more paths."
+        ),
+        nudge=(
+            "One of the paths you found has a name that suggests it does "
+            "something, not just serves a page — what would you normally "
+            "check on a path like that?"
+        ),
+        required_tool="",
+        finding_id=finding["id"],
+    )
+
+
+def _suggest_for_share(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+    """An SMB share enum4linux-ng found -- list/mount it, don't just
+    note its name and move on."""
+    host = finding["host"] or "<target>"
+    share = finding["path"] or "?"
+    cmd = f"smbclient //{host}/{share} -N"
+    cmd = cmd if cmd not in already_suggested else None
+    if not cmd:
+        return None
+    return Suggestion(
+        phase="enum",
+        command=cmd,
+        rationale=(
+            f"You have a share name ('{share}') from enum4linux-ng — list its "
+            "contents (and try a null/anonymous session first) rather than "
+            "just noting it exists."
+        ),
+        nudge=(
+            "You found a shared folder's name. Folders like that usually let "
+            "you look inside without needing a password first — worth trying?"
+        ),
+        required_tool="",
+        finding_id=finding["id"],
+    )
+
+
+def _suggest_for_user(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+    """Usernames enum4linux-ng found. Deliberately does NOT default to
+    a brute-force tool (hydra etc.) as the suggested command -- per
+    docs/CLAUDE_CURSOR_DEBATE.md's carried-over caution, that's a much
+    bigger step than "note these down," and Trinity shouldn't nudge a
+    beginner toward brute-forcing as a default move."""
+    detail = finding["detail"] or "a username"
+    cmd = f"# noted: {detail} — try it against SSH/FTP logins you find, or as an SMB null-session identity"
+    cmd = cmd if cmd not in already_suggested else None
+    if not cmd:
+        return None
+    return Suggestion(
+        phase="enum",
+        command=cmd,
+        rationale=(
+            f"enum4linux-ng found {detail}. Keep a running list of usernames — "
+            "they matter later for SSH/FTP login attempts or privilege "
+            "escalation, even though there's no single command to run on one "
+            "alone right now."
+        ),
+        nudge=(
+            "You now know at least one real account name on this box. That's "
+            "not immediately actionable by itself, but it's worth writing down "
+            "— why might a username matter later?"
+        ),
+        required_tool="",
+        finding_id=finding["id"],
+    )
+
+
+def _suggest_for_header(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+    """whatweb-detected product+version -- feed it to searchsploit, the
+    same way the SSH port rule does, instead of letting it sit unused."""
+    product = finding["product"]
+    version = finding["version"] or ""
+    if not product:
+        return None
+    cmd = f"searchsploit {product} {version}".strip()
+    cmd = cmd if cmd not in already_suggested else None
+    if not cmd:
+        return None
+    label = f"{product} {version}".strip()
+    return Suggestion(
+        phase="recon",
+        command=cmd,
+        rationale=(
+            f"whatweb identified '{label}' — "
+            "checking the exact product/version against the local "
+            "exploit database is a quick, free next step."
+        ),
+        nudge=(
+            "whatweb told you exactly what software (and often the version) "
+            "the site is running. That's the kind of specific detail worth "
+            "checking against something — what?"
+        ),
+        required_tool="searchsploit",
+        finding_id=finding["id"],
+    )
+
+
+def _suggest_for_vuln(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+    """A nikto-flagged vuln (directory indexing, outdated software
+    notice, etc.) -- go look at the specific path nikto flagged."""
+    host = finding["host"] or "<target>"
+    path = finding["path"]
+    if not path:
+        return None
+    cmd = f"curl -i {host.rstrip('/')}{path}"
+    cmd = cmd if cmd not in already_suggested else None
+    if not cmd:
+        return None
+    return Suggestion(
+        phase="enum",
+        command=cmd,
+        rationale=(
+            f"nikto flagged '{path}': {finding['detail'] or 'see nikto output'}. "
+            "Worth looking at directly rather than letting it sit in a scan log."
+        ),
+        nudge=(
+            "One of your scanners already called out something specific and "
+            "unusual about a path, not just a generic finding — go see it for "
+            "yourself."
+        ),
+        required_tool="",
+        finding_id=finding["id"],
+    )
 
 
 def suggest_next_commands(conn: sqlite3.Connection, box_id: int, limit: int = 10) -> list[Suggestion]:
     """Look at every finding recorded for a box and propose next commands,
     skipping anything already suggested for this box (checked against the
     suggestions table, not just this call) so repeated parses don't spam
-    the same advice on every run."""
+    the same advice on every run.
+
+    If the box has a target set (the wizard asks for one up front), any
+    occurrence of that exact target string in a generated command is
+    rewritten to `$TARGET` -- per docs/CLAUDE_CURSOR_DEBATE.md's 2.13:
+    the wizard tells the operator to `export TARGET=<ip>` once, so
+    printed commands stop baking a specific IP into every suggestion
+    (which also means share-export stops leaking engagement IPs in
+    command strings for free, since suggestions are stored post-rewrite)."""
     already = {
         row["command"]
         for row in conn.execute(
@@ -111,14 +365,19 @@ def suggest_next_commands(conn: sqlite3.Connection, box_id: int, limit: int = 10
         ).fetchall()
     }
 
+    box_row = conn.execute("SELECT target FROM boxes WHERE id = ?", (box_id,)).fetchone()
+    target = box_row["target"] if box_row else None
+
     findings = conn.execute(
-        "SELECT * FROM findings WHERE box_id = ? AND kind = 'port'", (box_id,)
+        "SELECT * FROM findings WHERE box_id = ?", (box_id,)
     ).fetchall()
 
     suggestions: list[Suggestion] = []
     for finding in findings:
         suggestion = _suggest_for_finding(finding, already)
         if suggestion:
+            if target and target in suggestion.command:
+                suggestion.command = suggestion.command.replace(target, "$TARGET")
             already.add(suggestion.command)  # don't suggest the same thing twice in one call either
             suggestions.append(suggestion)
         if len(suggestions) >= limit:

@@ -9,6 +9,19 @@ calling an AI model, because it's not guessing: it's looking things up.
 Free, open source, MIT licensed. No accounts, no licensing, no paid tier.
 Just another tool in a budding cybersecurity person's toolbelt.
 
+## Core philosophy: drive the car before you build the car
+
+You don't need to understand an engine to enjoy driving — curiosity
+about what's under the hood comes later, once the fun has already
+hooked you. Trinity is built on the same idea: let someone crack their
+first box and feel the win *before* they have to understand TCP
+handshakes, HTTP methods, or CVE databases. The knowledge is all still
+there, available the moment curiosity kicks in — Trinity just refuses
+to make understanding-the-engine a precondition for driving-the-car.
+Every design choice below (the wizard's minimal first-run questions,
+graduated hints instead of instant answers, mode as a lens rather than
+a gate) exists in service of this one idea.
+
 ## The problem this solves
 
 Working a CTF/HTB box today means constant context-switching out to
@@ -42,7 +55,12 @@ command explanation, every match carries a `source` field
 (`user_curated`, `trinity_preseed`, `searchsploit`, `ai_escalation`,
 ...) and — where meaningful — a severity rating. Nothing is presented
 with false confidence; fuzzy searchsploit matches are visibly fuzzy, not
-dressed up as certainties.
+dressed up as certainties. Note the two "not-from-the-operator"
+sources aren't interchangeable: `user_curated` means a person (project
+maintainer or contributor) wrote and vouches for this specific entry;
+`trinity_preseed` means it was bulk-authored as part of a themed batch
+(e.g. the 86-entry ELI5 library) — both are still hand-written, not
+AI-generated, but `user_curated` implies a closer, one-at-a-time review.
 
 ## The "I do / we do" philosophy — dual-pane by design
 
@@ -127,22 +145,64 @@ the community to extend Trinity faster than any single maintainer could.
   install, not just after weeks of organic use.
 - **Reports**: educational (narrated walkthrough) and professional
   (structured findings report), both reading off one shared `timeline`.
-- **65 unit tests**, all passing.
+- **Watch-mode TUI dashboard** (`trinity watch`): a Textual app that
+  watches a working directory and auto-parses/matches new scan output
+  the moment it's saved — the technical mechanism behind the dual-pane
+  workflow. Proven live against a real fixture scan.
+- **Onboarding wizard** (`trinity` with no arguments): first-run intro,
+  then a startup menu (resume active project / start new / re-run
+  setup). Mode (educational/professional) is chosen per-project. Real
+  VPN detection (`tun`/`tap`/`wg` interfaces) rather than trusting the
+  operator's word, platform-aware so non-VPN platforms aren't told to
+  run OpenVPN.
+- **Platform registry** (`platforms.yaml` + local override support):
+  HTB, THM, PortSwigger, OverTheWire, VulnHub, picoCTF, Root-Me,
+  generic CTF, and "other" shipped by default. Each carries theme
+  colors and a VPN-need flag. `trinity theme` previews a platform's
+  colors or (`--omarchy`) the operator's live Omarchy desktop theme.
+- **Box lifecycle**: `trinity box-status` marks a project active/
+  rooted/abandoned; rooting a box correctly clears it from the
+  wizard's "resume" state.
+- **Opt-in data sharing scaffold** (`trinity share-export`): exports a
+  box's AI-escalation-sourced explanations and unmatched findings as
+  an anonymized local file for manual review/contribution — never an
+  automatic network push.
+- **LICENSE (MIT), CONTRIBUTING.md** — real, not just promised.
+- **Tool-availability checks**: `tools.py` registry checks whether a
+  suggestion's required binary is actually installed before the coach
+  recommends it, and surfaces real per-platform install guidance
+  (apt/pacman/brew) if not — the operator installs it themselves, then
+  the exact same recommendation reappears automatically on the next
+  `trinity next`, no state lost.
+- **149 unit tests**, all passing.
 
 ## Roadmap
 
-**Next: watch-mode TUI dashboard.** The technical centerpiece of the
-dual-pane workflow — a Textual app that watches a working directory,
-auto-parses any new/changed scan output the moment it lands (no manual
-`trinity parse-*` invocation needed), and live-updates a suggestion feed
-next to the student's real terminal pane. Built around the platform
-registry and theming above.
+**Built: Instructor Mode.** [docs/INSTRUCTOR_MODE.md](./docs/INSTRUCTOR_MODE.md)
+describes and remains the reference for the coach layer that closes
+the gap between "wizard hands off a box" and "operator has no idea
+what to type next": a ranked `trinity next` recommendation (not just a
+flat suggestion list), graduated hints (`trinity hint`: nudge →
+stronger nudge → full answer), and an error-diagnosis cache (`trinity
+error`/`trinity cache-error`) that makes "why didn't this work" free
+and instant over time, the same way the ELI5 cache already did for
+"what does this command do." Professional mode gets the same
+recommendations with the teaching narration stripped.
 
-**Then, roughly in priority order:**
-- Platform registry + theming (small foundation piece, built just before
-  or alongside watch-mode since the dashboard displays it).
-- Graduated hints in educational mode — nudge → stronger nudge → full
-  answer, instead of today's all-or-nothing `trinity explain`.
+**Next, with its own design doc:**
+- **[Methods Index](./docs/METHODS_INDEX.md)** — a crowdsourced,
+  citation-based index of the *different* enumeration/foothold/privesc
+  methods used across public writeups for a given (retired) box, so
+  learners see the range of valid approaches instead of fixating on
+  one. Built from short, Trinity-authored paraphrases with mandatory
+  author + source-URL attribution — never scraped/stored writeup text.
+
+**After that, roughly in priority order:**
+- **[Rabbit Hole Detection](./docs/RABBIT_HOLE_DETECTION.md)** —
+  recognizing (and teaching how to recognize) unproductive rabbit
+  holes, one of the biggest real skills and pitfalls named in actual
+  HTB/THM community discussion. Read-only pattern analysis over the
+  existing timeline, surfaced as a gentle nudge from `trinity next`.
 - `trinity stats` — progress/streak tracking read straight off the
   existing timeline data (boxes rooted, techniques hit, current streak)
   — directly serves the "keep learners from feeling overwhelmed or
@@ -153,7 +213,12 @@ registry and theming above.
   privesc/technique matching beyond what `searchsploit` covers well.
 - Real packaging (PyPI) so installation is `pip install` instead of a
   git clone + `uv run`.
-- LICENSE (MIT), CONTRIBUTING.md, public GitHub repo.
+
+See **[docs/FEATURES_BACKLOG.md](./docs/FEATURES_BACKLOG.md)** for
+further discussed-but-unscheduled ideas (achievements/gamification,
+AutoRecon teaching integration, loot/evidence tracking, frustration
+checkpoints, and more) — recorded there so they aren't lost between
+sessions, promoted to their own design doc once actually scheduled.
 
 ## Explicitly out of scope
 
@@ -163,3 +228,6 @@ registry and theming above.
 - Reproducing any platform's trademarked logo/branding.
 - Hard restrictions on what platforms can be used — the registry is
   meant to be extended, not to gatekeep.
+- Scraping/storing full third-party writeup text, or indexing anything
+  paywalled/subscription-gated — see Methods Index above for the
+  citation-based alternative that's actually planned.

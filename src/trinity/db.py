@@ -131,8 +131,25 @@ CREATE TABLE IF NOT EXISTS suggestions (
     box_id INTEGER NOT NULL REFERENCES boxes(id),
     phase TEXT,                       -- 'recon', 'enum', 'foothold', 'privesc', 'post'
     command TEXT NOT NULL,
-    rationale TEXT,                   -- why Trinity suggested this
-    accepted INTEGER DEFAULT 0,       -- did the operator run it
+    rationale TEXT,                   -- why Trinity suggested this (full detail --
+                                       -- may name the tool/technique; shown in
+                                       -- `trinity next` and hint level 3)
+    nudge TEXT,                       -- vaguer, tool-name-free version of the
+                                       -- rationale, used ONLY by the graduated
+                                       -- hint ladder's level 2 (hints.py) so it
+                                       -- never leaks the answer early
+    required_tool TEXT,               -- binary name this command needs (e.g.
+                                       -- 'gobuster') -- checked against tools.py
+                                       -- before the coach recommends this command
+    finding_id INTEGER REFERENCES findings(id),  -- the specific finding this
+                                       -- suggestion is tied to, so coach.py can
+                                       -- look up ITS severity directly instead
+                                       -- of regexing "Port N" out of rationale
+                                       -- prose (which breaks the moment a
+                                       -- suggestion isn't port-shaped, e.g.
+                                       -- path/share/user findings)
+    accepted INTEGER DEFAULT 0,       -- 1 once the operator has done (or
+                                       -- deliberately skipped) this suggestion
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -165,11 +182,120 @@ CREATE INDEX IF NOT EXISTS idx_findings_matched ON findings(matched);
 CREATE INDEX IF NOT EXISTS idx_kb_service ON kb_entries(match_service);
 CREATE INDEX IF NOT EXISTS idx_suggestions_box ON suggestions(box_id);
 CREATE INDEX IF NOT EXISTS idx_timeline_box ON timeline(box_id, ts);
+
+-- Tiny machine-local key/value store for the onboarding wizard: has
+-- setup run before, and which box was last active (so 'trinity' with
+-- no arguments can offer 'resume' instead of re-asking everything).
+-- Deliberately not box-scoped data -- this is CLI/session state, not
+-- anything a report would ever read from.
+CREATE TABLE IF NOT EXISTS local_state (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
+
+-- Instructor Mode: tracks how far up the graduated hint ladder each
+-- suggestion has climbed (1 = nudge, 2 = stronger nudge, 3 = full
+-- answer). One row per (box, suggestion) -- a fresh suggestion always
+-- starts back at level 1, never inherits escalation from an unrelated
+-- earlier one. See docs/INSTRUCTOR_MODE.md.
+CREATE TABLE IF NOT EXISTS hint_state (
+    box_id INTEGER NOT NULL REFERENCES boxes(id),
+    suggestion_id INTEGER NOT NULL REFERENCES suggestions(id),
+    level INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (box_id, suggestion_id)
+);
+
+-- Instructor Mode: known error text -> cause + fix, the same
+-- "pay the AI cost once, cache forever" shape as command_explanations,
+-- but at "why didn't this work" granularity instead of "what does this
+-- command mean". See docs/INSTRUCTOR_MODE.md.
+CREATE TABLE IF NOT EXISTS error_patterns (
+    id INTEGER PRIMARY KEY,
+    error_text TEXT NOT NULL,         -- the error snippet/description matched on
+    cause TEXT NOT NULL,               -- plain-English explanation of why it happens
+    fix TEXT NOT NULL,                 -- the confirmed-working remedy
+    source TEXT DEFAULT 'ai_escalation',  -- 'trinity_preseed', 'ai_escalation', 'user_curated'
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS error_patterns_fts USING fts5(
+    error_text, cause, fix,
+    content='error_patterns', content_rowid='id'
+);
+
+CREATE TRIGGER IF NOT EXISTS error_patterns_ai AFTER INSERT ON error_patterns BEGIN
+    INSERT INTO error_patterns_fts(rowid, error_text, cause, fix)
+    VALUES (new.id, new.error_text, new.cause, new.fix);
+END;
+CREATE TRIGGER IF NOT EXISTS error_patterns_ad AFTER DELETE ON error_patterns BEGIN
+    INSERT INTO error_patterns_fts(error_patterns_fts, rowid, error_text, cause, fix)
+    VALUES ('delete', old.id, old.error_text, old.cause, old.fix);
+END;
+CREATE TRIGGER IF NOT EXISTS error_patterns_au AFTER UPDATE ON error_patterns BEGIN
+    INSERT INTO error_patterns_fts(error_patterns_fts, rowid, error_text, cause, fix)
+    VALUES ('delete', old.id, old.error_text, old.cause, old.fix);
+    INSERT INTO error_patterns_fts(rowid, error_text, cause, fix)
+    VALUES (new.id, new.error_text, new.cause, new.fix);
+END;
+
+CREATE INDEX IF NOT EXISTS idx_hint_state_box ON hint_state(box_id);
 """
 
 
-def connect(db_path: Path | None = None) -> sqlite3.Connection:
-    """Open (creating if needed) the Trinity database with schema applied."""
+# Columns added to `suggestions` after its original CREATE TABLE shipped.
+# `CREATE TABLE IF NOT EXISTS` does NOT retroactively add columns to an
+# already-existing table file -- an operator's real ~/.trinity/trinity.db
+# from before this column existed would otherwise blow up on the first
+# INSERT/SELECT that touches it. Additive-only, never destructive; each
+# tuple is (column_name, column_ddl_suffix).
+_SUGGESTIONS_ADDITIVE_COLUMNS = [
+    ("nudge", "TEXT"),
+    ("required_tool", "TEXT"),
+    ("finding_id", "INTEGER REFERENCES findings(id)"),
+]
+
+
+def _ensure_additive_columns(conn: sqlite3.Connection) -> None:
+    """Adds any columns newer than a table's original schema to an
+    existing on-disk database, without touching data. In-memory test
+    databases are always created fresh from the current SCHEMA string
+    (see conftest.py), so this is a no-op for them -- it only matters
+    for a real, previously-created ~/.trinity/trinity.db."""
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(suggestions)").fetchall()}
+    for column, ddl in _SUGGESTIONS_ADDITIVE_COLUMNS:
+        if column not in existing:
+            conn.execute(f"ALTER TABLE suggestions ADD COLUMN {column} {ddl}")
+    conn.commit()
+
+
+def _seed_brain(conn: sqlite3.Connection) -> None:
+    """Loads the KB, ELI5 explanation cache, and error-pattern library --
+    the three things a brand-new install needs to be useful on the very
+    first `trinity next`/`trinity explain`/`trinity error` call. Called
+    from connect() (every real invocation), not just `trinity init`, so
+    the wizard's happy path never hands someone an empty brain (see
+    docs/CLAUDE_CURSOR_DEBATE.md, Hole B). All three seed functions are
+    idempotent (INSERT-if-not-exists), so calling this on every connect()
+    is cheap and never duplicates or overwrites a user's own entries."""
+    from trinity.errors_seed import seed_error_patterns
+    from trinity.explain_seed.combine import seed_all as seed_all_explanations
+    from trinity.kb.seed import seed as seed_kb
+
+    seed_kb(conn)
+    seed_all_explanations(conn)
+    seed_error_patterns(conn)
+
+
+def connect(db_path: Path | None = None, *, seed_brain: bool = True) -> sqlite3.Connection:
+    """Open (creating if needed) the Trinity database with schema applied.
+
+    seed_brain=True (the default, used by every real CLI command) also
+    auto-seeds the KB/explain/error libraries and ensures additive
+    columns exist -- see _seed_brain and _ensure_additive_columns above.
+    Tests pass seed_brain=False (or bypass connect() entirely in favor
+    of the in-memory `conn` fixture) to keep unit tests fast and to let
+    a few tests exercise a genuinely-empty DB on purpose."""
     path = db_path or DEFAULT_DB_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -178,4 +304,7 @@ def connect(db_path: Path | None = None) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
     conn.commit()
+    _ensure_additive_columns(conn)
+    if seed_brain:
+        _seed_brain(conn)
     return conn
