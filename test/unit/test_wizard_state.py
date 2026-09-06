@@ -1,8 +1,10 @@
 """Tests for machine-local state (onboarding tracking) and VPN detection."""
 from __future__ import annotations
 
+from trinity.boxes import create_box
 from trinity.state import ACTIVE_BOX_ID, SETUP_DONE, clear_state, get_state, set_state
 from trinity.vpn import VpnStatus, check_vpn
+from trinity.wizard import show_handoff
 
 
 def test_state_roundtrip(conn):
@@ -34,3 +36,28 @@ def test_check_vpn_returns_vpnstatus():
         assert status.kind in ("openvpn", "wireguard")
     else:
         assert status.interface is None
+
+
+def test_show_handoff_empty_box_prints_nmap_and_can_launch_watch(conn, monkeypatch):
+    launched = {}
+    monkeypatch.setattr("trinity.wizard.Confirm.ask", lambda *a, **k: True)
+    monkeypatch.setattr(
+        "trinity.tui.dashboard.run_dashboard",
+        lambda name, path: launched.update(name=name, path=path),
+    )
+    box = create_box(conn, "WatchPlease", target="10.10.10.3")
+    show_handoff(conn, box)
+    assert launched["name"] == "WatchPlease"
+    assert launched["path"]
+
+
+def test_show_handoff_decline_does_not_launch_watch(conn, monkeypatch):
+    launched = []
+    monkeypatch.setattr("trinity.wizard.Confirm.ask", lambda *a, **k: False)
+    monkeypatch.setattr(
+        "trinity.tui.dashboard.run_dashboard",
+        lambda name, path: launched.append(name),
+    )
+    box = create_box(conn, "NoWatch", target="10.10.10.3")
+    show_handoff(conn, box)
+    assert launched == []

@@ -136,8 +136,41 @@ def test_path_finding_suggests_looking_at_interesting_path(conn):
 
     suggestions = suggest_next_commands(conn, box.id)
     assert len(suggestions) == 1
-    assert "/admin" in suggestions[0].command
+    assert suggestions[0].command == "curl -i http://10.10.10.5/admin"
     assert suggestions[0].phase == "foothold"
+
+
+def test_path_finding_without_host_uses_box_target(conn):
+    # Watch-mode gobuster parses usually leave host NULL. The command
+    # must still be runnable, and $TARGET rewrite must still fire.
+    box = create_box(conn, "NoHostPath", target="10.10.10.8")
+    conn.execute(
+        "INSERT INTO findings (box_id, source_tool, kind, host, path, status_code) "
+        "VALUES (?, 'gobuster', 'path', NULL, '/admin', 200)",
+        (box.id,),
+    )
+    conn.commit()
+
+    suggestions = suggest_next_commands(conn, box.id)
+    assert len(suggestions) == 1
+    assert suggestions[0].command == "curl -i http://$TARGET/admin"
+    assert "<target>" not in suggestions[0].command
+
+
+def test_path_finding_full_url_is_not_concatenated_onto_host(conn):
+    # ffuf stores the whole URL in `path`. Blind host+path concat
+    # produced `curl -i targethttp://…/admin`.
+    box = create_box(conn, "FfufPath")
+    conn.execute(
+        "INSERT INTO findings (box_id, source_tool, kind, host, path, status_code) "
+        "VALUES (?, 'ffuf', 'path', 'target', 'http://10.10.10.5/admin', 301)",
+        (box.id,),
+    )
+    conn.commit()
+
+    suggestions = suggest_next_commands(conn, box.id)
+    assert len(suggestions) == 1
+    assert suggestions[0].command == "curl -i http://10.10.10.5/admin"
 
 
 def test_boring_path_finding_yields_no_suggestion(conn):
@@ -208,7 +241,7 @@ def test_vuln_finding_suggests_looking_at_the_path(conn):
 
     suggestions = suggest_next_commands(conn, box.id)
     assert len(suggestions) == 1
-    assert "/backup/" in suggestions[0].command
+    assert suggestions[0].command == "curl -i http://10.10.10.5/backup/"
 
 
 def test_target_gets_rewritten_to_dollar_target(conn):

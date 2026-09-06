@@ -47,29 +47,57 @@ _INTERESTING_PATH_MARKERS = (
 # the ones that already work.
 
 
-def _suggest_for_finding(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+def _effective_host(finding: sqlite3.Row, fallback_host: str | None) -> str:
+    """Host for a generated command. Gobuster (and some other parsers)
+    often leave `finding.host` empty -- fall back to the box target, then
+    `$TARGET`, never the unusable literal `<target>`."""
+    return (finding["host"] or fallback_host or "$TARGET").strip() or "$TARGET"
+
+
+def _curl_command(host: str | None, path: str | None, fallback_host: str | None) -> str:
+    """Build a curl command that is actually runnable.
+
+    Gobuster stores `/admin` with host often NULL. ffuf often stores a
+    full URL in `path`. Blind `{host}{path}` concatenation produced
+    `curl -i <target>/admin` or `curl -i targethttp://…/admin`."""
+    raw = (path or "").strip()
+    if raw.startswith(("http://", "https://")):
+        return f"curl -i {raw}"
+
+    h = (host or fallback_host or "$TARGET").strip().rstrip("/") or "$TARGET"
+    suffix = raw if raw.startswith("/") else (f"/{raw}" if raw else "")
+    if h.startswith(("http://", "https://")):
+        return f"curl -i {h}{suffix}"
+    return f"curl -i http://{h}{suffix}"
+
+
+def _suggest_for_finding(
+    finding: sqlite3.Row, already_suggested: set[str], fallback_host: str | None = None,
+) -> Suggestion | None:
     kind = finding["kind"]
     if kind == "port":
-        return _suggest_for_port(finding, already_suggested)
+        return _suggest_for_port(finding, already_suggested, fallback_host)
     if kind == "path":
-        return _suggest_for_path(finding, already_suggested)
+        return _suggest_for_path(finding, already_suggested, fallback_host)
     if kind == "share":
-        return _suggest_for_share(finding, already_suggested)
+        return _suggest_for_share(finding, already_suggested, fallback_host)
     if kind == "user":
         return _suggest_for_user(finding, already_suggested)
     if kind == "header":
         return _suggest_for_header(finding, already_suggested)
     if kind == "vuln":
-        return _suggest_for_vuln(finding, already_suggested)
+        return _suggest_for_vuln(finding, already_suggested, fallback_host)
     return None
 
 
-def _suggest_for_port(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+def _suggest_for_port(
+    finding: sqlite3.Row, already_suggested: set[str], fallback_host: str | None = None,
+) -> Suggestion | None:
     service = (finding["service"] or "").lower()
     product = (finding["product"] or "").lower()
     detail = (finding["detail"] or "").lower()
     port = finding["port"]
-    host = finding["host"] or "<target>"
+    host = _effective_host(finding, fallback_host)
 
     def fresh(command: str) -> str | None:
         """Return the command if it hasn't been suggested for this box
@@ -195,21 +223,22 @@ def _suggest_for_port(finding: sqlite3.Row, already_suggested: set[str]) -> Sugg
     return None
 
 
-def _suggest_for_path(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+def _suggest_for_path(
+    finding: sqlite3.Row, already_suggested: set[str], fallback_host: str | None = None,
+) -> Suggestion | None:
     """A gobuster/ffuf hit worth looking at directly, not just noting
     and continuing to brute-force. Hole C item: parsers already store
     these as kind='path'; before this rule existed, they were parsed
     and then never fed back into 'what next'."""
     path = (finding["path"] or "").lower()
     status = finding["status_code"]
-    host = finding["host"] or "<target>"
 
     if status not in (200, 301, 302, 401, 403) and status is not None:
         return None
     if not any(marker in path for marker in _INTERESTING_PATH_MARKERS):
         return None
 
-    cmd = f"curl -i {host.rstrip('/')}{finding['path']}"
+    cmd = _curl_command(finding["host"], finding["path"], fallback_host)
     cmd = cmd if cmd not in already_suggested else None
     if not cmd:
         return None
@@ -231,10 +260,12 @@ def _suggest_for_path(finding: sqlite3.Row, already_suggested: set[str]) -> Sugg
     )
 
 
-def _suggest_for_share(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+def _suggest_for_share(
+    finding: sqlite3.Row, already_suggested: set[str], fallback_host: str | None = None,
+) -> Suggestion | None:
     """An SMB share enum4linux-ng found -- list/mount it, don't just
     note its name and move on."""
-    host = finding["host"] or "<target>"
+    host = _effective_host(finding, fallback_host)
     share = finding["path"] or "?"
     cmd = f"smbclient //{host}/{share} -N"
     cmd = cmd if cmd not in already_suggested else None
@@ -317,14 +348,15 @@ def _suggest_for_header(finding: sqlite3.Row, already_suggested: set[str]) -> Su
     )
 
 
-def _suggest_for_vuln(finding: sqlite3.Row, already_suggested: set[str]) -> Suggestion | None:
+def _suggest_for_vuln(
+    finding: sqlite3.Row, already_suggested: set[str], fallback_host: str | None = None,
+) -> Suggestion | None:
     """A nikto-flagged vuln (directory indexing, outdated software
     notice, etc.) -- go look at the specific path nikto flagged."""
-    host = finding["host"] or "<target>"
     path = finding["path"]
     if not path:
         return None
-    cmd = f"curl -i {host.rstrip('/')}{path}"
+    cmd = _curl_command(finding["host"], path, fallback_host)
     cmd = cmd if cmd not in already_suggested else None
     if not cmd:
         return None
@@ -374,7 +406,7 @@ def suggest_next_commands(conn: sqlite3.Connection, box_id: int, limit: int = 10
 
     suggestions: list[Suggestion] = []
     for finding in findings:
-        suggestion = _suggest_for_finding(finding, already)
+        suggestion = _suggest_for_finding(finding, already, fallback_host=target)
         if suggestion:
             if target and target in suggestion.command:
                 suggestion.command = suggestion.command.replace(target, "$TARGET")

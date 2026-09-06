@@ -174,7 +174,7 @@ the community to extend Trinity faster than any single maintainer could.
   (apt/pacman/brew) if not — the operator installs it themselves, then
   the exact same recommendation reappears automatically on the next
   `trinity next`, no state lost.
-- **149 unit tests**, all passing.
+- **175 unit tests**, all passing.
 
 ## Roadmap
 

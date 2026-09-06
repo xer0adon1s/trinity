@@ -14,10 +14,14 @@ explicit MUST/SHOULD/DEFER/DO NOT calls). This handoff is the
 "translate the scorecard into an implementation plan" layer on top of
 that — don't treat this as a replacement for reading the debate file.
 
-Test baseline right now: **163 passed** (`uv run pytest test/unit -q`
-from repo root) — 149 original + 14 added this session. Nothing broken
-so far. Keep this number honest as you go; if it drops, something
-regressed.
+Test baseline right now: **175 passed** (`uv run pytest test/unit -q`
+from repo root). Updated 2026-09-06 evening by Cursor after the curl
+URL fix + CliRunner/story/migration tests. Keep this number honest;
+if it drops, something regressed.
+
+Checkpoint commit before that work: `aeec0cc` on `main` (the dual-pane
+session dump). The curl fix + handoff tests below are **uncommitted**
+on top of that unless Alexander asked otherwise.
 
 ## What's DONE this session (verified against the tree, not assumed)
 
@@ -204,8 +208,23 @@ regressed.
 
 ### A. Finish the MUST list from Cursor's scorecard
 
-- **A4 — CLI-level tests (required, not optional).** Add tests using
-  Click's `CliRunner` (`from click.testing import CliRunner`) that
+- **A4 + story test + curl URL bug — DONE (Cursor, after aeec0cc).**
+  `test/unit/test_cli_next_hint.py` drives `next`/`hint`/`did` via
+  CliRunner (isolated tmp DB, fake missing tool). Story test lives in
+  `test/unit/test_full_session_story.py`. Additive-column migration
+  covered by `test/unit/test_db_migration.py`. Wizard Confirm.ask →
+  watch is unit-tested in `test_wizard_state.py` (dashboard mocked).
+  Path/vuln curl construction no longer emits `<target>/admin` or
+  `host + full-url` concat; gobuster-without-host uses box target /
+  `$TARGET`. `suggest` + `engagement-set` now fail-closed.
+  Live-checked on this Arch box: `find_wordlist()` →
+  `/usr/share/seclists/Discovery/Web-Content/common.txt`. Share-export
+  does not include suggestion command strings (so `$TARGET` rewrite
+  does not appear there); unmatched-finding export omitted host/IP
+  in the probe.
+
+- **A4 — CLI-level tests (required, not optional).** ~~Add tests using
+  Click's `CliRunner`~~ **DONE — see above.** Historical text follows: (`from click.testing import CliRunner`) that
   actually invoke `next_cmd`, `hint_cmd`, `did_cmd`, `skip_cmd` as
   subprocess-style calls and assert on PRINTED text, not just the
   underlying `coach.py` functions. Minimum per the debate (Part A.4):
@@ -375,3 +394,183 @@ was already accurate at the time it was checked), `docs/
 INSTRUCTOR_MODE.md` (status line already correctly says BUILT, not
 DESIGN ONLY — Cursor's 3.9 concern about this specific file didn't
 apply, already fixed in an earlier session).
+
+---
+
+## Cursor log — 2026-09-06 evening (for Claude review)
+
+Alexander asked Cursor to commit the tree, then review recent work
+for critical bugs, then (after that review) fix the one real bug
+and finish the remaining handoff items. This section is the
+change/bug/out-of-scope log so Claude can review without reconstructing
+it from git or chat. The sections above this heading were written by
+Claude mid-implementation and are now partly stale (test counts,
+"do not commit", "A4 not done"). Trust this log for what Cursor
+actually did afterward.
+
+### Git / process (out of the original handoff's "do not commit")
+
+- Alexander explicitly asked to commit **before** handoff work.
+  Cursor committed the then-current tree as **`aeec0cc`** on `main`
+  (`Ship the dual-pane session: wizard, watch-mode, Instructor Mode,
+  and a closable coach loop.`). 45 files, +6550/−105. Not pushed.
+- Everything Cursor did after that commit (this log) is **still
+  uncommitted** unless Alexander asks for another commit.
+- Original handoff item 6 ("Do NOT commit anything") was overridden
+  by Alexander for `aeec0cc` only. Cursor did not make a second commit.
+
+### Bug found in the pre-handoff review (NOT in the handoff MUST list)
+
+**Broken curl commands from Hole C path/vuln rules.**
+
+- Gobuster findings usually have `host=NULL`. `_suggest_for_path`
+  did `curl -i {host or "<target>"}{path}` → literal
+  `curl -i <target>/admin`. `$TARGET` rewrite only fires if the box
+  IP already appears in the command, so it never fixed this.
+- ffuf often stores a full URL in `path`. Blind concat produced
+  `curl -i targethttp://10.10.10.5/admin`.
+- Same concat pattern in `_suggest_for_vuln`.
+
+This was **not** on the handoff remaining-work list. Cursor found it
+while reviewing `aeec0cc` for critical bugs, reported it to
+Alexander, and was told to fix it and then do the handoff.
+
+**Fix (in `src/trinity/suggest/engine.py`):**
+
+- `_effective_host(finding, fallback_host)` — host, else box target,
+  else `$TARGET`. Never `<target>`.
+- `_curl_command(host, path, fallback_host)` — if `path` is already
+  `http(s)://`, use it alone; otherwise `http://{host}{path}` with
+  a leading slash on the path. Same for whatweb-style hosts that
+  already include a scheme.
+- `suggest_next_commands` now passes `fallback_host=box.target` into
+  port/path/share/vuln rules (port/share also stopped using `<target>`).
+
+**Tests added for the bug (also not in the original A4 list):**
+
+- `test_path_finding_without_host_uses_box_target`
+- `test_path_finding_full_url_is_not_concatenated_onto_host`
+- existing path/vuln tests now assert the full `curl -i http://…`
+  string
+
+### Handoff-scoped work Cursor completed
+
+These were on the remaining-work list. Done.
+
+1. **A4 CliRunner tests** — new `test/unit/test_cli_next_hint.py`.
+   Isolated tmp DB via monkeypatched `trinity.cli.main.connect`.
+   Fake missing tool `xyzzytool` via monkeypatched
+   `trinity.coach.is_tool_installed`. Covers: `next` still prints
+   command + install guidance + also-worth-trying; educational hint
+   L1/L2 contain neither the fake tool nor "install"; L3 may;
+   professional hint shows install immediately; `did` after parse
+   changes what is recommended; `suggest`/`engagement-set` fail
+   closed on a missing box.
+2. **Story test** — new `test/unit/test_full_session_story.py`.
+   `connect(tmp, seed_brain=True)` → KB/explain/error non-empty →
+   parse `lame_style_scan.xml` → `get_recommendation` →
+   `set_accepted` → next command differs or None → hint L1/L2 omit
+   command/tool → `find_error_match("Connection refused")` hits
+   preseed → educational report contains the box/timeline.
+3. **Additive-column live-shape test** — new
+   `test/unit/test_db_migration.py`. Builds an on-disk DB with the
+   *old* suggestions schema (no nudge/required_tool/finding_id),
+   `connect()`s, asserts columns exist and an INSERT using them
+   works. Also asserts `seed_brain=True` fills the three libraries
+   on a fresh file.
+4. **Wizard Confirm.ask → watch** — unit tests in
+   `test_wizard_state.py` (dashboard mocked). Yes → `run_dashboard`
+   called with box name. No → not called. Not a full piped-stdin
+   live wizard (see leftover below).
+5. **Fail-closed judgment call (handoff item 9 / suggested step 3)**
+   — Cursor took Claude's lean: `suggest_cmd` and
+   `engagement_set_cmd` now use `get_box_or_fail`. `explain` /
+   `error` / `share-export` left on `get_or_create_box`.
+6. **Hint L3 wordlist_missing** — handoff item 6 said hint_cmd
+   does not mention `wordlist_missing` and "probably yes, same
+   L3-only gating." Cursor added that in `hint_cmd` (L3 only,
+   alongside tool-missing).
+7. **Full suite re-run** — **175 passed** in 38.25s
+   (`.venv/bin/pytest test/unit -q`). Was 163 at handoff write,
+   149 in DESIGN.md at that time.
+8. **DESIGN.md test count** — updated 149 → 175.
+
+### Live verification Cursor actually ran (not just unit tests)
+
+- **Wordlist on this Arch/Omarchy machine:** `find_wordlist()` →
+  `/usr/share/seclists/Discovery/Web-Content/common.txt`.
+  `resolve_wordlist_in_command` rewrites the Kali placeholder to
+  that path. (Handoff asked for this; it is not mocked.)
+- **`$TARGET` vs share-export:** generated gobuster command *was*
+  rewritten to `$TARGET` at suggest time. `build_share_bundle` /
+  `write_share_bundle` on the probe **did not contain** the raw
+  IP `10.10.10.99`. Caveat — this is **not** because `$TARGET`
+  flows into the bundle. Share-export does **not** export the
+  `suggestions` table at all. It exports unmatched findings
+  (no `host` column in the SELECT) + `ai_escalation` explanations
+  + error candidates. The debate's "benefits for free" claim is
+  only true if someone later adds suggestion commands to the
+  bundle. Cursor did **not** change `sharing.py` (out of scope;
+  debate said don't redesign share-export this pass).
+
+### Explicitly not done (still leftover from handoff B)
+
+- Live launch of the Textual watch TUI to press `d` / `s` / `h`
+  and confirm the phase rail. Cursor did not start a dashboard
+  process. Unit coverage exists for `set_accepted` and mocked
+  wizard→watch; the real TUI keybindings are unproven live.
+- Full interactive wizard (real prompts, piped stdin through
+  intro + VPN + Confirm.ask) — only `show_handoff` was tested,
+  with Confirm mocked.
+
+### Out-of-scope / extra (not on the handoff remaining list)
+
+Cursor wants Claude to know these were deliberate extras, not
+scope creep into DEFER/DO NOT:
+
+- The curl URL bug and its tests (see above) — pre-handoff
+  finding, Alexander-approved fix.
+- `_effective_host` applied to **port and share** rules too, not
+  only path/vuln, so `enum4linux-ng -A <target>` / `ftp <target>`
+  cannot come back if host is missing.
+- Fail-closed wiring for `suggest` / `engagement-set` (was a
+  judgment call in the handoff, not a MUST).
+- Hint L3 wordlist copy (handoff said "decide"; Cursor decided yes).
+- This log section itself.
+- Stale-note corrections at the top of this file (175 / `aeec0cc`)
+  from an earlier Cursor edit the same evening.
+
+Cursor did **not** start anything on the DEFER or DO NOT lists
+(curiosity unlocks, GTFOBins, Methods Index, stats, `trinity lab`,
+`trinity stuck`, LLM, auto-install, etc.).
+
+### Files Cursor touched after `aeec0cc`
+
+Modified: `src/trinity/suggest/engine.py`, `src/trinity/cli/main.py`,
+`test/unit/test_suggest_engine.py`, `test/unit/test_wizard_state.py`,
+`DESIGN.md`, this handoff file.
+
+New: `test/unit/test_cli_next_hint.py`,
+`test/unit/test_full_session_story.py`,
+`test/unit/test_db_migration.py`.
+
+### What Claude should review
+
+1. Curl URL helper + `$TARGET` fallback — is the scheme always
+   `http://` wrong for an https-only path finding? (gobuster rarely
+   has a scheme; ffuf full URLs keep their own.)
+2. Fail-closed on `suggest` / `engagement-set` — agree, or revert
+   `suggest` to get_or_create because parse-nmap is how boxes are
+   often first created and someone might `suggest` first?
+3. Share-export still can leak IPs if an `ai_escalation`
+   explanation command contains one (probe didn't hit that path
+   cleanly). `$TARGET` does not scrub that table.
+4. Story test hints on the *second* recommendation after `did`
+   (or the first if nothing remains). Confirm that's the intended
+   chain.
+5. 175-test count and the new tests themselves — especially
+   CliRunner isolation (must never touch `~/.trinity/trinity.db`;
+   Cursor monkeypatched `trinity.cli.main.connect` only).
+
+Suite at time of this log: **175 passed**. Working tree dirty
+relative to `aeec0cc`. Not pushed.

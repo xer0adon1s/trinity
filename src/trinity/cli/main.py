@@ -168,7 +168,7 @@ def parse_nmap_cmd(xml_path: str, box_name: str, target: str | None, platform: s
 def suggest_cmd(box_name: str):
     """Show suggested next commands for a box, based on findings so far."""
     conn = connect()
-    box = get_or_create_box(conn, box_name)
+    box = get_box_or_fail(conn, box_name)
     suggestions = suggest_next_commands(conn, box.id)
 
     if not suggestions:
@@ -246,7 +246,7 @@ def engagement_set_cmd(box_name, client_name, scope, authorization_ref, tester_n
     reports). Only overwrites fields you actually pass — safe to call
     repeatedly to fill in details as they become known."""
     conn = connect()
-    box = get_or_create_box(conn, box_name)
+    box = get_box_or_fail(conn, box_name)
 
     existing = conn.execute(
         "SELECT * FROM engagement_meta WHERE box_id = ?", (box.id,)
@@ -573,9 +573,12 @@ def hint_cmd(box_name: str):
     # comment claiming "level 2+" -- an untested off-by-one in the same
     # family as this project's earlier hint-leak bug. See
     # docs/CLAUDE_CURSOR_DEBATE.md, Part A.3.
-    if rec.tool_missing and hint.level == 3:
-        console.rule("[bold yellow]Heads up[/bold yellow]")
-        console.print(f"{rec.install_guidance}\n")
+    if hint.level == 3:
+        if rec.wordlist_missing:
+            console.print(f"[yellow]{NO_WORDLIST_GUIDANCE}[/yellow]\n")
+        if rec.tool_missing:
+            console.rule("[bold yellow]Heads up[/bold yellow]")
+            console.print(f"{rec.install_guidance}\n")
 
     level_label = {1: "Nudge", 2: "Stronger nudge", 3: "Full answer"}[hint.level]
     console.rule(f"[bold yellow]{level_label} ({hint.level}/3)[/bold yellow]")
