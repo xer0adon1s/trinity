@@ -1,0 +1,22 @@
+[project]
+name = "trinity"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "xer0adon1s", email = "xer0adon1s@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.5.0",
+    "pydantic>=2.13.5",
+    "rich>=15.0.0",
+    "textual>=8.2.8",
+]
+
+[project.scripts]
+trinity = "trinity.cli.main:cli"
+
+[build-system]
+requires = ["uv_build>=0.12.9,<0.13.0"]
+build-backend = "uv_build"
