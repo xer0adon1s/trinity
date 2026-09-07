@@ -44,7 +44,7 @@ New categories vs checkpoint 2: IDOR/PCAP, Elasticsearch/Kibana, Supervisor/Lua,
 
 | commit | what |
 |--------|------|
-| (see git log on branch) | Strip nmap `http console` / `process manager` role phrases; extract `X process manager` from detail/extrainfo for searchsploit (Luanne Supervisor); path segments with `_` query leading product component (`pandora_console` → `pandora`). |
+| `987d83c` | Strip nmap `http console` / `process manager` role phrases; extract `X process manager` from detail/extrainfo for searchsploit (Luanne Supervisor); path segments with `_` query leading product component (`pandora_console` → `pandora`). |
 
 **Not changed:** match priority/ordering, default `limit=5`, advisories, wizard, CLI surface, KB seed, new suggest phrasing, **http-title/generator parsers** (Love Voting System left as Doc proposal), English skip-list expansion.
 

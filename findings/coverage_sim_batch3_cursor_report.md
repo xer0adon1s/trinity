@@ -26,7 +26,7 @@ Corpus continuity: **122** boxes in the JSONL ledger.
 
 ## Live fixes shipped (bucket 1 only)
 
-All in `src/trinity/match/engine.py` + regression tests in `test/unit/test_match_engine.py`. Full suite: **421 → 424 passed**.
+All in `src/trinity/match/engine.py` + regression tests in `test/unit/test_match_engine.py` (commit `987d83c`). Full suite: **421 → 424 passed**.
 
 1. **Strip `http console` / `process manager`** from `_NOISY_PRODUCT_PHRASES`  
    - Hawk: `H2 database http console` → `H2 database` → Alias RCE CRITICAL surfaces.
