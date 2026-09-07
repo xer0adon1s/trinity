@@ -1,0 +1,190 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/kioptrix1.xml --box kioptrix1 --target 192.168.1.104
+───────────────────── 192.168.1.104:22 ssh (OpenSSH 2.9p2) ─────────────────────
+  OpenSSH 2.3 < 7.7 - Username Enumeration (PoC)  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 45210), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45210.py
+
+  OpenSSH 2.3 < 7.7 - Username Enumeration  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 45233), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45233.py
+
+  OpenSSH < 7.4 - 'UsePrivilegeSeparation Disabled' Forwarded Unix Domain 
+Sockets Privilege Escalation  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40962), CVE-2016-10010. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/local/40962.txt
+
+  OpenSSH < 7.4 - agent Protocol Arbitrary Library Loading  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40963), CVE-2016-10009. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/40963.txt
+
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+───────────────── 192.168.1.104:80 http (Apache httpd 1.3.20) ──────────────────
+  Apache + PHP < 5.3.12 / < 5.4.2 - cgi-bin Remote Code Execution  [CRITICAL]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29290), 
+CVE-2012-2336;CVE-2012-2311;CVE-2012-1823;OSVDB-81633. Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/remote/29290.c
+
+  Apache 1.3.20 (Win32) - 'PHP.exe' Remote File Disclosure  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 21204), CVE-2002-2029;OSVDB-701. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/21204.txt
+
+  Apache 1.3.6/1.3.9/1.3.11/1.3.12/1.3.20 - Root Directory Access  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19975), CVE-2000-0505;OSVDB-342. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/19975.pl
+
+  Apache 1.3.x < 2.0.48 mod_userdir - Remote Users Disclosure  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 132), OSVDB-9068. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/132.c
+
+  Apache < 1.3.37/2.0.59/2.2.3 mod_rewrite - Remote Overflow  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 2237), OSVDB-27588;CVE-2006-3747. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/2237.sh
+
+────────────────────────── 192.168.1.104:111 rpcbind ───────────────────────────
+  No local match — this would be a candidate for AI escalation.
+───────────────── 192.168.1.104:139 netbios-ssn (Samba smbd ) ──────────────────
+  GoSamba 1.0.1 - 'INCLUDE_PATH' Multiple Remote File Inclusions  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 4575), 
+OSVDB-40714;CVE-2007-5786;OSVDB-40713;OSVDB-40712;OSVDB-40711;OSVDB-40710;OSVDB-
+40709;OSVDB-40708;OSVDB-40707;OSVDB-40706;OSVDB-40705. Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/4575.txt
+
+  Microsoft Windows XP/2003 - Samba Share Resource Exhaustion (Denial of 
+Service)  [LOW]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 148), OSVDB-60587. Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/dos/148.sh
+
+  Samba 1.9.19 - 'Password' Remote Buffer Overflow  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 20308), CVE-1999-0182;OSVDB-11521. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/20308.c
+
+  Samba 2.0.7 - SWAT Logfile Permissions  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 20341), CVE-2000-0936;OSVDB-1626. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/local/20341.sh
+
+  Samba 2.0.7 - SWAT Logging Failure  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 20340), CVE-2000-0937;OSVDB-1625. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/20340.c
+
+──────────────── 192.168.1.104:443 https (Apache httpd 1.3.20) ─────────────────
+  Apache + PHP < 5.3.12 / < 5.4.2 - cgi-bin Remote Code Execution  [CRITICAL]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29290), 
+CVE-2012-2336;CVE-2012-2311;CVE-2012-1823;OSVDB-81633. Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/remote/29290.c
+
+  Apache 1.3.20 (Win32) - 'PHP.exe' Remote File Disclosure  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 21204), CVE-2002-2029;OSVDB-701. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/21204.txt
+
+  Apache 1.3.6/1.3.9/1.3.11/1.3.12/1.3.20 - Root Directory Access  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19975), CVE-2000-0505;OSVDB-342. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/19975.pl
+
+  Apache 1.3.x < 2.0.48 mod_userdir - Remote Users Disclosure  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 132), OSVDB-9068. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/132.c
+
+  Apache < 1.3.37/2.0.59/2.2.3 mod_rewrite - Remote Overflow  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 2237), OSVDB-27588;CVE-2006-3747. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/2237.sh
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  searchsploit openssh 2.9p2
+  (run `trinity explain "searchsploit openssh 2.9p2"` to break this down)
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u https://$TARGET:443 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity next --box kioptrix1
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 2.9p2
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh 2.9p2"` for a command breakdown, or 
+`trinity hint --box "kioptrix1"` if you want to work it out yourself first)
+(done? `trinity did --box "kioptrix1"`  ·  skipping this one? `trinity skip 
+--box "kioptrix1"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+[exit 0]
+
+$ trinity suggest --box kioptrix1
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+enum4linux-ng -A $TARGET
+Port 139 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 443 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+
+[exit 0]
+
+$ trinity hint --box kioptrix1
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

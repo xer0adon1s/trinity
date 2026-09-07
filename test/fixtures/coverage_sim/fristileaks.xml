@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 192.168.117.135" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="192.168.117.135" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.2.15" extrainfo="CentOS DAV/2 PHP/5.3.3"/>
+<script id="http-robots.txt" output="3 disallowed entries
+/cola /sisi /beer"/>
+</port>
+</ports>
+</host>
+</nmaprun>

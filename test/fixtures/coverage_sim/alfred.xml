@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.154.52" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.154.52" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft IIS httpd" version="7.5"/>
+<script id="http-server-header" output="Microsoft-IIS/7.5"/>
+</port>
+<port protocol="tcp" portid="3389">
+<state state="open" reason="syn-ack"/>
+<service name="ms-wbt-server" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="8080">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Jetty" version="9.4.z-SNAPSHOT"/>
+<script id="http-server-header" output="Jetty(9.4.z-SNAPSHOT)"/>
+</port>
+</ports>
+</host>
+</nmaprun>

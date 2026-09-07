@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 192.168.43.197" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="192.168.43.197" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="21">
+<state state="open" reason="syn-ack"/>
+<service name="ftp" method="probed" conf="10" product="vsftpd"/>
+<script id="ftp-anon" output="Anonymous FTP login allowed (FTP code 230)"/>
+</port>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="7.2p2 Ubuntu 4"/>
+</port>
+<port protocol="tcp" portid="53">
+<state state="open" reason="syn-ack"/>
+<service name="domain" method="probed" conf="10" product="dnsmasq" version="2.75"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="PHP cli server" version="5.5 or later"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" version="3.X - 4.X"/>
+</port>
+<port protocol="tcp" portid="3306">
+<state state="open" reason="syn-ack"/>
+<service name="mysql" method="probed" conf="10" product="MySQL" version="5.7.12-0ubuntu1"/>
+</port>
+<port protocol="tcp" portid="12380">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.18" extrainfo="Ubuntu"/>
+</port>
+</ports>
+</host>
+</nmaprun>

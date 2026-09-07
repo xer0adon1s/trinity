@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.93" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.93" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft IIS httpd" version="7.5"/>
+<script id="http-server-header" output="Microsoft-IIS/7.5"/>
+<script id="http-title" output="Bounty"/>
+<script id="http-methods" output="Potentially risky methods: TRACE"/>
+</port>
+</ports>
+</host>
+</nmaprun>

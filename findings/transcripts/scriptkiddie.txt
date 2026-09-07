@@ -1,0 +1,73 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/scriptkiddie.xml --box scriptkiddie --target 10.10.10.226
+──────────── 10.10.10.226:22 ssh (OpenSSH 8.2p1 Ubuntu 4ubuntu0.1) ─────────────
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+──────────────── 10.10.10.226:5000 http (Werkzeug httpd 0.16.1) ────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.9, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.1
+  (run `trinity explain "searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.1"` to break
+this down)
+  gobuster dir -u http://$TARGET:5000 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:5000 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity next --box scriptkiddie
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.1
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.1"` for a 
+command breakdown, or `trinity hint --box "scriptkiddie"` if you want to work it
+out yourself first)
+(done? `trinity did --box "scriptkiddie"`  ·  skipping this one? `trinity skip 
+--box "scriptkiddie"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u http://$TARGET:5000 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+
+[exit 0]
+
+$ trinity suggest --box scriptkiddie
+gobuster dir -u http://$TARGET:5000 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 5000 is serving HTTP — directory brute-forcing is the standard next step to
+find hidden admin panels, backups, or API routes before anything else.
+
+
+[exit 0]
+
+$ trinity hint --box scriptkiddie
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

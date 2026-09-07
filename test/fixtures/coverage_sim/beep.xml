@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.7" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.7" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="4.3"/>
+</port>
+<port protocol="tcp" portid="25">
+<state state="open" reason="syn-ack"/>
+<service name="smtp" method="probed" conf="10" product="Postfix smtpd"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.2.3"/>
+<script id="http-server-header" output="Apache/2.2.3 (CentOS)"/>
+<script id="http-title" output="Did not follow redirect to https://10.10.10.7/"/>
+</port>
+<port protocol="tcp" portid="443">
+<state state="open" reason="syn-ack"/>
+<service name="https" method="probed" conf="10" product="Apache httpd" version="2.2.3" extrainfo="CentOS"/>
+<script id="http-server-header" output="Apache/2.2.3 (CentOS)"/>
+<script id="http-title" output="Elastix - Login page"/>
+</port>
+<port protocol="tcp" portid="3306">
+<state state="open" reason="syn-ack"/>
+<service name="mysql" method="probed" conf="10" product="MySQL"/>
+</port>
+<port protocol="tcp" portid="5038">
+<state state="open" reason="syn-ack"/>
+<service name="asterisk" method="probed" conf="10" product="Asterisk Call Manager" version="1.1"/>
+</port>
+<port protocol="tcp" portid="10000">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="MiniServ" version="1.570" extrainfo="Webmin httpd"/>
+</port>
+</ports>
+</host>
+</nmaprun>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.11.243" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.11.243" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="8.9p1 Ubuntu 3ubuntu0.4"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="nginx" version="1.18.0" extrainfo="Ubuntu"/>
+<script id="http-title" output="Error 401 Unauthorized"/>
+<script id="http-server-header" output="nginx/1.18.0 (Ubuntu)"/>
+</port>
+<port protocol="tcp" portid="1883">
+<state state="open" reason="syn-ack"/>
+<service name="mqtt" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="5672">
+<state state="open" reason="syn-ack"/>
+<service name="amqp" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="8161">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Jetty" version="9.4.39.v20210325"/>
+<script id="http-title" output="Error 401 Unauthorized"/>
+<script id="http-server-header" output="Jetty(9.4.39.v20210325)"/>
+</port>
+<port protocol="tcp" portid="61616">
+<state state="open" reason="syn-ack"/>
+<service name="apachemq" method="probed" conf="10" product="ActiveMQ OpenWire transport"/>
+</port>
+</ports>
+</host>
+</nmaprun>

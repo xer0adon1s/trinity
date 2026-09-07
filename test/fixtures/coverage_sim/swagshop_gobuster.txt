@@ -1,0 +1,4 @@
+/index.php             (Status: 200) [Size: 0]
+/media                 (Status: 301) [Size: 0]
+/downloader            (Status: 301) [Size: 0]
+/mage                  (Status: 200) [Size: 0]

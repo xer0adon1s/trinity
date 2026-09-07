@@ -1,0 +1,31 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/chatterbox.xml --box chatterbox --target 10.10.10.74
+───────────────────────────── 10.10.10.74:9255 mon ─────────────────────────────
+  No local match — this would be a candidate for AI escalation.
+─────────────────────────── 10.10.10.74:9256 unknown ───────────────────────────
+  No local match — this would be a candidate for AI escalation.
+
+[exit 0]
+
+$ trinity next --box chatterbox
+Nothing to recommend yet — either nothing's been parsed for this box, or every 
+obvious next step has already been suggested.
+
+[exit 0]
+
+$ trinity suggest --box chatterbox
+No new suggestions — either nothing's been parsed yet, or everything obvious has
+already been suggested.
+
+[exit 0]
+
+$ trinity hint --box chatterbox
+Nothing to hint about yet — nothing's been parsed for this box.
+
+[exit 0]
+

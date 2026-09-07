@@ -1,0 +1,188 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/kioptrix2.xml --box kioptrix2 --target 192.168.56.9
+───────────────────── 192.168.56.9:22 ssh (OpenSSH 3.9p1) ──────────────────────
+  OpenSSH 2.3 < 7.7 - Username Enumeration (PoC)  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 45210), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45210.py
+
+  OpenSSH 2.3 < 7.7 - Username Enumeration  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 45233), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45233.py
+
+  OpenSSH < 7.4 - 'UsePrivilegeSeparation Disabled' Forwarded Unix Domain 
+Sockets Privilege Escalation  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40962), CVE-2016-10010. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/local/40962.txt
+
+  OpenSSH < 7.4 - agent Protocol Arbitrary Library Loading  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40963), CVE-2016-10009. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/40963.txt
+
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+────────────────── 192.168.56.9:80 http (Apache httpd 2.0.52) ──────────────────
+  Apache + PHP < 5.3.12 / < 5.4.2 - cgi-bin Remote Code Execution  [CRITICAL]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29290), 
+CVE-2012-2336;CVE-2012-2311;CVE-2012-1823;OSVDB-81633. Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/remote/29290.c
+
+  Apache 2.0.52 - GET Denial of Service  [LOW]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 855), OSVDB-11391;CVE-2004-0942. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/855.pl
+
+  Apache CouchDB < 2.1.0 - Remote Code Execution  [CRITICAL]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 44913), CVE-2017-12636. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/webapps/44913.py
+
+  Apache CXF < 2.5.10/2.6.7/2.7.4 - Denial of Service  [LOW]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 26710), CVE-2013-2160;OSVDB-95011. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/26710.txt
+
+  Apache mod_ssl < 2.8.7 OpenSSL - 'OpenFuck.c' Remote Buffer Overflow  [HIGH]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 21671), CVE-2002-0082;OSVDB-857. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/21671.c
+
+─────────────────────────── 192.168.56.9:111 rpcbind ───────────────────────────
+  No local match — this would be a candidate for AI escalation.
+──────────────────────────── 192.168.56.9:443 https ────────────────────────────
+  No local match — this would be a candidate for AI escalation.
+─────────────────────── 192.168.56.9:631 ipp (CUPS 1.1) ────────────────────────
+  CUPS 1.1.x - '.HPGL' File Processor Buffer Overflow  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 24977), CVE-2004-1267;OSVDB-12439. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/24977.txt
+
+  CUPS 1.1.x - Cupsd Request Method Denial of Service  [LOW]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 22619), CVE-2003-0195;OSVDB-4780. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/dos/22619.txt
+
+  CUPS 1.1.x - Negative Length HTTP Header  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 22106), CVE-2002-1368;OSVDB-10741. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/22106.txt
+
+  CUPS 1.1.x - UDP Packet Remote Denial of Service  [LOW]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 24599), CVE-2004-0558;OSVDB-9995. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/dos/24599.txt
+
+  CUPS < 1.3.8-4 - Local Privilege Escalation  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 7550), CVE-2008-5377;OSVDB-50637. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/local/7550.c
+
+─────────────────────── 192.168.56.9:3306 mysql (MySQL ) ───────────────────────
+  Active Calendar 1.2 - '/data/mysqlevents.php?css' Cross-Site Scripting  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29653), CVE-2007-1111;OSVDB-33147. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/29653.txt
+
+  Advanced Poll 2.0 - 'mysql_host' Cross-Site Scripting  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 33972), CVE-2010-2003;OSVDB-64524. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/33972.txt
+
+  Agora 1.4 RC1 - 'MysqlfinderAdmin.php' Remote File Inclusion  [MEDIUM]  (score
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 2726), OSVDB-31963;CVE-2006-7194. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/2726.txt
+
+  Asterisk 'asterisk-addons' 1.2.7/1.4.3 - CDR_ADDON_MYSQL Module SQL Injection 
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 30677), CVE-2007-5488;OSVDB-37880. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/30677.pl
+
+  Banex PHP MySQL Banner Exchange 2.21 - 'admin.php' Multiple SQL Injections  
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 28307), CVE-2006-3963;OSVDB-29090. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/28307.txt
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  searchsploit openssh 3.9p1
+  (run `trinity explain "searchsploit openssh 3.9p1"` to break this down)
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u https://$TARGET:443 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity next --box kioptrix2
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 3.9p1
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold. And one more thing worth knowing: Most of 
+the recent timeline is still in `recon` while other leads sit untouched. The 
+classic trap is deciding one port *must* be the answer. Parking it for a bit is 
+allowed..
+
+(run `trinity explain "searchsploit openssh 3.9p1"` for a command breakdown, or 
+`trinity hint --box "kioptrix2"` if you want to work it out yourself first)
+(done? `trinity did --box "kioptrix2"`  ·  skipping this one? `trinity skip 
+--box "kioptrix2"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+
+[exit 0]
+
+$ trinity suggest --box kioptrix2
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 443 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+
+[exit 0]
+
+$ trinity hint --box kioptrix2
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

@@ -1,0 +1,90 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/legacy.xml --box legacy --target 10.10.10.4
+───────── 10.10.10.4:139 netbios-ssn (Microsoft Windows netbios-ssn ) ──────────
+  No local match — this would be a candidate for AI escalation.
+──────────── 10.10.10.4:445 microsoft-ds (Windows XP microsoft-ds ) ────────────
+  Microsoft Windows Server - Code Execution (MS08-067)  [CRITICAL]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 7104), OSVDB-49243;CVE-2008-4250;MS08-067. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/7104.c
+
+  Microsoft Windows Server - Code Execution (PoC) (MS08-067)  [CRITICAL]  (score
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 6824), OSVDB-49243;CVE-2008-4250;MS08-067. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/dos/6824.txt
+
+  Microsoft Windows Server - Service Relative Path Stack Corruption (MS08-067) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16362), CVE-2008-4250;OSVDB-49243;MS08-067. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16362.rb
+
+  Microsoft Windows Server - Universal Code Execution (MS08-067)  [CRITICAL]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 6841), CVE-2008-4250;MS08-067. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/6841.txt
+
+  Microsoft Windows Server 2000/2003 - Code Execution (MS08-067)  [CRITICAL]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 7132), OSVDB-49243;CVE-2008-4250;MS08-067. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/7132.py
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+
+[exit 0]
+
+$ trinity next --box legacy
+─────────────────────────────── Recommended next ───────────────────────────────
+enum4linux-ng -A $TARGET
+
+'enum4linux-ng' isn't installed. Depending on your system:
+  Debian/Ubuntu:  sudo apt install enum4linux-ng
+  Otherwise:      https://github.com/cddmp/enum4linux-ng (pip install or clone +
+run directly)
+
+Once that's installed, just run this same command again -- I'll pick up right 
+where we left off: `trinity next --box "legacy"`
+
+(done? `trinity did --box "legacy"`  ·  skipping this one? `trinity skip --box 
+"legacy"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+[exit 0]
+
+$ trinity suggest --box legacy
+enum4linux-ng -A $TARGET
+Port 139 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+enum4linux-ng -A $TARGET
+Port 445 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+
+[exit 0]
+
+$ trinity hint --box legacy
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the enum phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

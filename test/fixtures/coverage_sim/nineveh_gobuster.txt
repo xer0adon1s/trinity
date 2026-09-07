@@ -1,0 +1,4 @@
+/info.php              (Status: 200) [Size: 0]
+/department            (Status: 301) [Size: 0]
+/db                    (Status: 301) [Size: 0]
+/secure_notes          (Status: 301) [Size: 0]

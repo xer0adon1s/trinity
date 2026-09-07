@@ -1,0 +1,5 @@
+/images                (Status: 301) [Size: 322]
+/css                   (Status: 301) [Size: 319]
+/js                    (Status: 301) [Size: 318]
+/fonts                 (Status: 301) [Size: 321]
+/internal              (Status: 301) [Size: 324]

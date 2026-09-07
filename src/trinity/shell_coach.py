@@ -346,6 +346,151 @@ _EVIL_WINRM_STATES = [
     ),
 ]
 
+
+# --- Second profile: msfconsole ---
+#
+# First real external-tool prompt (raw-shell reused Shoulder Mode's
+# already-known landing patterns). Prompt text is taken from
+# metasploit-framework's driver.rb `update_prompt`:
+#   DefaultPrompt = "%undmsf%clr", DefaultPromptChar = "%clr>"
+#   and with a module selected:
+#     "#{Prompt} #{type}(%bld%red#{promptname}%clr)"
+# After Rex color substitution the visible defaults are `msf6 >`
+# (or `msf5 >` / `msf >` on older frameworks) and
+# `msf6 exploit(windows/smb/ms17_010_eternalblue) >` (also
+# auxiliary/payload/post/encoder/nop/evasion). Optional ANSI CSI
+# sequences are tolerated because a live pty chunk still has the
+# underline/bold-red codes; we could not launch msfconsole here to
+# paste a real capture (`which msfconsole` missed).
+#
+# Commands are matched as "prompt + typed command" because that is
+# how a pty records a line (`msf6 > search eternalblue`), and
+# because `help` output lists the words `search`/`use`/`exit` as
+# bare columns that would false-trigger a start-of-line match.
+#
+# State order is specific-before-general (see CoachProfile): fired
+# and options_set must beat module_selected, because after `use`
+# almost every line reprints the module-context prompt. The module
+# prompt itself is NOT a state recognize — it reprints after every
+# command and would clobber later states under first-match-wins
+# (logged in docs/COACH_OPEN_QUESTIONS.md). `use` is the one-shot
+# signal that a module was actually selected.
+
+_MSF_ANSI = r"(?:\x1b\[[0-9;]*m)*"
+_MSF_MODULE_TYPE = r"(?:exploit|auxiliary|payload|post|encoder|nop|evasion)"
+_MSF_MODULE_CTX = (
+    rf"{_MSF_MODULE_TYPE}{_MSF_ANSI}\({_MSF_ANSI}[^)\r\n]+{_MSF_ANSI}\)"
+)
+# `msf` + optional version digits so `msf`, `msf5`, `msf6`, and a
+# future `msf7` all match; `msfconsole >` does not, because the
+# leftover "console" sits where a space-or-`>` must be.
+_MSF_PROMPT = (
+    rf"{_MSF_ANSI}msf\d*{_MSF_ANSI}"
+    rf"(?:\s+{_MSF_ANSI}{_MSF_MODULE_CTX}{_MSF_ANSI})?"
+    rf"\s*{_MSF_ANSI}>"
+)
+
+
+def _msf_at_prompt(command: str) -> re.Pattern:
+    """A command typed at the msfconsole prompt (case-insensitive —
+    the console treats `set RHOSTS` and `set rhosts` the same)."""
+    return re.compile(rf"{_MSF_PROMPT}\s*{command}", re.IGNORECASE)
+
+
+_MSF_PROMPT_LINE = re.compile(_MSF_PROMPT)
+# `exit -y` skips the "you have active jobs" confirm; `quit` is the
+# documented alias. The user@host OS prompt is the "msfconsole just
+# closed and the surrounding shell came back" signal — see open
+# questions for fancy Kali two-line prompts this will miss.
+_MSF_EXIT = re.compile(
+    rf"{_MSF_PROMPT}\s*(?:exit|quit)\b"
+    r"|^\S+@\S+[: ].*[$#]\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+_MSFCONSOLE_STATES = [
+    CoachState(
+        name="fired",
+        recognize=_msf_at_prompt(r"(?:run|exploit)\b"),
+        expected_next=[
+            _msf_at_prompt(r"sessions\b"),
+        ],
+        stall_nudge=(
+            "It ran — before I tell you what to type, how would you "
+            "usually tell whether that actually got you a foothold?"
+        ),
+        stall_stronger_nudge=(
+            "A successful run opens a session, and you haven't listed "
+            "or entered one yet."
+        ),
+        stall_answer=(
+            "Run `sessions -l` to list active sessions, then "
+            "`sessions -i <id>` to interact with one."
+        ),
+    ),
+    CoachState(
+        name="options_set",
+        # RHOSTS (and the older singular RHOST) is the "told it what
+        # to attack" signal; LHOST/payload stay expected_next on
+        # module_selected so setting a callback address alone does
+        # not pretend the module is ready to fire.
+        recognize=_msf_at_prompt(r"setg?\s+rhosts?\b"),
+        expected_next=[
+            _msf_at_prompt(r"(?:run|exploit|check)\b"),
+        ],
+        stall_nudge=(
+            "The target is set — what's the usual next move once a "
+            "module knows where to point?"
+        ),
+        stall_stronger_nudge=(
+            "Options are filled in but the module hasn't been launched yet."
+        ),
+        stall_answer=(
+            "Run `run` or `exploit` (or `check` first if you want to "
+            "test without firing)."
+        ),
+    ),
+    CoachState(
+        name="searching",
+        recognize=_msf_at_prompt(r"search\b"),
+        expected_next=[
+            _msf_at_prompt(r"use\s+\S+"),
+        ],
+        stall_nudge=(
+            "You've got results back — what would you normally do "
+            "with a module that looks relevant?"
+        ),
+        stall_stronger_nudge=(
+            "You've searched but haven't picked a module yet — "
+            "selecting one is what actually changes the console's context."
+        ),
+        stall_answer=(
+            "Pick one with `use <module/path>` (or `use <number>` "
+            "from the search-results index)."
+        ),
+    ),
+    CoachState(
+        name="module_selected",
+        recognize=_msf_at_prompt(r"use\s+\S+"),
+        expected_next=[
+            _msf_at_prompt(r"(?:show\s+)?options\b"),
+            _msf_at_prompt(r"setg?\s+(?:rhosts?|lhost|lport|payload)\b"),
+        ],
+        stall_nudge=(
+            "You've picked something — what does it still need to "
+            "know before it can do anything useful?"
+        ),
+        stall_stronger_nudge=(
+            "You've picked a module but haven't told it what to attack yet."
+        ),
+        stall_answer=(
+            "Set the target with `set RHOSTS <target>` (and often "
+            "`set LHOST <your-ip>` for a reverse payload). "
+            "`show options` lists what's required."
+        ),
+    ),
+]
+
 EVIL_WINRM_PROFILE = CoachProfile(
     tool_id="evil_winrm",
     display_name="an evil-winrm session",
@@ -356,6 +501,18 @@ EVIL_WINRM_PROFILE = CoachProfile(
         "Looks like you're in an evil-winrm session. I'll narrate here if "
         "you seem stuck -- I'm only watching, I won't type anything for "
         "you."
+    ),
+)
+
+MSFCONSOLE_PROFILE = CoachProfile(
+    tool_id="msfconsole",
+    display_name="msfconsole",
+    prompt_pattern=_MSF_PROMPT_LINE,
+    exit_pattern=_MSF_EXIT,
+    states=_MSFCONSOLE_STATES,
+    announce=(
+        "Looks like you're in msfconsole. I'll narrate here if you seem "
+        "stuck — I'm only watching, I won't type anything for you."
     ),
 )
 
@@ -373,8 +530,10 @@ EVIL_WINRM_PROFILE = CoachProfile(
 # color codes, which breaks the contiguous substring raw_shell's
 # pattern needs -- but the no-color case is real and common enough
 # (logging, scripting, dumb terminals) to order around explicitly
-# rather than rely on the color codes always being there.
-DEFAULT_PROFILES: list[CoachProfile] = [EVIL_WINRM_PROFILE, RAW_SHELL_PROFILE]
+# rather than rely on the color codes always being there. msfconsole's
+# `msf` prefix has no such collision with either pattern, so its
+# position relative to the other two doesn't matter.
+DEFAULT_PROFILES: list[CoachProfile] = [EVIL_WINRM_PROFILE, RAW_SHELL_PROFILE, MSFCONSOLE_PROFILE]
 
 
 def new_session(profiles: list[CoachProfile] | None = None) -> CoachSession:

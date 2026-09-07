@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.51.164" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.51.164" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="21">
+<state state="open" reason="syn-ack"/>
+<service name="ftp" method="probed" conf="10" product="ProFTPD" version="1.3.5"/>
+</port>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="7.2p2 Ubuntu 4ubuntu2.7"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.18" extrainfo="Ubuntu"/>
+<script id="http-robots.txt" output="1 disallowed entry
+/admin.html"/>
+<script id="http-title" output="Site doesn't have a title (text/html)."/>
+<script id="http-server-header" output="Apache/2.4.18 (Ubuntu)"/>
+</port>
+<port protocol="tcp" portid="111">
+<state state="open" reason="syn-ack"/>
+<service name="rpcbind" method="probed" conf="10" extrainfo="2-4 (RPC #100000)"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" version="3.X - 4.X" extrainfo="workgroup: WORKGROUP"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" version="4.3.11-Ubuntu" extrainfo="workgroup: WORKGROUP"/>
+</port>
+<port protocol="tcp" portid="2049">
+<state state="open" reason="syn-ack"/>
+<service name="nfs_acl" method="probed" conf="10" extrainfo="2-3 (RPC #100227)"/>
+</port>
+</ports>
+</host>
+</nmaprun>

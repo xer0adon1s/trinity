@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 192.168.173.76" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="192.168.173.76" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="7.2p2 Ubuntu 4ubuntu2.10"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.18" extrainfo="Ubuntu"/>
+<script id="http-title" output="Photographer by v1n1v131r4"/>
+<script id="http-server-header" output="Apache/2.4.18 (Ubuntu)"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" version="3.X - 4.X" extrainfo="workgroup: WORKGROUP"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10" product="Samba smbd" version="4.3.11-Ubuntu" extrainfo="workgroup: WORKGROUP"/>
+</port>
+<port protocol="tcp" portid="8000">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.18" extrainfo="Ubuntu"/>
+<script id="http-generator" output="Koken 0.22.24"/>
+<script id="http-server-header" output="Apache/2.4.18 (Ubuntu)"/>
+<script id="http-title" output="daisa ahomi"/>
+</port>
+</ports>
+</host>
+</nmaprun>

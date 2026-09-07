@@ -1,0 +1,178 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/lame.xml --box lame --target 10.10.10.3
+─────────────────────── 10.10.10.3:21 ftp (vsftpd 2.3.4) ───────────────────────
+  vsftpd 2.3.4 backdoor (CVE-2011-2523)  [CRITICAL]  (score 1.0, user_curated)
+  This exact version has a known backdoor: sending a username ending in ':)' 
+opens a root shell on port 6200. Classic intentionally-vulnerable teaching box 
+marker.
+  Exploit: metasploit `exploit/unix/ftp/vsftpd_234_backdoor`, or manually 
+connect with a username like 'user:)' via the FTP control channel, then connect 
+to port 6200 for a root shell.
+
+  vsftpd 2.3.4 - Backdoor Command Execution (Metasploit)  [CRITICAL]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 17491), OSVDB-73573;CVE-2011-2523. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/17491.rb
+
+  vsftpd 2.3.4 - Backdoor Command Execution  [CRITICAL]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 49757), CVE-2011-2523. Verified working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/49757.py
+
+  Anonymous FTP login  [MEDIUM]  (score 0.9, user_curated)
+  FTP server allows the 'anonymous' user with any/blank password. Always worth 
+checking before anything else on port 21.
+  Try: `ftp <target>` then username `anonymous`, any password.
+
+  SMB null session / anonymous enumeration  [MEDIUM]  (score 0.6, user_curated)
+  SMB (port 445/139) often allows unauthenticated enumeration of shares, users, 
+and groups — a very common early foothold path.
+  Try: `smbclient -L //<target>/ -N`, `enum4linux -a <target>`, or `crackmapexec
+smb <target> --shares -u '' -p ''`.
+
+────────────── 10.10.10.3:22 ssh (OpenSSH 4.7p1 Debian 8ubuntu1) ───────────────
+  OpenSSH 2.3 < 7.7 - Username Enumeration (PoC)  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 45210), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45210.py
+
+  OpenSSH 2.3 < 7.7 - Username Enumeration  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 45233), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45233.py
+
+  OpenSSH < 7.4 - 'UsePrivilegeSeparation Disabled' Forwarded Unix Domain 
+Sockets Privilege Escalation  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40962), CVE-2016-10010. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/local/40962.txt
+
+  OpenSSH < 7.4 - agent Protocol Arbitrary Library Loading  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40963), CVE-2016-10009. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/40963.txt
+
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+───────────────── 10.10.10.3:139 netbios-ssn (Samba smbd 3.X) ──────────────────
+  Samba 2.2.0 < 2.2.8 (OSX) - trans2open Overflow (Metasploit)  [MEDIUM]  (score
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 9924), CVE-2003-0201;OSVDB-4469. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/osx/remote/9924.rb
+
+  Samba 2.2.x - 'call_trans2open' Remote Buffer Overflow (1)  [HIGH]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 22468), CVE-2003-0201;OSVDB-4469. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/22468.c
+
+  Samba 3.0.10 (OSX) - 'lsa_io_trans_names' Heap Overflow (Metasploit)  [HIGH]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16875), CVE-2007-2446;OSVDB-34699. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/osx/remote/16875.rb
+
+  Samba 3.0.10 < 3.3.5 - Format String / Security Bypass  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 10095). Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/10095.txt
+
+  Samba 3.0.20 < 3.0.25rc3 - 'Username' map script' Command Execution 
+(Metasploit)  [CRITICAL]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16320), CVE-2007-2447;OSVDB-34700. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/16320.rb
+
+──────────── 10.10.10.3:445 netbios-ssn (Samba smbd 3.0.20-Debian) ─────────────
+  Samba 3.0.10 < 3.3.5 - Format String / Security Bypass  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 10095). Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/10095.txt
+
+  Samba 3.0.20 < 3.0.25rc3 - 'Username' map script' Command Execution 
+(Metasploit)  [CRITICAL]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16320), CVE-2007-2447;OSVDB-34700. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/16320.rb
+
+  Samba < 3.0.20 - Remote Heap Overflow  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 7701). Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/7701.txt
+
+  Samba < 3.6.2 (x86) - Denial of Service (PoC)  [LOW]  (score 0.8, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 36741), CVE-2015-0240;OSVDB-118637.
+  PoC: /usr/share/exploitdb/exploits/linux_x86/dos/36741.py
+
+───────────────────── 10.10.10.3:3632 distccd (distccd v1) ─────────────────────
+  No local match — this would be a candidate for AI escalation.
+─────────────────────────── Suggested next commands ────────────────────────────
+  ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
+  (run `trinity explain "ftp $TARGET  # login as anonymous, then: ls -la && get 
+any interesting files"` to break this down)
+  searchsploit openssh 4.7p1 Debian 8ubuntu1
+  (run `trinity explain "searchsploit openssh 4.7p1 Debian 8ubuntu1"` to break 
+this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+
+[exit 0]
+
+$ trinity next --box lame
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 4.7p1 Debian 8ubuntu1
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh 4.7p1 Debian 8ubuntu1"` for a 
+command breakdown, or `trinity hint --box "lame"` if you want to work it out 
+yourself first)
+(done? `trinity did --box "lame"`  ·  skipping this one? `trinity skip --box 
+"lame"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
+  enum4linux-ng -A $TARGET  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+[exit 0]
+
+$ trinity suggest --box lame
+ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
+Port 21's nmap scripts already confirmed anonymous FTP login works — don't 
+re-check it, go straight to listing and pulling whatever files are there.
+
+enum4linux-ng -A $TARGET
+Port 139 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+enum4linux-ng -A $TARGET
+Port 445 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+
+[exit 0]
+
+$ trinity hint --box lame
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+
