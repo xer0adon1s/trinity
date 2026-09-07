@@ -94,6 +94,31 @@ def test_dead_end_smb():
     assert "Park" in line or "empty" in line.lower() or "normal" in line.lower()
 
 
+def test_dead_end_matches_are_case_insensitive_and_substring_based():
+    from trinity.deadends import dead_end_line
+
+    assert dead_end_line("SMBCLIENT -L //10.10.10.3") == dead_end_line("smbclient -L //10.10.10.3")
+
+
+def test_dead_end_ftp_and_ssh_and_gobuster_and_nikto_have_distinct_lines():
+    from trinity.deadends import dead_end_line
+
+    ftp = dead_end_line("ftp $TARGET")
+    ssh = dead_end_line("ssh user@$TARGET")
+    gobuster = dead_end_line("gobuster dir -u $TARGET -w common.txt")
+    nikto = dead_end_line("nikto -h $TARGET")
+    lines = {ftp, ssh, gobuster, nikto}
+    assert len(lines) == 4  # each keyword gets its own line, none collide
+
+
+def test_dead_end_unknown_command_gets_generic_fallback_not_none():
+    from trinity.deadends import dead_end_line
+
+    line = dead_end_line("xyzzy-totally-unrecognized-tool $TARGET")
+    assert line is not None
+    assert "Park" in line or "skill" in line.lower()
+
+
 def test_graduation_after_enough_gobusters(conn):
     box = create_box(conn, "Grad")
     for i in range(NUDGE_AFTER):

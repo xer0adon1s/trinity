@@ -1,7 +1,9 @@
-"""PROTOTYPE — deliberate dead-end language (Trinity_suggestions.md 2.9).
+"""Deliberate dead-end language (docs/FEATURES_BACKLOG.md, originally
+Trinity_suggestions.md 2.9).
 
-Beginners need permission to stop. Used when they skip a suggestion
-so Trinity is not only capable of adding more work.
+Beginners need permission to stop. Shown when they skip a suggestion,
+so Trinity isn't only capable of adding more work -- it can also say
+"that's fine, move on" and mean it.
 """
 from __future__ import annotations
 
