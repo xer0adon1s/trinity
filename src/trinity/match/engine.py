@@ -53,17 +53,28 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
 
         for row in rows:
             # Version match bumps confidence; a version-agnostic entry
-            # still surfaces, just ranked lower.
+            # still surfaces, just ranked lower. But when the KB entry
+            # IS version-specific (match_version is set -- e.g. the
+            # vsftpd 2.3.4 backdoor), it must not surface at all unless
+            # the finding's version actually contains it -- found live
+            # during the 2026-09-07 AD/Windows simulation exercise:
+            # this entry was firing a false CRITICAL "vsftpd backdoor"
+            # hit against Netmon's `Microsoft ftpd` (no version at all)
+            # purely because both share match_service='ftp'. A
+            # version-specific KB entry making a claim about an EXACT
+            # version is fundamentally different from a
+            # version-agnostic one describing a general service
+            # behavior (anonymous login, null session) -- the latter
+            # is correctly service-scoped only and must keep firing
+            # unconditionally.
             score = 0.9
             entry_version = conn.execute(
                 "SELECT match_version FROM kb_entries WHERE id = ?", (row["id"],)
             ).fetchone()
-            if (
-                finding.version
-                and entry_version
-                and entry_version["match_version"]
-                and entry_version["match_version"] in finding.version
-            ):
+            required_version = entry_version["match_version"] if entry_version else None
+            if required_version:
+                if not (finding.version and required_version in finding.version):
+                    continue
                 score = 1.0
 
             matches.append(
@@ -91,7 +102,8 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
                 """
                 SELECT kb_entries.id, kb_entries.title, kb_entries.summary,
                        kb_entries.detail, kb_entries.source, kb_entries.severity,
-                       kb_entries.tags, kb_fts.rank
+                       kb_entries.tags, kb_entries.match_service,
+                       kb_entries.match_version, kb_fts.rank
                 FROM kb_fts
                 JOIN kb_entries ON kb_entries.id = kb_fts.rowid
                 WHERE kb_fts MATCH ?
@@ -107,6 +119,30 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
 
         for row in rows:
             if row["id"] in seen_ids:
+                continue
+            # A service-scoped KB entry (match_service set) must not
+            # FTS-attach to a finding from a DIFFERENT, known service --
+            # e.g. an LDAP-scoped "anonymous bind" entry cross-matching
+            # an Anonymous-FTP finding purely because both texts contain
+            # the word "anonymous" (HTB Netmon, found during the AD
+            # simulation exercise). Only gates when BOTH sides are known
+            # and disagree; a finding with no service at all (e.g. a
+            # synthetic ldap_anon/asrep_hash finding) still gets FTS.
+            scoped_service = (row["match_service"] or "").lower()
+            found_service = (finding.service or "").lower()
+            if scoped_service and found_service and scoped_service != found_service:
+                continue
+            # Same version-required rule as stage 1, applied here too --
+            # a version-specific entry (vsftpd 2.3.4) that correctly got
+            # skipped by stage 1's exact-service filter for lacking a
+            # version match must not sneak back in here via FTS just
+            # because its own tags/title happen to contain its
+            # service name as a token (e.g. tag "ftp" on the vsftpd
+            # entry matching an unrelated "Microsoft ftpd" finding's
+            # FTS query of "ftp"/"ftpd"). Same HTB Netmon bug, same
+            # fix, second stage.
+            required_version = row["match_version"]
+            if required_version and not (finding.version and required_version in finding.version):
                 continue
             matches.append(
                 KBMatch(

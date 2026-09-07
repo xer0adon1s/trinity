@@ -416,6 +416,9 @@ session does not “helpfully” invent a launcher.
   updated AutoRecon entry); social declined
 - `DESIGN.md` — public out-of-scope list, rewritten 2026-09 opening
   mission statement
+- `docs/CURSOR_HOMEWORK.md` — filed 2026-09-07: the three assigned
+  Cursor projects (coverage sim, AD engine, AD sim). Not a rail
+  change; docket only.
 - `docs/CURSOR_HANDOFF_CONTINUE.md` — what was actually drafted this
   week
 - `~/Downloads/Trinity_suggestions.md` — §2.10 lab, §2.14 no chatbot

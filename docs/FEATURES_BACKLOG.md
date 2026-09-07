@@ -7,6 +7,11 @@ entry to its own design doc (like docs/RABBIT_HOLE_DETECTION.md,
 docs/INSTRUCTOR_MODE.md, docs/METHODS_INDEX.md) when it's actually
 being scheduled for build.
 
+**Active Cursor homework is not backlog.** See
+[CURSOR_HOMEWORK.md](./CURSOR_HOMEWORK.md) — those three assigned
+specs (coverage sim, AD engine, AD sim) are current work, not
+ideas waiting to be scheduled.
+
 Vetoed or "maybe later, but this would change what Trinity is"
 items — LLM chat, auto-install, launchers, Metasploit RPC, live
 writeup scrape, `trinity lab` / hyprctl, shell-history sensors,
