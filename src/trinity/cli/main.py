@@ -934,7 +934,10 @@ def stats_cmd():
 @cli.command("hash")
 @click.argument("value")
 def hash_cmd(value: str):
-    """PROTOTYPE. Guess a hash/token shape locally. No network."""
+    """Guess a hash/token shape locally (bcrypt, md5crypt, sha512crypt,
+    JWT, md5/NTLM/sha1/sha256 by hex length). No network — not a
+    replacement for hashid, enough to unstick "found a hex string,
+    now what?"."""
     from trinity.hashes import classify_hash
 
     guess = classify_hash(value)

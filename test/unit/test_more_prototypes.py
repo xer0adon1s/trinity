@@ -35,10 +35,27 @@ def test_stats_ready_after_root(conn):
 
 
 def test_hash_shapes():
-    assert classify_hash("5f4dcc3b5aa765d61d8327deb882cf99").label == "md5 (hex)"
+    assert classify_hash("5f4dcc3b5aa765d61d8327deb882cf99").label == "md5 or NTLM (32-hex)"
     assert classify_hash("$2a$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgUk.sbJiXDc2mN0g8iK0yEAJa").label == "bcrypt"
-    assert classify_hash("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdSI6MX0.sig").label == "JWT"
+    assert classify_hash("eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U").label == "JWT"
     assert classify_hash("????").label == "unknown"
+
+
+def test_hash_shapes_sha1_and_sha256_and_crypt_variants():
+    from trinity.hashes import classify_hash
+
+    assert classify_hash("da39a3ee5e6b4b0d3255bfef95601890afd80709").label == "sha1 (hex)"
+    assert classify_hash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855").label == "sha256 (hex)"
+    assert classify_hash("$1$abcdefgh$dXc4L0EIkQqCJKtJk1RYT0").label == "md5crypt ($1$)"
+    assert classify_hash("$6$somesalt$rest.of.a.sha512crypt.hash.string.here").label == "sha512crypt ($6$)"
+
+
+def test_hash_shape_ntlm_and_md5_are_indistinguishable_by_design():
+    # 32-hex is genuinely ambiguous between md5 and NTLM -- the
+    # classifier says so explicitly rather than silently guessing one.
+    guess = classify_hash("5f4dcc3b5aa765d61d8327deb882cf99")
+    assert "NTLM" in guess.next_step
+    assert "md5" in guess.next_step.lower()
 
 
 def test_gtfobins_vim_cites_source():

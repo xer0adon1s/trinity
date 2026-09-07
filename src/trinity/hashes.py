@@ -1,4 +1,5 @@
-"""PROTOTYPE — hash-shaped stuckness (Trinity_suggestions.md 2.5).
+"""Hash-shaped stuckness (docs/FEATURES_BACKLOG.md, originally
+Trinity_suggestions.md 2.5).
 
 Local shape classifier. No network. Not a replacement for hashid;
 enough to unstick "I found a long hex string, now what?"
@@ -50,8 +51,12 @@ def classify_hash(value: str) -> HashGuess:
         )
     if _HEX.match(text) and len(text) == 32:
         return HashGuess(
-            label="md5 (hex)",
-            next_step="hashcat -m 0 or john --format=raw-md5. Try rockyou before you invent a mask.",
+            label="md5 or NTLM (32-hex)",
+            next_step=(
+                "Can't tell md5 from NTLM by shape alone — both are 32 hex chars. "
+                "If it came from a Windows SAM/NT/DCSync dump, try hashcat -m 1000 (NTLM) first. "
+                "Otherwise hashcat -m 0 or john --format=raw-md5. Try rockyou before you invent a mask."
+            ),
             confidence="medium",
         )
     if _HEX.match(text) and len(text) == 40:
@@ -65,12 +70,6 @@ def classify_hash(value: str) -> HashGuess:
             label="sha256 (hex)",
             next_step="hashcat -m 1400 or john --format=raw-sha256.",
             confidence="medium",
-        )
-    if _HEX.match(text) and len(text) == 32:
-        return HashGuess(
-            label="ntlm-or-md5",
-            next_step="If it came from a Windows SAM/NT dump, try hashcat -m 1000 (NTLM). Otherwise treat as md5.",
-            confidence="low",
         )
     return HashGuess(
         label="unknown",
