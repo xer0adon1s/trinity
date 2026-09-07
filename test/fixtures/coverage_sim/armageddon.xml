@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.233" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.233" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="7.4"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.6" extrainfo="CentOS PHP/5.4.16"/>
+<script id="http-generator" output="Drupal 7 (http://drupal.org)"/>
+<script id="http-robots.txt" output="36 disallowed entries (15 shown)
+/includes/ /misc/ /modules/ /profiles/ /scripts/
+/themes/ /CHANGELOG.txt /cron.php /INSTALL.mysql.txt"/>
+<script id="http-server-header" output="Apache/2.4.6 (CentOS) PHP/5.4.16"/>
+<script id="http-title" output="Welcome to  Armageddon |  Armageddon"/>
+</port>
+</ports>
+</host>
+</nmaprun>

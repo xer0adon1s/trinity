@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 192.168.1.104" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="192.168.1.104" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="2.9p2"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="1.3.20" extrainfo="Unix Red-Hat/Linux mod_ssl/2.8.4 OpenSSL/0.9.6b"/>
+</port>
+<port protocol="tcp" portid="111">
+<state state="open" reason="syn-ack"/>
+<service name="rpcbind" method="probed" conf="10" extrainfo="2 (RPC #100000)"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" extrainfo="workgroup: MYGROUP"/>
+</port>
+<port protocol="tcp" portid="443">
+<state state="open" reason="syn-ack"/>
+<service name="https" method="probed" conf="10" product="Apache httpd" version="1.3.20" extrainfo="Unix Red-Hat/Linux mod_ssl/2.8.4 OpenSSL/0.9.6b"/>
+<script id="http-server-header" output="Apache/1.3.20 (Unix) (Red-Hat/Linux) mod_ssl/2.8.4 OpenSSL/0.9.6b"/>
+</port>
+</ports>
+</host>
+</nmaprun>

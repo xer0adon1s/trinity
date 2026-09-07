@@ -184,9 +184,26 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
     if finding.product:
         search_calls.append(_searchsploit_query_terms(finding.product, finding.version))
     if finding.detail:
-        bulletin_terms = _ms_bulletin_terms(finding.detail)
-        if bulletin_terms:
-            search_calls.append(bulletin_terms)
+        # One searchsploit invocation per bulletin. searchsploit ANDs
+        # its argv terms, so feeding [ms08-067, ms17-010] as a single
+        # query (Legacy: nmap's smb-vuln-* scripts report BOTH on the
+        # same port 445 finding) returns zero hits even though each
+        # term alone has verified local exploits. Same "which queries
+        # get asked" shape as the MS-bulletin extraction itself — do
+        # not AND distinct bulletin IDs together.
+        for bulletin in _ms_bulletin_terms(finding.detail):
+            search_calls.append([bulletin])
+    # Path findings (gobuster/ffuf) never populate .product — they're a
+    # URL path, not a service banner — so a product-shaped last segment
+    # like /nibbleblog/ used to never reach searchsploit even when
+    # ExploitDB already had the matching exploit locally. Same shape as
+    # the MS-bulletin extraction above: pull a real token out of the
+    # finding and query it; do not guess. Generic web segments (admin,
+    # login, images, ...) are skipped so this does not noise /admin/.
+    if finding.kind == "path" and finding.path:
+        path_terms = _path_product_terms(finding.path)
+        if path_terms:
+            search_calls.append(path_terms)
 
     for query_terms_ss in search_calls:
         for result in searchsploit.search(*query_terms_ss):
@@ -217,6 +234,64 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
 # Matches nmap NSE vuln-script naming (`smb-vuln-ms17-010`) as well as
 # bare mentions in script output text ("...(ms17-010)", "(MS08-067)").
 _MS_BULLETIN_RE = re.compile(r"ms(\d{2})-(\d{3})", re.IGNORECASE)
+
+
+# Last path segment must look like a product/app name, not a generic
+# web path: start with a letter, then letters/digits/hyphens, length >= 4.
+_PRODUCT_SHAPED_SEGMENT = re.compile(r"^[A-Za-z][A-Za-z0-9-]{3,}$")
+
+# Generic path segments that must never be sent to searchsploit. Starts
+# from suggest/engine.py's _INTERESTING_PATH_MARKERS (those are "worth
+# curling" for recon, not product names for ExploitDB) plus common web
+# junk that a naive last-segment query would otherwise fire on.
+_GENERIC_PATH_SEGMENTS = frozenset({
+    # _INTERESTING_PATH_MARKERS in suggest/engine.py
+    "admin", "login", "backup", "upload", "wp-admin", ".git",
+    "phpmyadmin", "config", "dashboard", "panel", "api",
+    # generic web junk
+    "images", "css", "js", "static", "assets", "index", "files",
+    "uploads",
+    "img", "includes", "fonts", "vendor", "public", "tmp", "www",
+    "html", "php", "txt", "icons", "media",
+    # obvious extra generic web paths — not product names
+    "cgi-bin", "cgi",
+    # seen live during coverage-sim: /themes/ on pfSense (Sense) became
+    # `searchsploit themes` and returned unrelated WordPress theme
+    # exploits. Same class as images/css/static.
+    "themes", "javascript", "classes", "widgets",
+    # coverage-sim: these last segments are product-shaped but are
+    # common English / brand words. Live they became `searchsploit fuel`
+    # → Franklin Fueling (THM Ignite Fuel CMS), `searchsploit simple` →
+    # AnalogX SimpleServer (THM Simple CTF / CMS Made Simple),
+    # `searchsploit internal` → antivirus noise (THM Vulnversity),
+    # `searchsploit music`/`artwork` → music-store SQLi (HTB OpenAdmin),
+    # `searchsploit askjeeves` → Ask.com toolbar (HTB Jeeves / Jenkins).
+    # Same class as themes: skip the bad query; do not invent a better one.
+    "fuel", "simple", "internal", "music", "artwork", "askjeeves",
+})
+
+
+def _path_product_terms(path: str) -> list[str]:
+    """Extract a product-shaped last path segment for searchsploit.
+
+    `/nibbleblog/` -> `['nibbleblog']`. `/admin/`, `/login/`, `/images/`,
+    and short/punctuation-y segments return no terms. Same contract as
+    `_ms_bulletin_terms`: extract a real token already present on the
+    finding, or return empty — never invent a query.
+    """
+    last = ""
+    for segment in reversed(path.split("/")):
+        candidate = segment.split("?", 1)[0].strip()
+        if candidate:
+            last = candidate
+            break
+    if not last:
+        return []
+    if last.lower() in _GENERIC_PATH_SEGMENTS:
+        return []
+    if not _PRODUCT_SHAPED_SEGMENT.match(last):
+        return []
+    return [last]
 
 
 def _ms_bulletin_terms(detail: str) -> list[str]:
@@ -284,7 +359,24 @@ def _fts_query(text: str) -> str:
 # finds plenty). Stripped, not the whole product string, so genuine
 # multi-word products (e.g. "Apache httpd") still search sensibly since
 # only known noisy suffixes are removed.
-_NOISY_PRODUCT_SUFFIXES = re.compile(r"\b(smbd|httpd|daemon)\b", re.IGNORECASE)
+#
+# smtpd/pop3d/nntpd/listener found live during coverage-sim: nmap's
+# "JAMES smtpd 2.3.2" and "Oracle TNS listener 11.2.0.2.0" AND those
+# role words against searchsploit and return zero, while "JAMES 2.3.2"
+# / "Oracle TNS" have verified local exploits. Same shape as smbd.
+_NOISY_PRODUCT_SUFFIXES = re.compile(
+    r"\b(smbd|httpd|daemon|smtpd|pop3d|nntpd|listener)\b",
+    re.IGNORECASE,
+)
+
+# Multi-word nmap role phrases that are not the product name.
+# Found live: "Icecast streaming media server" and
+# "Redis key-value store" AND the whole phrase and return zero,
+# while `searchsploit Icecast` / `searchsploit Redis` have hits.
+_NOISY_PRODUCT_PHRASES = re.compile(
+    r"\b(streaming media server|key-value store|remote admin|openwire transport|express framework)\b",
+    re.IGNORECASE,
+)
 
 # Distro/packaging suffixes nmap tacks onto version strings (e.g.
 # "3.0.20-Debian", "4.7p1 Debian 8ubuntu1") that searchsploit's search
@@ -296,7 +388,8 @@ def _searchsploit_query_terms(product: str, version: str | None) -> list[str]:
     """Clean nmap's product/version strings into terms searchsploit can
     actually match against. nmap's fingerprints are written for humans
     (e.g. "Samba smbd" / "3.0.20-Debian"), not for exact-ish search tools."""
-    clean_product = _NOISY_PRODUCT_SUFFIXES.sub("", product).strip()
+    clean_product = _NOISY_PRODUCT_PHRASES.sub("", product)
+    clean_product = _NOISY_PRODUCT_SUFFIXES.sub("", clean_product).strip()
     clean_product = re.sub(r"\s+", " ", clean_product)
 
     terms = [clean_product] if clean_product else [product]

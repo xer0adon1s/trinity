@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 192.168.178.21" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="192.168.178.21" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="6.0p1 Debian 4+deb7u7"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.2.22" extrainfo="Debian"/>
+<script id="http-generator" output="Drupal 7"/>
+<script id="http-title" output="Welcome to Drupal Site"/>
+</port>
+<port protocol="tcp" portid="111">
+<state state="open" reason="syn-ack"/>
+<service name="rpcbind" method="probed" conf="10" extrainfo="2-4"/>
+</port>
+</ports>
+</host>
+</nmaprun>

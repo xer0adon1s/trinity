@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.63" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.63" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft IIS httpd" version="10.0"/>
+<script id="http-methods" output="Potentially risky methods: TRACE"/>
+<script id="http-server-header" output="Microsoft-IIS/10.0"/>
+<script id="http-title" output="Ask Jeeves"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10" product="Microsoft Windows 7 - 10 microsoft-ds" extrainfo="workgroup: WORKGROUP"/>
+</port>
+<port protocol="tcp" portid="50000">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Jetty" version="9.4.z-SNAPSHOT"/>
+<script id="http-server-header" output="Jetty(9.4.z-SNAPSHOT)"/>
+<script id="http-title" output="Error 404 Not Found"/>
+</port>
+</ports>
+</host>
+</nmaprun>

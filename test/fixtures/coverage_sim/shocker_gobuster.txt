@@ -1,0 +1,3 @@
+/cgi-bin               (Status: 403) [Size: 294]
+/index.html            (Status: 200) [Size: 137]
+/cgi-bin/user.sh       (Status: 200) [Size: 119]

@@ -1,0 +1,186 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/buff.xml --box buff --target 10.10.10.198
+───────────────────────── 10.10.10.198:7680 pando-pub ──────────────────────────
+  No local match — this would be a candidate for AI escalation.
+───────────────── 10.10.10.198:8080 http (Apache httpd 2.4.43) ─────────────────
+  Apache + PHP < 5.3.12 / < 5.4.2 - cgi-bin Remote Code Execution  [CRITICAL]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29290), 
+CVE-2012-2336;CVE-2012-2311;CVE-2012-1823;OSVDB-81633. Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/remote/29290.c
+
+  Apache CXF < 2.5.10/2.6.7/2.7.4 - Denial of Service  [LOW]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 26710), CVE-2013-2160;OSVDB-95011. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/26710.txt
+
+  Apache mod_ssl < 2.8.7 OpenSSL - 'OpenFuck.c' Remote Buffer Overflow  [HIGH]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 21671), CVE-2002-0082;OSVDB-857. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/21671.c
+
+  Apache mod_ssl < 2.8.7 OpenSSL - 'OpenFuckV2.c' Remote Buffer Overflow (1)  
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 764), CVE-2002-0082;OSVDB-857. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/764.c
+
+  Apache Tomcat < 5.5.17 - Remote Directory Listing  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 2061). Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/2061.txt
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:8080 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:8080 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/buff_gobuster.txt --box buff
+───────────────────────────────── None:None ? ──────────────────────────────────
+  2DayBiz Video Community Portal - 'user-profile.php' SQL Injection  [HIGH]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 14018), CVE-2010-2508;OSVDB-65802. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/14018.txt
+
+  AJ Dating 1.0 - 'view_profile.php' SQL Injection  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 3409), OSVDB-33828;CVE-2007-1297. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/3409.html
+
+  Alstrasoft AskMe Pro 2.1 - 'profile.php' SQL Injection  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 14986). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/14986.txt
+
+  ASPBB 0.4 - 'profile.asp?PROFILE_ID' SQL Injection  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 26823), CVE-2005-4259;OSVDB-57537. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/asp/webapps/26823.txt
+
+  ASPBB 0.5.2 - 'profile.asp?get' Cross-Site Scripting  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 27897), CVE-2006-2497;OSVDB-25651. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/asp/webapps/27897.txt
+
+───────────────────────────────── None:None ? ──────────────────────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.6, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+───────────────────────────────── None:None ? ──────────────────────────────────
+  No local match — this would be a candidate for AI escalation.
+───────────────────────────────── None:None ? ──────────────────────────────────
+  Blue Coat Reporter 7.0/7.1 - License HTML Injection  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 25698), CVE-2005-1709;OSVDB-16764. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/25698.txt
+
+  BRU 17.0 - SetLicense Script Insecure Temporary File Symbolic Link  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 21247), CVE-2002-0210;OSVDB-14894. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/local/21247.c
+
+  CA BrightStor ARCserve License Service - 'GCR NETWORK' Remote Buffer Overflow 
+(Metasploit)  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16414), CVE-2005-0581;OSVDB-14389. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16414.rb
+
+  CA License Server - 'GETCONFIG' Remote Buffer Overflow  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 859), 
+OSVDB-95740;CVE-2005-0582;CVE-2005-0581;OSVDB-14389. Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/859.c
+
+  Computer Associates License Client - GETCONFIG Overflow (Metasploit)  [MEDIUM]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16744), 
+CVE-2005-0581;OSVDB-95742;OSVDB-14389. Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16744.rb
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:8080 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:8080 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  curl -i http://$TARGET/admin
+  (run `trinity explain "curl -i http://$TARGET/admin"` to break this down)
+  curl -i http://$TARGET/upload
+  (run `trinity explain "curl -i http://$TARGET/upload"` to break this down)
+
+[exit 0]
+
+$ trinity next --box buff
+─────────────────────────────── Recommended next ───────────────────────────────
+gobuster dir -u http://$TARGET:8080 -w 
+/usr/share/seclists/Discovery/Web-Content/common.txt -x php,txt,html
+
+You have a website and you haven't looked inside it. Easy boxes hide the door in
+a path, not on the port. Port 8080 is serving HTTP — directory brute-forcing is 
+the standard next step to find hidden admin panels, backups, or API routes 
+before anything else.
+
+(run `trinity explain "gobuster dir -u http://$TARGET:8080 -w 
+/usr/share/seclists/Discovery/Web-Content/common.txt -x php,txt,html"` for a 
+command breakdown, or `trinity hint --box "buff"` if you want to work it out 
+yourself first)
+(done? `trinity did --box "buff"`  ·  skipping this one? `trinity skip --box 
+"buff"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u http://$TARGET:8080 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  curl -i http://$TARGET/admin
+  curl -i http://$TARGET/upload
+
+[exit 0]
+
+$ trinity suggest --box buff
+gobuster dir -u http://$TARGET:8080 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 8080 is serving HTTP — directory brute-forcing is the standard next step to
+find hidden admin panels, backups, or API routes before anything else.
+
+curl -i http://$TARGET/admin
+'/admin' (status 301) looks like an admin/login/backup-shaped path, not just a 
+generic hit — open it, look at any forms, and try default credentials before 
+brute-forcing more paths.
+
+curl -i http://$TARGET/upload
+'/upload' (status 301) looks like an admin/login/backup-shaped path, not just a 
+generic hit — open it, look at any forms, and try default credentials before 
+brute-forcing more paths.
+
+
+[exit 0]
+
+$ trinity hint --box buff
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the enum phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

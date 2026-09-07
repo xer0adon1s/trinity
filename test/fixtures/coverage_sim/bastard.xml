@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.9" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.9" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft IIS httpd" version="7.5"/>
+<script id="http-generator" output="Drupal 7 (http://drupal.org)"/>
+<script id="http-methods" output="Potentially risky methods: TRACE"/>
+<script id="http-robots.txt" output="36 disallowed entries (15 shown)
+/includes/ /misc/ /modules/ /profiles/ /scripts/
+/themes/ /CHANGELOG.txt /cron.php /INSTALL.mysql.txt"/>
+<script id="http-server-header" output="Microsoft-IIS/7.5"/>
+<script id="http-title" output="Welcome to 10.10.10.9 | 10.10.10.9"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="49154">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+</ports>
+</host>
+</nmaprun>

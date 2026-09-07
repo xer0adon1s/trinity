@@ -1,0 +1,180 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/gamingserver.xml --box gamingserver --target 10.10.100.235
+──────────── 10.10.100.235:22 ssh (OpenSSH 7.6p1 Ubuntu 4ubuntu0.3) ────────────
+  OpenSSH 2.3 < 7.7 - Username Enumeration (PoC)  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 45210), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45210.py
+
+  OpenSSH 2.3 < 7.7 - Username Enumeration  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 45233), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45233.py
+
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+  OpenSSH < 7.7 - User Enumeration (2)  [MEDIUM]  (score 0.8, searchsploit)
+  Found in local ExploitDB (EDB-ID 45939), CVE-2018-15473.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45939.py
+
+───────────────── 10.10.100.235:80 http (Apache httpd 2.4.29) ──────────────────
+  Apache + PHP < 5.3.12 / < 5.4.2 - cgi-bin Remote Code Execution  [CRITICAL]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29290), 
+CVE-2012-2336;CVE-2012-2311;CVE-2012-1823;OSVDB-81633. Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/remote/29290.c
+
+  Apache CXF < 2.5.10/2.6.7/2.7.4 - Denial of Service  [LOW]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 26710), CVE-2013-2160;OSVDB-95011. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/26710.txt
+
+  Apache mod_ssl < 2.8.7 OpenSSL - 'OpenFuck.c' Remote Buffer Overflow  [HIGH]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 21671), CVE-2002-0082;OSVDB-857. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/21671.c
+
+  Apache mod_ssl < 2.8.7 OpenSSL - 'OpenFuckV2.c' Remote Buffer Overflow (1)  
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 764), CVE-2002-0082;OSVDB-857. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/764.c
+
+  Apache Tomcat < 5.5.17 - Remote Directory Listing  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 2061). Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/2061.txt
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  searchsploit openssh 7.6p1 Ubuntu 4ubuntu0.3
+  (run `trinity explain "searchsploit openssh 7.6p1 Ubuntu 4ubuntu0.3"` to break
+this down)
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/gamingserver_gobuster.txt --box gamingserver
+───────────────────────────────── None:None ? ──────────────────────────────────
+  barbo91 uploads - Arbitrary File Upload  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 10660). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/10660.txt
+
+  Flashden - Multiple Arbitrary File Uploads  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 10236). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/10236.txt
+
+  HP Intelligent Management Center BIms UploadServlet - Directory Traversal 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29130), CVE-2013-4822;OSVDB-98247. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/29130.rb
+
+  ManageEngine Desktop Central 9 - FileUploadServlet ConnectionId (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 38982), CVE-2015-8249;OSVDB-130862. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/jsp/remote/38982.rb
+
+  Oracle Event Processing FileUploadServlet - Arbitrary File Upload (Metasploit)
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 33989), CVE-2014-2424;OSVDB-105844. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/33989.rb
+
+───────────────────────────────── None:None ? ──────────────────────────────────
+  APBoard 2.1.0 - 'board.php?id' SQL Injection  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 14559), CVE-2010-4955;OSVDB-76255. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/14559.txt
+
+  APT-WEBSHOP-SYSTEM - 'modules.php' SQL Injection  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 14528). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/14528.txt
+
+  Black Lily 2007 - 'products.php?class' SQL Injection  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 4444). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/4444.txt
+
+  Computer Associates - Unicenter Asset Manager Stored Secret Data Decryption  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 22727), OSVDB-3242. Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/local/22727.pl
+
+  Github Enterprise - Default Session Secret and Deserialization (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 41744). Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/41744.rb
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  curl -i http://$TARGET/uploads
+  (run `trinity explain "curl -i http://$TARGET/uploads"` to break this down)
+
+[exit 0]
+
+$ trinity next --box gamingserver
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 7.6p1 Ubuntu 4ubuntu0.3
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh 7.6p1 Ubuntu 4ubuntu0.3"` for a 
+command breakdown, or `trinity hint --box "gamingserver"` if you want to work it
+out yourself first)
+(done? `trinity did --box "gamingserver"`  ·  skipping this one? `trinity skip 
+--box "gamingserver"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  curl -i http://$TARGET/uploads
+
+[exit 0]
+
+$ trinity suggest --box gamingserver
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+curl -i http://$TARGET/uploads
+'/uploads' (status 301) looks like an admin/login/backup-shaped path, not just a
+generic hit — open it, look at any forms, and try default credentials before 
+brute-forcing more paths.
+
+
+[exit 0]
+
+$ trinity hint --box gamingserver
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

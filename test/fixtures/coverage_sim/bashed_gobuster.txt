@@ -1,0 +1,7 @@
+/images                (Status: 301) [Size: 178]
+/uploads               (Status: 301) [Size: 178]
+/php                   (Status: 301) [Size: 178]
+/css                   (Status: 301) [Size: 178]
+/dev                   (Status: 301) [Size: 178]
+/js                    (Status: 301) [Size: 178]
+/fonts                 (Status: 301) [Size: 178]

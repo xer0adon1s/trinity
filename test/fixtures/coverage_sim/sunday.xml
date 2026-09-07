@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.76" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.76" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="79">
+<state state="open" reason="syn-ack"/>
+<service name="finger" method="probed" conf="10" product="Sun Solaris fingerd"/>
+<script id="finger" output="Login       Name               TTY         Idle    When    Where
+sunny    sunny                 pts/1            Thu 14:52  10.10.14.245"/>
+</port>
+<port protocol="tcp" portid="111">
+<state state="open" reason="syn-ack"/>
+<service name="rpcbind" method="probed" conf="10" extrainfo="2-4 (RPC #100000)"/>
+</port>
+<port protocol="tcp" portid="22022">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="SunSSH" version="1.3"/>
+</port>
+<port protocol="tcp" portid="65258">
+<state state="open" reason="syn-ack"/>
+<service name="smserverd" method="probed" conf="10" extrainfo="1 (RPC #100155)"/>
+</port>
+</ports>
+</host>
+</nmaprun>

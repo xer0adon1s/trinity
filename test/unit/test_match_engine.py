@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 from trinity.kb.severity import rate_severity, severity_from_cvss
-from trinity.match.engine import match_finding
+from trinity.match.engine import (
+    _path_product_terms,
+    _searchsploit_query_terms,
+    match_finding,
+)
 from trinity.parsers.nmap import Finding
 
 
@@ -112,6 +116,197 @@ def test_ms_bulletin_in_detail_surfaces_matching_searchsploit_exploit(seeded_con
     )
     matches = match_finding(seeded_conn, finding)
     assert any("eternalblue" in m.title.lower() or "ms17-010" in m.title.lower() for m in matches)
+
+
+def test_multiple_ms_bulletins_in_detail_are_queried_separately(seeded_conn):
+    """Regression: Legacy's port-445 finding carries BOTH smb-vuln-ms08-067
+    and smb-vuln-ms17-010 in the same detail string. searchsploit ANDs
+    argv terms, so querying them as one call (`ms08-067 ms17-010`)
+    returns nothing even though each bulletin has local exploits.
+    Each extracted bulletin must be its own searchsploit query."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.4", port=445,
+        service="microsoft-ds", product="Windows XP microsoft-ds",
+        detail=(
+            "[smb-vuln-ms08-067] VULNERABLE: Microsoft Windows system "
+            "vulnerable to remote code execution (MS08-067). "
+            "CVE:CVE-2008-4250 | "
+            "[smb-vuln-ms17-010] VULNERABLE: Remote Code Execution "
+            "vulnerability in Microsoft SMBv1 servers (ms17-010). "
+            "Risk factor: HIGH. CVE:CVE-2017-0143"
+        ),
+    )
+    matches = match_finding(seeded_conn, finding)
+    titles = " ".join(m.title.lower() for m in matches)
+    # Default limit=5 is filled by the first bulletin's hits; that's
+    # enough to prove the AND-query bug is gone (ms08-067 used to vanish
+    # entirely). A wider limit confirms the second bulletin is queried
+    # too — we do not change production limit/ordering here.
+    assert "ms08-067" in titles or "netapi" in titles or "conficker" in titles
+    wide = match_finding(seeded_conn, finding, limit=20)
+    wide_titles = " ".join(m.title.lower() for m in wide)
+    assert "ms17-010" in wide_titles or "eternalblue" in wide_titles or "eternalromance" in wide_titles
+
+
+def test_path_product_terms_extracts_product_shaped_last_segment():
+    """Last meaningful path segment only, and only when it looks like a
+    product/app name — /nibbleblog/ is a CMS, /admin/ is generic noise."""
+    assert _path_product_terms("/nibbleblog/") == ["nibbleblog"]
+    assert _path_product_terms("/nibbleblog") == ["nibbleblog"]
+    assert _path_product_terms("/blog/nibbleblog/") == ["nibbleblog"]
+    assert _path_product_terms("/PRTG/") == ["PRTG"]
+    assert _path_product_terms("/admin/") == []
+    assert _path_product_terms("/login/") == []
+    assert _path_product_terms("/backup/") == []
+    assert _path_product_terms("/upload/") == []
+    assert _path_product_terms("/uploads/") == []
+    assert _path_product_terms("/images/") == []
+    assert _path_product_terms("/css/") == []
+    assert _path_product_terms("/cgi-bin/") == []
+    assert _path_product_terms("/phpmyadmin/") == []
+    assert _path_product_terms("/themes/") == []
+    assert _path_product_terms("/javascript/") == []
+    assert _path_product_terms("/fuel/") == []
+    assert _path_product_terms("/simple/") == []
+    assert _path_product_terms("/internal/") == []
+    assert _path_product_terms("/music/") == []
+    assert _path_product_terms("/askjeeves/") == []
+    assert _path_product_terms("/ab/") == []  # too short
+    assert _path_product_terms("/1234/") == []  # not letter-led
+    assert _path_product_terms("/index.php") == []  # punctuation, plus generic stem
+
+
+def test_path_finding_surfaces_matching_searchsploit_exploit(seeded_conn):
+    """Regression test, same shape as the MS-bulletin searchsploit
+    lookup: a gobuster/ffuf path finding (kind='path') never sets
+    .product, so the old code never queried searchsploit even when
+    ExploitDB already had the matching exploit locally. Nibbleblog's
+    file-upload PoC is the concrete case from the 6-box simulation.
+    Skips cleanly if searchsploit isn't installed."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="gobuster", kind="path", host="10.10.10.75",
+        path="/nibbleblog/", status_code=301,
+    )
+    matches = match_finding(seeded_conn, finding)
+    assert any("nibbleblog" in m.title.lower() for m in matches)
+
+
+def test_generic_path_finding_does_not_query_searchsploit_on_admin(seeded_conn):
+    """Companion to the product-shaped path lookup: /admin/ must not
+    become `searchsploit admin`. A generic-segment query is the noise
+    mode this extraction was written to avoid. If searchsploit isn't
+    installed the helper already returns [] so this is a no-op skip
+    in that environment; with it installed, no searchsploit-sourced
+    match should appear for a bare /admin/ path."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="gobuster", kind="path", host="10.10.10.1",
+        path="/admin/", status_code=301,
+    )
+    matches = match_finding(seeded_conn, finding)
+    assert not any(m.source == "searchsploit" for m in matches)
+
+
+def test_nmap_role_words_stripped_from_searchsploit_product_query():
+    """nmap fingerprints include role words searchsploit ANDs against
+    and then returns zero. Same shape as the existing smbd/httpd strip.
+    Coverage-sim: Icecast / JAMES / Redis product strings."""
+    assert _searchsploit_query_terms(
+        "Icecast streaming media server", None
+    ) == ["Icecast"]
+    assert _searchsploit_query_terms("JAMES smtpd", "2.3.2") == ["JAMES", "2.3.2"]
+    assert _searchsploit_query_terms(
+        "JAMES Remote Admin", "2.3.2"
+    ) == ["JAMES", "2.3.2"]
+    assert _searchsploit_query_terms(
+        "Redis key-value store", "4.0.9"
+    ) == ["Redis", "4.0.9"]
+    assert _searchsploit_query_terms(
+        "Oracle TNS listener", "11.2.0.2.0"
+    ) == ["Oracle TNS", "11.2.0.2.0"]
+    assert _searchsploit_query_terms(
+        "ActiveMQ OpenWire transport", None
+    ) == ["ActiveMQ"]
+    assert _searchsploit_query_terms(
+        "Node.js Express framework", None
+    ) == ["Node.js"]
+    # existing strip still works
+    assert _searchsploit_query_terms("Samba smbd", "3.0.20-Debian") == [
+        "Samba", "3.0.20",
+    ]
+
+
+def test_icecast_nmap_product_surfaces_matching_searchsploit_exploit(seeded_conn):
+    """THM Ice: nmap product is 'Icecast streaming media server' with no
+    version. The unstripped phrase returns zero local exploits; Icecast
+    alone has the CVE-2004-1561 Win32 header overwrite used on that box."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.139.241", port=8000,
+        service="http", product="Icecast streaming media server",
+    )
+    matches = match_finding(seeded_conn, finding)
+    assert any("icecast" in m.title.lower() for m in matches)
+
+
+def test_james_smtpd_product_surfaces_matching_searchsploit_exploit(seeded_conn):
+    """HTB SolidState: nmap product 'JAMES smtpd' 2.3.2. The unstripped
+    query ANDs smtpd and returns zero; JAMES 2.3.2 has the Apache James
+    Server RCE / insecure-user-creation exploits locally."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.51", port=25,
+        service="smtp", product="JAMES smtpd", version="2.3.2",
+    )
+    matches = match_finding(seeded_conn, finding)
+    titles = " ".join(m.title.lower() for m in matches)
+    assert "james" in titles
+
+
+def test_nodejs_express_product_surfaces_serialize_searchsploit_exploit(seeded_conn):
+    """HTB Celestial: nmap product is 'Node.js Express framework'.
+    The unstripped phrase returns zero; Node.js alone has the
+    node-serialize RCE used on that box."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.85", port=3000,
+        service="http", product="Node.js Express framework",
+    )
+    matches = match_finding(seeded_conn, finding)
+    titles = " ".join(m.title.lower() for m in matches)
+    assert "serialize" in titles or "node" in titles
 
 
 def test_version_specific_kb_entry_does_not_fire_without_matching_version(seeded_conn):

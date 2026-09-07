@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.123" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.123" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="21">
+<state state="open" reason="syn-ack"/>
+<service name="ftp" method="probed" conf="10" product="vsftpd" version="3.0.3"/>
+</port>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="7.6p1 Ubuntu 4"/>
+</port>
+<port protocol="tcp" portid="53">
+<state state="open" reason="syn-ack"/>
+<service name="domain" method="probed" conf="10" product="ISC BIND" version="9.11.3-1ubuntu1.2"/>
+<script id="dns-nsid" output="bind.version: 9.11.3-1ubuntu1.2-Ubuntu"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.29" extrainfo="Ubuntu"/>
+<script id="http-server-header" output="Apache/2.4.29 (Ubuntu)"/>
+<script id="http-title" output="Friend Zone Escape software"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" version="3.X - 4.X" extrainfo="workgroup: WORKGROUP"/>
+</port>
+<port protocol="tcp" portid="443">
+<state state="open" reason="syn-ack"/>
+<service name="https" method="probed" conf="10" product="Apache httpd" version="2.4.29"/>
+<script id="http-title" output="404 Not Found"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" version="4.7.6-Ubuntu" extrainfo="workgroup: WORKGROUP"/>
+<script id="smb-enum-shares" output="Development  Path: C:\etc\Development  Anonymous access: READ/WRITE"/>
+</port>
+</ports>
+</host>
+</nmaprun>

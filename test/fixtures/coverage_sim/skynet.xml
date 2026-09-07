@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.201.231" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.201.231" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="7.2p2 Ubuntu 4ubuntu2.8"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.18" extrainfo="Ubuntu"/>
+<script id="http-title" output="Skynet"/>
+</port>
+<port protocol="tcp" portid="110">
+<state state="open" reason="syn-ack"/>
+<service name="pop3" method="probed" conf="10" product="Dovecot pop3d"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" version="3.X - 4.X"/>
+</port>
+<port protocol="tcp" portid="143">
+<state state="open" reason="syn-ack"/>
+<service name="imap" method="probed" conf="10" product="Dovecot imapd"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" version="4.3.11-Ubuntu"/>
+</port>
+</ports>
+</host>
+</nmaprun>

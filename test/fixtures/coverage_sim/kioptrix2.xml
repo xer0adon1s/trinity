@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 192.168.56.9" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="192.168.56.9" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="3.9p1"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.0.52" extrainfo="CentOS"/>
+<script id="http-title" output="Site doesn't have a title (text/html; charset=UTF-8)."/>
+<script id="http-server-header" output="Apache/2.0.52 (CentOS)"/>
+</port>
+<port protocol="tcp" portid="111">
+<state state="open" reason="syn-ack"/>
+<service name="rpcbind" method="probed" conf="10" extrainfo="2 (RPC #100000)"/>
+</port>
+<port protocol="tcp" portid="443">
+<state state="open" reason="syn-ack"/>
+<service name="https" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="631">
+<state state="open" reason="syn-ack"/>
+<service name="ipp" method="probed" conf="10" product="CUPS" version="1.1"/>
+<script id="http-title" output="403 Forbidden"/>
+<script id="http-server-header" output="CUPS/1.1"/>
+</port>
+<port protocol="tcp" portid="3306">
+<state state="open" reason="syn-ack"/>
+<service name="mysql" method="probed" conf="10" product="MySQL"/>
+</port>
+</ports>
+</host>
+</nmaprun>

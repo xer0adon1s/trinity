@@ -1,0 +1,130 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/writeup.xml --box writeup --target 10.10.10.138
+───────────── 10.10.10.138:22 ssh (OpenSSH 7.4p1 Debian 10+deb9u6) ─────────────
+  OpenSSH 2.3 < 7.7 - Username Enumeration (PoC)  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 45210), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45210.py
+
+  OpenSSH 2.3 < 7.7 - Username Enumeration  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 45233), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45233.py
+
+  OpenSSH < 7.4 - 'UsePrivilegeSeparation Disabled' Forwarded Unix Domain 
+Sockets Privilege Escalation  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40962), CVE-2016-10010. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/local/40962.txt
+
+  OpenSSH < 7.4 - agent Protocol Arbitrary Library Loading  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40963), CVE-2016-10009. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/40963.txt
+
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+────────────────── 10.10.10.138:80 http (Apache httpd 2.4.25) ──────────────────
+  Apache + PHP < 5.3.12 / < 5.4.2 - cgi-bin Remote Code Execution  [CRITICAL]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29290), 
+CVE-2012-2336;CVE-2012-2311;CVE-2012-1823;OSVDB-81633. Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/remote/29290.c
+
+  Apache CXF < 2.5.10/2.6.7/2.7.4 - Denial of Service  [LOW]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 26710), CVE-2013-2160;OSVDB-95011. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/26710.txt
+
+  Apache mod_ssl < 2.8.7 OpenSSL - 'OpenFuck.c' Remote Buffer Overflow  [HIGH]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 21671), CVE-2002-0082;OSVDB-857. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/21671.c
+
+  Apache mod_ssl < 2.8.7 OpenSSL - 'OpenFuckV2.c' Remote Buffer Overflow (1)  
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 764), CVE-2002-0082;OSVDB-857. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/764.c
+
+  Apache Tomcat < 5.5.17 - Remote Directory Listing  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 2061). Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/2061.txt
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  searchsploit openssh 7.4p1 Debian 10+deb9u6
+  (run `trinity explain "searchsploit openssh 7.4p1 Debian 10+deb9u6"` to break 
+this down)
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/writeup_gobuster.txt --box writeup
+───────────────────────────────── None:None ? ──────────────────────────────────
+  WordPress Plugin Import Export WordPress Users 1.3.1 - CSV Injection  [MEDIUM]
+(score 0.8, searchsploit)
+  Found in local ExploitDB (EDB-ID 47303), CVE-2019-15092.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/47303.txt
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity next --box writeup
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 7.4p1 Debian 10+deb9u6
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh 7.4p1 Debian 10+deb9u6"` for a 
+command breakdown, or `trinity hint --box "writeup"` if you want to work it out 
+yourself first)
+(done? `trinity did --box "writeup"`  ·  skipping this one? `trinity skip --box 
+"writeup"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+
+[exit 0]
+
+$ trinity suggest --box writeup
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+
+[exit 0]
+
+$ trinity hint --box writeup
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

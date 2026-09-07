@@ -1,0 +1,2 @@
+/auth                  (Status: 200) [Size: 0]
+/ping                  (Status: 200) [Size: 0]
