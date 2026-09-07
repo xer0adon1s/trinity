@@ -144,3 +144,40 @@ def test_process_scan_file_generates_suggestions(conn):
     box = create_box(conn, "WatchBox4", target="10.10.10.3")
     result = process_scan_file(conn, box.id, FIXTURES / "lame_style_scan.xml")
     assert len(result.suggestions) > 0
+
+
+def test_process_autorecon_results_persists_findings_and_matches(conn, tmp_path):
+    from trinity.process import process_autorecon_results
+
+    target_dir = tmp_path / "results" / "10.10.10.3"
+    xml_dir = target_dir / "scans" / "xml"
+    xml_dir.mkdir(parents=True)
+    (xml_dir / "tcp_21_ftp_nmap.xml").write_text((FIXTURES / "lame_style_scan.xml").read_text())
+    (target_dir / "scans" / "tcp_80_http_gobuster.txt").write_text(
+        (FIXTURES / "gobuster_sample.txt").read_text()
+    )
+    # AutoRecon's own bookkeeping -- must not choke the walk.
+    (target_dir / "scans" / "_commands.log").write_text("nmap ...\n")
+
+    box = create_box(conn, "AutoReconBox", target="10.10.10.3")
+    result, skipped = process_autorecon_results(conn, box.id, target_dir)
+
+    assert result.tool == "autorecon"
+    assert len(result.findings) == 9  # 5 nmap ports + 4 gobuster paths
+    assert any("_commands.log" in note for note in skipped)
+
+    stored = conn.execute("SELECT count(*) as n FROM findings WHERE box_id = ?", (box.id,)).fetchone()
+    assert stored["n"] == 9
+
+    vsftpd_result = next(fr for fr in result.findings if fr.finding.port == 21)
+    assert len(vsftpd_result.matches) > 0
+
+
+def test_process_autorecon_results_handles_empty_dir(conn, tmp_path):
+    from trinity.process import process_autorecon_results
+
+    box = create_box(conn, "EmptyAutoReconBox")
+    empty_dir = tmp_path / "results" / "nothing"  # does not exist
+    result, skipped = process_autorecon_results(conn, box.id, empty_dir)
+    assert result.findings == []
+    assert skipped  # explains why nothing was found, doesn't raise

@@ -15,6 +15,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from trinity.match.engine import KBMatch, match_finding
+from trinity.parsers.autorecon import walk_autorecon_results
 from trinity.parsers.enum4linux_ng import parse_enum4linux_ng_json
 from trinity.parsers.ffuf import parse_ffuf_json
 from trinity.parsers.gobuster import parse_gobuster_text
@@ -147,12 +148,47 @@ def process_scan_file(conn: sqlite3.Connection, box_id: int, path: Path) -> Proc
         return None
 
     tool, findings = detected
+    return _process_findings(conn, box_id, tool, findings, source_path=path)
+
+
+def process_autorecon_results(
+    conn: sqlite3.Connection, box_id: int, results_dir: Path
+) -> tuple[ProcessResult, list[str]]:
+    """Walk an AutoRecon results directory (parsers/autorecon.py) for one
+    target and process every recognized file's findings through the same
+    persist/match/suggest pipeline as a single `process_scan_file()` call
+    -- so `trinity parse-autorecon` produces the same shape of output as
+    `trinity parse-nmap`, just sourced from AutoRecon's batch run instead
+    of one file at a time.
+
+    Returns (ProcessResult tagged tool='autorecon', list of skipped-file
+    notes) -- skipped files are never fatal, just reported back to the
+    caller so the operator knows what wasn't parsed.
+    """
+    walked = walk_autorecon_results(results_dir)
+
+    all_findings: list[Finding] = walked.all_findings
+    combined = _process_findings(conn, box_id, "autorecon", all_findings, source_path=Path(results_dir))
+    return combined, walked.skipped
+
+
+def _process_findings(
+    conn: sqlite3.Connection,
+    box_id: int,
+    tool: str,
+    findings: list[Finding],
+    source_path: Path,
+) -> ProcessResult:
+    """Shared persist + match + suggest pipeline used by both
+    process_scan_file() (one file, one tool) and
+    process_autorecon_results() (one directory, many tools' findings
+    already merged into a single list by the caller)."""
     if not findings:
         return ProcessResult(tool=tool, findings=[], suggestions=[])
 
     log_event(
         conn, box_id, "scan", f"{tool} scan parsed: {len(findings)} finding(s)",
-        phase="recon", detail=str(path),
+        phase="recon", detail=str(source_path),
     )
 
     results: list[FindingResult] = []
