@@ -158,3 +158,71 @@ def test_autorecon_advisory_is_scoped_per_box_not_global(conn):
     from trinity.advisories import _autorecon_advisory
     assert _autorecon_advisory(conn, box_a) is not None
     assert _autorecon_advisory(conn, box_b) is None
+
+
+def _make_stuck(conn, box_id: int) -> None:
+    """Produces a real stalled_progress rabbit-hole signal: an old
+    finding followed by a much later timeline event, same shape as
+    test_rabbit_hole.py's test_stalled_progress_after_old_finding."""
+    conn.execute(
+        "INSERT INTO suggestions (box_id, phase, command, rationale, nudge) "
+        "VALUES (?, 'enum', 'gobuster dir -u http://$TARGET', 'why', 'nudge')",
+        (box_id,),
+    )
+    conn.execute(
+        "INSERT INTO timeline (box_id, ts, event_type, summary) "
+        "VALUES (?, '2020-01-01 00:00:00', 'finding', 'old')",
+        (box_id,),
+    )
+    conn.execute(
+        "INSERT INTO timeline (box_id, ts, event_type, summary) "
+        "VALUES (?, '2020-01-01 01:00:00', 'note', 'later')",
+        (box_id,),
+    )
+    conn.commit()
+
+
+def test_rabbit_hole_offers_methods_index_when_box_is_indexed(conn):
+    box = create_box(conn, "Lame")  # matches methods_index/lame.yaml (case-insensitive)
+    _make_stuck(conn, box.id)
+
+    from trinity.advisories import _rabbit_hole_advisory
+    advisory = _rabbit_hole_advisory(conn, box)
+
+    assert advisory is not None
+    assert advisory.offers_methods_index is True
+    assert "trinity methods" in advisory.sentence
+    assert "Lame" in advisory.sentence
+    # Never the content itself -- just the offer + the command to run.
+    assert "CVE" not in advisory.sentence
+    assert "0xdf" not in advisory.sentence
+
+
+def test_rabbit_hole_does_not_offer_methods_index_for_unindexed_box(conn):
+    box = create_box(conn, "TotallyUnindexedBoxName")
+    _make_stuck(conn, box.id)
+
+    from trinity.advisories import _rabbit_hole_advisory
+    advisory = _rabbit_hole_advisory(conn, box)
+
+    assert advisory is not None
+    assert advisory.offers_methods_index is False
+    assert "trinity methods" not in advisory.sentence
+
+
+def test_methods_index_offer_fires_once_per_episode(conn):
+    box = create_box(conn, "Lame")
+    _make_stuck(conn, box.id)
+
+    from trinity.advisories import _rabbit_hole_advisory
+    first = _rabbit_hole_advisory(conn, box)
+    assert first is not None
+    assert first.offers_methods_index is True
+    assert "trinity methods" in first.sentence
+
+    # Still stuck (same episode) -- the offer must NOT repeat, even
+    # though the underlying rabbit-hole signal itself still fires.
+    second = _rabbit_hole_advisory(conn, box)
+    assert second is not None
+    assert second.offers_methods_index is False
+    assert "trinity methods" not in second.sentence
