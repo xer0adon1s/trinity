@@ -1,0 +1,120 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/blue.xml --box blue --target 10.10.10.40
+──────────────── 10.10.10.40:135 msrpc (Microsoft Windows RPC ) ────────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+───────── 10.10.10.40:139 netbios-ssn (Microsoft Windows netbios-ssn ) ─────────
+  No local match — this would be a candidate for AI escalation.
+─ 10.10.10.40:445 microsoft-ds (Windows 7 Professional 7601 Service Pack 1 mi… ─
+  Microsoft Windows - 'EternalRomance'/'EternalSynergy'/'EternalChampion' SMB 
+Remote Code Execution (Metasploit) (MS17-010)  [CRITICAL]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 43970), 
+CVE-2017-0147;CVE-2017-0146;CVE-2017-0143. Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/43970.rb
+
+  Microsoft Windows - SMB Remote Code Execution Scanner (MS17-010) (Metasploit) 
+[CRITICAL]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 41891), 
+CVE-2017-0147;CVE-2017-0146;CVE-2017-0148;CVE-2017-0145;CVE-2017-0144;CVE-2017-0
+143;MS17-010. Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/dos/41891.rb
+
+  Microsoft Windows 7/2008 R2 - 'EternalBlue' SMB Remote Code Execution 
+(MS17-010)  [CRITICAL]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 42031), CVE-2017-0144. Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/42031.py
+
+  Microsoft Windows 7/8.1/2008 R2/2012 R2/2016 R2 - 'EternalBlue' SMB Remote 
+Code Execution (MS17-010)  [CRITICAL]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 42315), CVE-2017-0144. Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/42315.py
+
+  Microsoft Windows 8/8.1/2012 R2 (x64) - 'EternalBlue' SMB Remote Code 
+Execution (MS17-010)  [CRITICAL]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 42030), CVE-2017-0144. Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows_x86-64/remote/42030.py
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+
+[exit 0]
+
+$ trinity next --box blue
+─────────────────────────────── Recommended next ───────────────────────────────
+enum4linux-ng -A $TARGET
+
+'enum4linux-ng' isn't installed. Depending on your system:
+  Debian/Ubuntu:  sudo apt install enum4linux-ng
+  Otherwise:      https://github.com/cddmp/enum4linux-ng (pip install or clone +
+run directly)
+
+Once that's installed, just run this same command again -- I'll pick up right 
+where we left off: `trinity next --box "blue"`
+
+(done? `trinity did --box "blue"`  ·  skipping this one? `trinity skip --box 
+"blue"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+[exit 0]
+
+$ trinity suggest --box blue
+enum4linux-ng -A $TARGET
+Port 139 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+enum4linux-ng -A $TARGET
+Port 445 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+
+[exit 0]
+
+$ trinity hint --box blue
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the enum phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

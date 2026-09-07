@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.5" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.5" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="21">
+<state state="open" reason="syn-ack"/>
+<service name="ftp" method="probed" conf="10" product="Microsoft ftpd"/>
+<script id="ftp-anon" output="Anonymous FTP login allowed (FTP code 230)
+03-18-17  01:06AM       &lt;DIR&gt;          aspnet_client
+03-17-17  04:37PM                  689 iisstart.htm
+03-17-17  04:37PM               184946 welcome.png"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft IIS httpd" version="7.5"/>
+<script id="http-server-header" output="Microsoft-IIS/7.5"/>
+<script id="http-title" output="IIS7"/>
+</port>
+</ports>
+</host>
+</nmaprun>

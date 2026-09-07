@@ -1,0 +1,160 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/sense.xml --box sense --target 10.10.10.60
+──────────────────── 10.10.10.60:80 http (lighttpd 1.4.35) ─────────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.9, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+─────────────────── 10.10.10.60:443 https (lighttpd 1.4.35) ────────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.6, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+  Anonymous FTP login  [MEDIUM]  (score 0.6, user_curated)
+  FTP server allows the 'anonymous' user with any/blank password. Always worth 
+checking before anything else on port 21.
+  Try: `ftp <target>` then username `anonymous`, any password.
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u https://$TARGET:443 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/sense_gobuster.txt --box sense
+───────────────────────────────── None:None ? ──────────────────────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.6, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+───────────────────────────────── None:None ? ──────────────────────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.6, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+  SMB null session / anonymous enumeration  [MEDIUM]  (score 0.6, user_curated)
+  SMB (port 445/139) often allows unauthenticated enumeration of shares, users, 
+and groups — a very common early foothold path.
+  Try: `smbclient -L //<target>/ -N`, `enum4linux -a <target>`, or `crackmapexec
+smb <target> --shares -u '' -p ''`.
+
+───────────────────────────────── None:None ? ──────────────────────────────────
+  Agares Media ThemeSiteScript 1.0 - 'loadadminpage' Remote File Inclusion  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 30927). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/30927.txt
+
+  Agares ThemeSiteScript 1.0 - 'loadadminpage' Remote File Inclusion  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 6859), OSVDB-49856;CVE-2008-5066. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/6859.txt
+
+  Mulitple WordPress Themes - 'admin-ajax.php?img' Arbitrary File Download  
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 34511), 
+OSVDB-109645;CVE-2015-1579;CVE-2014-9734. Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/34511.txt
+
+  Multiple WordPress Themes - 'upload.php' Arbitrary File Upload  [HIGH]  (score
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 37417). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/37417.php
+
+  Multiple WordPress WooThemes Themes - 'test.php' Cross-Site Scripting  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 35830). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/35830.txt
+
+───────────────────────────────── None:None ? ──────────────────────────────────
+  No local match — this would be a candidate for AI escalation.
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u https://$TARGET:443 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity next --box sense
+─────────────────────────────── Recommended next ───────────────────────────────
+gobuster dir -u https://$TARGET:443 -w 
+/usr/share/seclists/Discovery/Web-Content/common.txt -x php,txt,html
+
+You have a website and you haven't looked inside it. Easy boxes hide the door in
+a path, not on the port. Port 443 is serving HTTP — directory brute-forcing is 
+the standard next step to find hidden admin panels, backups, or API routes 
+before anything else.
+
+(run `trinity explain "gobuster dir -u https://$TARGET:443 -w 
+/usr/share/seclists/Discovery/Web-Content/common.txt -x php,txt,html"` for a 
+command breakdown, or `trinity hint --box "sense"` if you want to work it out 
+yourself first)
+(done? `trinity did --box "sense"`  ·  skipping this one? `trinity skip --box 
+"sense"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+
+[exit 0]
+
+$ trinity suggest --box sense
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 443 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+
+[exit 0]
+
+$ trinity hint --box sense
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the enum phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+
