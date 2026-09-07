@@ -193,6 +193,13 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
         # not AND distinct bulletin IDs together.
         for bulletin in _ms_bulletin_terms(finding.detail):
             search_calls.append([bulletin])
+        # nmap often puts the real product in extrainfo while `product`
+        # is a generic daemon name — e.g. Luanne: product="Medusa httpd",
+        # extrainfo="Supervisor process manager". searchsploit has the
+        # Supervisor XML-RPC RCE locally; Medusa alone does not. Same
+        # "extract a real token from detail" shape as MS-bulletin.
+        for name in _process_manager_terms(finding.detail):
+            search_calls.append([name])
     # Path findings (gobuster/ffuf) never populate .product — they're a
     # URL path, not a service banner — so a product-shaped last segment
     # like /nibbleblog/ used to never reach searchsploit even when
@@ -237,8 +244,19 @@ _MS_BULLETIN_RE = re.compile(r"ms(\d{2})-(\d{3})", re.IGNORECASE)
 
 
 # Last path segment must look like a product/app name, not a generic
-# web path: start with a letter, then letters/digits/hyphens, length >= 4.
-_PRODUCT_SHAPED_SEGMENT = re.compile(r"^[A-Za-z][A-Za-z0-9-]{3,}$")
+# web path: start with a letter, then letters/digits/hyphens/underscores,
+# length >= 4. Underscores are common in real app paths (e.g.
+# /pandora_console/); the matcher still prefers the leading
+# underscore-separated component when present (see _path_product_terms).
+_PRODUCT_SHAPED_SEGMENT = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{3,}$")
+
+# nmap extrainfo / script prose: "Supervisor process manager",
+# "Foo process manager". The leading token is the product searchsploit
+# actually indexes.
+_PROCESS_MANAGER_RE = re.compile(
+    r"\b([A-Za-z][A-Za-z0-9._-]{2,})\s+process\s+manager\b",
+    re.IGNORECASE,
+)
 
 # Generic path segments that must never be sent to searchsploit. Starts
 # from suggest/engine.py's _INTERESTING_PATH_MARKERS (those are "worth
@@ -278,6 +296,12 @@ def _path_product_terms(path: str) -> list[str]:
     and short/punctuation-y segments return no terms. Same contract as
     `_ms_bulletin_terms`: extract a real token already present on the
     finding, or return empty — never invent a query.
+
+    Underscored paths like `/pandora_console/` keep the full segment
+    only when it is product-shaped; when it contains `_`, also (and
+    preferentially) query the leading component (`pandora`), because
+    ExploitDB titles index the product name, not the path suffix
+    (`searchsploit pandora` hits; `searchsploit pandora_console` does not).
     """
     last = ""
     for segment in reversed(path.split("/")):
@@ -289,9 +313,33 @@ def _path_product_terms(path: str) -> list[str]:
         return []
     if last.lower() in _GENERIC_PATH_SEGMENTS:
         return []
+    if "_" in last:
+        head = last.split("_", 1)[0]
+        if (
+            head
+            and head.lower() not in _GENERIC_PATH_SEGMENTS
+            and _PRODUCT_SHAPED_SEGMENT.match(head)
+        ):
+            return [head]
+        return []
     if not _PRODUCT_SHAPED_SEGMENT.match(last):
         return []
     return [last]
+
+
+def _process_manager_terms(detail: str) -> list[str]:
+    """Extract 'X process manager' product names from nmap extrainfo /
+    detail prose (e.g. Luanne's Medusa httpd extrainfo 'Supervisor
+    process manager'). Deduplicated, order-preserving."""
+    seen: set[str] = set()
+    terms: list[str] = []
+    for match in _PROCESS_MANAGER_RE.finditer(detail):
+        name = match.group(1)
+        key = name.lower()
+        if key not in seen:
+            seen.add(key)
+            terms.append(name)
+    return terms
 
 
 def _ms_bulletin_terms(detail: str) -> list[str]:
@@ -374,7 +422,7 @@ _NOISY_PRODUCT_SUFFIXES = re.compile(
 # "Redis key-value store" AND the whole phrase and return zero,
 # while `searchsploit Icecast` / `searchsploit Redis` have hits.
 _NOISY_PRODUCT_PHRASES = re.compile(
-    r"\b(streaming media server|key-value store|remote admin|openwire transport|express framework)\b",
+    r"\b(streaming media server|key-value store|remote admin|openwire transport|express framework|http console|process manager)\b",
     re.IGNORECASE,
 )
 
