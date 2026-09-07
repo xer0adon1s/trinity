@@ -135,7 +135,13 @@ def process_scan_file(conn: sqlite3.Connection, box_id: int, path: Path) -> Proc
     """Parse a scan file, match every finding, persist findings + a
     timeline scan event + match events, and log/persist any new
     suggestions. Returns None if the file wasn't recognized as scan
-    output."""
+    output.
+
+    Critical-severity matches are batched into a SINGLE desktop
+    notification per call, not one notify-send per finding -- a scan
+    with 3 critical matches (a common real shape: multiple vulnerable
+    services on one box) used to fire 3 separate notifications nearly
+    simultaneously. See docs/FEATURES_BACKLOG.md's notify-storm note."""
     detected = detect_and_parse(path)
     if detected is None:
         return None
@@ -150,6 +156,7 @@ def process_scan_file(conn: sqlite3.Connection, box_id: int, path: Path) -> Proc
     )
 
     results: list[FindingResult] = []
+    critical_titles: list[str] = []
     for finding in findings:
         cursor = conn.execute(
             """
@@ -179,12 +186,21 @@ def process_scan_file(conn: sqlite3.Connection, box_id: int, path: Path) -> Proc
                 phase="recon", detail=top.summary, severity=top.severity, ref_id=finding_id,
             )
             if top.severity == "critical":
-                notify_critical(conn, "Trinity — critical match", top.title)
+                critical_titles.append(top.title)
         else:
             label = f"{finding.host}:{finding.port}" if finding.port else (finding.path or finding.host or "?")
             log_event(
                 conn, box_id, "finding", f"{label} — no local match",
                 phase="recon", ref_id=finding_id,
+            )
+
+    if critical_titles:
+        if len(critical_titles) == 1:
+            notify_critical(conn, "Trinity — critical match", critical_titles[0])
+        else:
+            notify_critical(
+                conn, f"Trinity — {len(critical_titles)} critical matches",
+                "; ".join(critical_titles[:3]) + (" …" if len(critical_titles) > 3 else ""),
             )
 
     new_suggestions = suggest_next_commands(conn, box_id)

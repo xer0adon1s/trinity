@@ -147,6 +147,19 @@ a content-level dedup (same command text, not just same finding) in
 `suggest/engine.py`'s persistence step, separate task from the
 advisory-arbitration work above.
 
+**Notify-storm bug, RESOLVED:** `process_scan_file()` fired one
+separate `notify-send` call PER critical-severity finding, not one
+per scan -- a real box with 2-3 critical matches in a single nmap scan
+(a common shape, not an edge case) produced that many desktop
+notifications nearly simultaneously. Fixed: critical match titles are
+now collected across the whole scan and batched into exactly ONE
+`notify_critical()` call per `process_scan_file()` invocation
+("Trinity — N critical matches" with up to 3 titles joined, "…" if
+more). Regression test added (`test_process_scan_file_batches_
+multiple_criticals_into_one_notification`); live-verified against the
+real installed `notify-send` and the `lame_style_scan.xml` fixture
+(2 real criticals, confirmed exactly 1 call via mock assertion).
+
 ## Wizard: hacker name
 
 New, small, fun addition to the onboarding wizard (not part of the

@@ -66,3 +66,33 @@ def test_process_scan_file_never_notifies_when_disabled(conn, tmp_path):
     if mock_notify.called:
         args = mock_notify.call_args[0]
         assert args[0] is conn
+
+
+def test_process_scan_file_batches_multiple_criticals_into_one_notification(conn, tmp_path):
+    """Regression test for the real bug: a single scan with multiple
+    critical matches used to fire one notify-send call PER finding
+    (e.g. 3 separate desktop notifications nearly simultaneously for
+    one scan). Now batched into exactly one call per process_scan_file
+    invocation, regardless of how many critical matches it contains."""
+    import shutil
+    from pathlib import Path
+
+    from trinity.process import process_scan_file
+
+    box = create_box(conn, "NotifyBatch")
+    fixture = Path(__file__).parent.parent / "fixtures" / "lame_style_scan.xml"
+    dest = tmp_path / "scan.xml"
+    shutil.copy(fixture, dest)
+
+    with patch("trinity.process.notify_critical") as mock_notify:
+        result = process_scan_file(conn, box.id, dest)
+
+    critical_findings = [
+        fr for fr in result.findings if fr.matches and fr.matches[0].severity == "critical"
+    ]
+    assert len(critical_findings) >= 2, "fixture needs 2+ criticals to exercise the batching path"
+    # Exactly ONE notify_critical call for this whole scan, no matter
+    # how many critical matches it contained.
+    assert mock_notify.call_count == 1
+    call_args = mock_notify.call_args[0]
+    assert "matches" in call_args[1]  # e.g. "Trinity — N critical matches"
