@@ -14,7 +14,7 @@ from trinity.explain_seed.combine import seed_all as seed_all_explanations
 from trinity.hints import get_hint
 from trinity.kb.seed import seed
 from trinity.platform_registry import get_platform, list_platform_ids, resolve_theme
-from trinity.process import process_scan_file
+from trinity.process import process_autorecon_results, process_scan_file
 from trinity.report.data import gather_report_data
 from trinity.report.render import render_report
 from trinity.sharing import is_sharing_enabled, set_sharing_enabled, write_share_bundle
@@ -180,7 +180,77 @@ def parse_nmap_cmd(xml_path: str, box_name: str, target: str | None, platform: s
         for command in result.suggestions:
             console.print(f"  [bold]{command}[/bold]")
             console.print(f"  [dim](run `trinity explain \"{command}\"` to break this down)[/dim]")
-            console.print()
+
+
+@cli.command("parse-autorecon")
+@click.argument("results_dir", type=click.Path(exists=True, file_okay=False))
+@click.option("--box", "box_name", required=True, help="Box name (created if new).")
+@click.option("--target", default=None, help="Target IP/hostname (stored on first creation).")
+@click.option("--platform", default=None, type=click.Choice(list_platform_ids()))
+@click.option("--mode", default="educational", type=click.Choice(["educational", "professional"]))
+def parse_autorecon_cmd(
+    results_dir: str, box_name: str, target: str | None, platform: str | None, mode: str
+):
+    """Walk an AutoRecon results directory (the operator ran AutoRecon
+    themselves, in their own terminal pane -- Trinity never launches it)
+    and parse every recognized scan file inside it the same way
+    `parse-nmap` parses one nmap XML file: match every finding against
+    the local KB, and persist findings + matches + a timeline entry for
+    the box. Point this at the per-target results directory AutoRecon
+    created (the one containing a `scans/` subdirectory), e.g.
+    `results/10.10.10.3/`."""
+    from pathlib import Path
+
+    conn = connect()
+    box = get_or_create_box(conn, box_name, target=target, platform=platform, mode=mode)
+    touch_active_box(conn, box.id)
+
+    result, skipped = process_autorecon_results(conn, box.id, Path(results_dir))
+
+    if not result.findings:
+        console.print(
+            "[yellow]No recognized scan output found under that AutoRecon "
+            "results directory (or none of it parsed to any findings).[/yellow]"
+        )
+    else:
+        for fr in result.findings:
+            f = fr.finding
+            header = f"[bold cyan]{f.host or '?'}"
+            if f.port:
+                header += f":{f.port}[/bold cyan] {f.service or '?'}"
+            else:
+                header += f"[/bold cyan] {f.path or f.kind}"
+            if f.product:
+                header += f" ({f.product} {f.version or ''})"
+            console.rule(header)
+
+            if not fr.matches:
+                console.print(
+                    "  [dim]No local match — this would be a candidate for AI escalation.[/dim]"
+                )
+                continue
+
+            for m in fr.matches:
+                color = _SEVERITY_COLOR.get(m.severity, "white")
+                console.print(
+                    f"  [bold green]{m.title}[/bold green]  "
+                    f"[{color}]\\[{m.severity.upper()}][/{color}]  [dim](score {m.score:.1f}, {m.source})[/dim]"
+                )
+                console.print(f"  {m.summary}")
+                if m.detail:
+                    console.print(f"  [dim]{m.detail}[/dim]")
+                console.print()
+
+        if result.suggestions:
+            console.rule("[bold magenta]Suggested next commands[/bold magenta]")
+            for command in result.suggestions:
+                console.print(f"  [bold]{command}[/bold]")
+                console.print(f"  [dim](run `trinity explain \"{command}\"` to break this down)[/dim]")
+
+    if skipped:
+        console.rule("[dim]Skipped files (no parser / unrecognized)[/dim]")
+        for note in skipped:
+            console.print(f"  [dim]{note}[/dim]")
 
 
 @cli.command("suggest")
