@@ -250,6 +250,7 @@ _GENERIC_PATH_SEGMENTS = frozenset({
     "phpmyadmin", "config", "dashboard", "panel", "api",
     # generic web junk
     "images", "css", "js", "static", "assets", "index", "files",
+    "uploads",
     "img", "includes", "fonts", "vendor", "public", "tmp", "www",
     "html", "php", "txt", "icons", "media",
     # obvious extra generic web paths — not product names

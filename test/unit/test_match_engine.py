@@ -165,6 +165,7 @@ def test_path_product_terms_extracts_product_shaped_last_segment():
     assert _path_product_terms("/login/") == []
     assert _path_product_terms("/backup/") == []
     assert _path_product_terms("/upload/") == []
+    assert _path_product_terms("/uploads/") == []
     assert _path_product_terms("/images/") == []
     assert _path_product_terms("/css/") == []
     assert _path_product_terms("/cgi-bin/") == []
