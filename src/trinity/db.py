@@ -377,9 +377,11 @@ def _seed_brain(conn: sqlite3.Connection) -> None:
     is cheap and never duplicates or overwrites a user's own entries."""
     from trinity.errors_seed import seed_error_patterns
     from trinity.explain_seed.combine import seed_all as seed_all_explanations
+    from trinity.kb.ad_seed import seed as seed_ad
     from trinity.kb.seed import seed as seed_kb
 
     seed_kb(conn)
+    seed_ad(conn)
     seed_all_explanations(conn)
     seed_error_patterns(conn)
 

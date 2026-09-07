@@ -5,6 +5,7 @@ apply on autopilot for the first pass of a box.
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 
 from pydantic import BaseModel
@@ -72,11 +73,14 @@ def _curl_command(host: str | None, path: str | None, fallback_host: str | None)
 
 
 def _suggest_for_finding(
-    finding: sqlite3.Row, already_suggested: set[str], fallback_host: str | None = None,
+    finding: sqlite3.Row,
+    already_suggested: set[str],
+    fallback_host: str | None = None,
+    known_domain: str | None = None,
 ) -> Suggestion | None:
     kind = finding["kind"]
     if kind == "port":
-        return _suggest_for_port(finding, already_suggested, fallback_host)
+        return _suggest_for_port(finding, already_suggested, fallback_host, known_domain)
     if kind == "path":
         return _suggest_for_path(finding, already_suggested, fallback_host)
     if kind == "share":
@@ -87,11 +91,18 @@ def _suggest_for_finding(
         return _suggest_for_header(finding, already_suggested)
     if kind == "vuln":
         return _suggest_for_vuln(finding, already_suggested, fallback_host)
+    if kind == "ad_domain_controller":
+        return _suggest_for_ad_dc(finding, already_suggested, fallback_host)
+    if kind == "ldap_anon":
+        return _suggest_for_ldap_anon(finding, already_suggested, fallback_host)
     return None
 
 
 def _suggest_for_port(
-    finding: sqlite3.Row, already_suggested: set[str], fallback_host: str | None = None,
+    finding: sqlite3.Row,
+    already_suggested: set[str],
+    fallback_host: str | None = None,
+    known_domain: str | None = None,
 ) -> Suggestion | None:
     service = (finding["service"] or "").lower()
     product = (finding["product"] or "").lower()
@@ -217,6 +228,34 @@ def _suggest_for_port(
                     "worth checking against anything?"
                 ),
                 required_tool="searchsploit",
+                finding_id=finding["id"],
+            )
+
+    # Kerberos: AS-REP roast check. Needs a domain name (from ldap-rootdse
+    # / the synthetic ad_domain_controller finding) — Impacket's
+    # invocation is `GetNPUsers.py <domain>/ ...`. Verified against
+    # Impacket examples/GetNPUsers.py and swisskyrepo Internal All The
+    # Things: `GetNPUsers.py <domain>/ -usersfile ... -no-pass`.
+    if (port == 88 or service in ("kerberos-sec", "kerberos")) and known_domain:
+        cmd = fresh(
+            f"GetNPUsers.py {known_domain}/ -usersfile users.txt -no-pass -dc-ip {host}"
+        )
+        if cmd:
+            return Suggestion(
+                phase="enum",
+                command=cmd,
+                rationale=(
+                    f"Port {port} is Kerberos and the domain is {known_domain} — "
+                    "check for accounts that don't require pre-authentication "
+                    "(AS-REP roasting) before you have any credentials."
+                ),
+                nudge=(
+                    f"Port {port} is how Windows domains handle login tickets. "
+                    "Some accounts skip a safety check and will hand you a "
+                    "crackable blob if you just know their name — worth trying "
+                    "before you have a password."
+                ),
+                required_tool="",
                 finding_id=finding["id"],
             )
 
@@ -377,6 +416,89 @@ def _suggest_for_vuln(
     )
 
 
+_DOMAIN_IN_DETAIL_RE = re.compile(r"domain:\s*([A-Za-z0-9.-]+)", re.IGNORECASE)
+
+
+def _domain_from_findings(findings: list[sqlite3.Row]) -> str | None:
+    """Domain DNS name already recorded on this box (ad_domain_controller
+    or ldap_anon detail). Needed so the Kerberos port rule can build a
+    real GetNPUsers.py command without inventing a parallel data model."""
+    for row in findings:
+        detail = row["detail"] or ""
+        match = _DOMAIN_IN_DETAIL_RE.search(detail)
+        if match:
+            return match.group(1)
+    return None
+
+
+def _dn_from_dns(domain: str) -> str:
+    return ",".join(f"DC={p}" for p in domain.split("."))
+
+
+def _suggest_for_ad_dc(
+    finding: sqlite3.Row, already_suggested: set[str], fallback_host: str | None = None,
+) -> Suggestion | None:
+    """AD/DC signature detected → anonymous LDAP RootDSE check. Highest-
+    value no-cred first step on a domain-flavored box."""
+    host = _effective_host(finding, fallback_host)
+    cmd = f"ldapsearch -x -H ldap://{host} -s base namingcontexts"
+    if cmd in already_suggested:
+        return None
+    return Suggestion(
+        phase="enum",
+        command=cmd,
+        rationale=(
+            "This host looks like a domain controller — an anonymous LDAP "
+            "bind against the RootDSE is the standard first AD enum step "
+            "and often returns the domain name for free."
+        ),
+        nudge=(
+            "This box is not a single machine sitting alone: it is answering "
+            "like the phone book for a Windows network. The usual first "
+            "question is whether that phone book talks to strangers."
+        ),
+        required_tool="ldapsearch",
+        finding_id=finding["id"],
+    )
+
+
+def _suggest_for_ldap_anon(
+    finding: sqlite3.Row, already_suggested: set[str], fallback_host: str | None = None,
+) -> Suggestion | None:
+    """Anonymous bind already succeeded — enumerate users next.
+    ldapsearch kept (same tool family as the RootDSE check) rather than
+    introducing netexec, which isn't in tools.py. Cite: yunolay.com LDAP
+    enumeration; Forest writeups dump users with
+    `(objectClass=user)` / sAMAccountName after the naming context is known.
+    """
+    host = _effective_host(finding, fallback_host)
+    detail = finding["detail"] or ""
+    match = _DOMAIN_IN_DETAIL_RE.search(detail)
+    base = _dn_from_dns(match.group(1)) if match else ""
+    if not base:
+        return None
+    cmd = (
+        f"ldapsearch -x -H ldap://{host} -b '{base}' "
+        "'(objectClass=user)' sAMAccountName"
+    )
+    if cmd in already_suggested:
+        return None
+    return Suggestion(
+        phase="enum",
+        command=cmd,
+        rationale=(
+            f"Anonymous LDAP already worked and the domain is {match.group(1)} — "
+            "pull usernames next; they feed AS-REP roasting and later logins."
+        ),
+        nudge=(
+            "The directory already answered without a login. The useful "
+            "follow-up is a list of account names, not another port scan."
+        ),
+        required_tool="ldapsearch",
+        finding_id=finding["id"],
+    )
+
+
 def suggest_next_commands(conn: sqlite3.Connection, box_id: int, limit: int = 10) -> list[Suggestion]:
     """Look at every finding recorded for a box and propose next commands,
     skipping anything already suggested for this box (checked against the
@@ -403,10 +525,13 @@ def suggest_next_commands(conn: sqlite3.Connection, box_id: int, limit: int = 10
     findings = conn.execute(
         "SELECT * FROM findings WHERE box_id = ?", (box_id,)
     ).fetchall()
+    known_domain = _domain_from_findings(findings)
 
     suggestions: list[Suggestion] = []
     for finding in findings:
-        suggestion = _suggest_for_finding(finding, already, fallback_host=target)
+        suggestion = _suggest_for_finding(
+            finding, already, fallback_host=target, known_domain=known_domain,
+        )
         if suggestion:
             if target and target in suggestion.command:
                 suggestion.command = suggestion.command.replace(target, "$TARGET")

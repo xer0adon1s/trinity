@@ -1,0 +1,4 @@
+Impacket v0.9.24 - Copyright 2021 SecureAuth Corporation
+
+[*] Getting TGT for svc-alfresco
+$krb5asrep$23$svc-alfresco@HTB.LOCAL:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb

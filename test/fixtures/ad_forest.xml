@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- HTB Forest (10.10.10.161) — retired. Positive DC fixture. Ports
+     from https://joenibe.github.io/htb/forest/ (full TCP): 53, 88,
+     135, 139, 389, 445, 464, 636, 3268, plus GC LDAPS 3269 and WinRM
+     5985 which commonly accompany this host. Domain htb.local from
+     ldap-rootdse-shaped RootDSE (naming contexts DC=htb,DC=local;
+     dnsHostName FOREST.htb.local) — same facts the Forest writeup
+     pulled via ldap3. -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.161" start="1" version="7.80">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.161" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="53">
+<state state="open" reason="syn-ack"/>
+<service name="domain" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="88">
+<state state="open" reason="syn-ack"/>
+<service name="kerberos-sec" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" product="Microsoft Windows RPC" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" product="Microsoft Windows netbios-ssn" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="389">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10"/>
+<script id="ldap-rootdse" output="&#xa;  namingContexts: DC=htb,DC=local&#xa;  namingContexts: CN=Configuration,DC=htb,DC=local&#xa;  namingContexts: CN=Schema,CN=Configuration,DC=htb,DC=local&#xa;  namingContexts: DC=DomainDnsZones,DC=htb,DC=local&#xa;  namingContexts: DC=ForestDnsZones,DC=htb,DC=local&#xa;  defaultNamingContext: DC=htb,DC=local&#xa;  dnsHostName: FOREST.htb.local&#xa;  ldapServiceName: htb.local:forest$@HTB.LOCAL"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="464">
+<state state="open" reason="syn-ack"/>
+<service name="kpasswd5" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="636">
+<state state="open" reason="syn-ack"/>
+<service name="ldapssl" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="3268">
+<state state="open" reason="syn-ack"/>
+<service name="globalcatLDAP" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="3269">
+<state state="open" reason="syn-ack"/>
+<service name="globalcatLDAPssl" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="5985">
+<state state="open" reason="syn-ack"/>
+<service name="wsman" method="probed" conf="10"/>
+</port>
+</ports>
+</host>
+</nmaprun>

@@ -10,6 +10,7 @@ import sqlite3
 
 from trinity.explain import seed_explanations
 from trinity.explain_seed import (
+    ad_seed,
     autorecon_seed,
     enum_seed,
     exploit_tools_seed,
@@ -29,6 +30,7 @@ _MODULES = [
     shells_seed,
     exploit_tools_seed,
     autorecon_seed,
+    ad_seed,
 ]
 
 
