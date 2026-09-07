@@ -137,3 +137,24 @@ def test_msfconsole_exit_pattern_ends_active_profile_and_stall_state():
     assert session.active_profile is None
     assert session.stall_counter == 0
     assert session.stall_level == 0
+
+
+def test_msfconsole_back_returns_to_top_level_no_stale_module_nudge():
+    """Regression test for docs/COACH_OPEN_QUESTIONS.md's "`back` does
+    not deselect": after a module is selected then `back`'d out of,
+    the coach must not keep stalling toward module-context advice
+    (e.g. `set RHOSTS`) while sitting at the bare `msf6 >` prompt."""
+    session = new_session()
+    session.feed_line("msf6 >")
+    session.feed_line("msf6 > use exploit/windows/smb/ms17_010_eternalblue")
+    assert session.active_state.name == "module_selected"
+
+    session.feed_line("msf6 exploit(windows/smb/ms17_010_eternalblue) > back")
+    assert session.active_state is not None
+    assert session.active_state.name == "top_level"
+
+    filler = ["msf6 >"] * STALL_LINE_THRESHOLD
+    results = _feed_many(session, filler)
+    # Repeated bare top-level prompts are on-track (not a stall) and
+    # must never surface module_selected's stale "set RHOSTS" advice.
+    assert results == []

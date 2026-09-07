@@ -48,14 +48,28 @@ ENTRIES: dict[str, str] = {
         "is why Trinity's first-pass suggestions start with AS-REP "
         "instead."
     ),
-    "GetNPUsers.py <domain>/ -usersfile <userlist> -no-pass": (
+    "GetNPUsers.py <domain>/ -usersfile <userlist> -no-pass -dc-ip <target>": (
         "Impacket script that asks a domain controller for AS-REP "
         "blobs for accounts that don't require Kerberos "
         "pre-authentication. `<domain>/` with an empty user and "
         "`-no-pass` means you are not logging in — you only need the "
         "domain name and a guess-list of usernames (from LDAP, or a "
-        "wordlist). Hits print as `$krb5asrep$...`. Trinity parses "
-        "that output to note which account was roastable; it does not "
-        "store the hash."
+        "wordlist). `-dc-ip` points it straight at the domain "
+        "controller's IP instead of relying on DNS resolution, which "
+        "matters because you usually haven't pointed your resolver at "
+        "the DC yet on a fresh box. Hits print as `$krb5asrep$...`. "
+        "Trinity parses that output to note which account was "
+        "roastable; it does not store the hash."
+    ),
+    "ldapsearch -x -H ldap://<target> -b '<base>' '(objectClass=user)' sAMAccountName": (
+        "A follow-up ldapsearch once anonymous LDAP already worked and "
+        "the domain name is known. `-b` sets the search base to the "
+        "domain's distinguished name (`htb.local` becomes "
+        "`DC=htb,DC=local`) instead of just the RootDSE, so this "
+        "actually walks the directory. The filter `(objectClass=user)` "
+        "asks for user objects, and `sAMAccountName` is the one "
+        "attribute pulled back per match — the plain pre-Windows-2000 "
+        "logon name. This is how a no-cred anonymous bind turns into a "
+        "real username list to feed AS-REP roasting or later logins."
     ),
 }

@@ -487,6 +487,46 @@ _MSFCONSOLE_STATES = [
         ),
     ),
     CoachState(
+        name="top_level",
+        # `back` deselects the current module and drops the console
+        # back to the bare `msf6 >` prompt -- a one-shot command,
+        # same pattern as `use`/`search` below, so it's safe as a
+        # `recognize` (found live 2026-09-07, logged in
+        # docs/COACH_OPEN_QUESTIONS.md's "`back` does not deselect").
+        # Without this state, `back` matched no state's recognize and
+        # was not an exit either, so active_state stayed on whatever
+        # module-context state (module_selected/options_set/fired)
+        # was active before -- the coach would keep nudging stale
+        # module-specific advice (e.g. "set RHOSTS") while the
+        # operator was already back at the top-level prompt with no
+        # module selected. `expected_next` here intentionally accepts
+        # the bare top-level prompt itself as on-track (not just
+        # `search`/`use`) since sitting at `msf6 >` deciding what to
+        # do next is a normal, non-stalled state, not automatically a
+        # sign of being stuck.
+        recognize=_msf_at_prompt(r"back\b"),
+        expected_next=[
+            _MSF_PROMPT_LINE,
+            _msf_at_prompt(r"search\b"),
+            _msf_at_prompt(r"use\s+\S+"),
+        ],
+        stall_nudge=(
+            "You've backed out of that module — what's next: search "
+            "for something else, or was there a different angle on "
+            "this box worth trying?"
+        ),
+        stall_stronger_nudge=(
+            "You're at the top-level prompt with nothing selected. "
+            "That's a fine place to pause and think, but eventually "
+            "you'll want to `search` for another module or come back "
+            "to `use` this one again."
+        ),
+        stall_answer=(
+            "`search <term>` to look for another module, or `use "
+            "<module/path>` to reselect one you already know."
+        ),
+    ),
+    CoachState(
         name="module_selected",
         recognize=_msf_at_prompt(r"use\s+\S+"),
         expected_next=[

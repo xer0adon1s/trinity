@@ -25,6 +25,23 @@ import sqlite3
 _IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 _TARGET_VAR_RE = re.compile(r"\$TARGET\b")
 
+# Narrow, STRUCTURAL templating for the two AD-specific command shapes
+# that have real-vs-seed mismatches beyond the target host (see
+# docs/AD_ENGINE_OPEN_QUESTIONS.md "Explain cache still misses real AD
+# commands"). Deliberately scoped to flag/position patterns tied to a
+# specific, known command shape -- NOT a general "guess any token is a
+# placeholder" scheme, which the open-questions doc correctly flags as
+# unsafe (domain/userlist names are genuinely per-operator and must not
+# be silently normalized in suggestion TEXT). This only affects the
+# explain-cache LOOKUP KEY, never what's shown to the operator -- the
+# ELI5 explanation text itself is generic and doesn't reference the
+# specific domain/userlist/DN, so templating purely for cache-matching
+# purposes is safe here in a way it would not be for suggest/engine.py's
+# actual suggestion output.
+_GETNPUSERS_DOMAIN_RE = re.compile(r"(?<=GetNPUsers\.py )\S+(?=/)")
+_USERSFILE_RE = re.compile(r"(?<=-usersfile )\S+")
+_LDAP_BASE_RE = re.compile(r"(?<=-b )'[^']*'")
+
 
 def normalize(command: str) -> str:
     """Collapse whitespace so trivially-different invocations of the same
@@ -36,11 +53,20 @@ def _templated(command: str) -> str:
     """Replace a real target (IPv4 literal, or the $TARGET placeholder
     used when no host is known yet) with the seed library's `<target>`
     template token, so a real suggested command can hit a pre-authored
-    seed entry. Does not touch anything else (usernames, wordlists,
-    domain names) -- those are genuinely per-operator and would be
-    unsafe to guess-normalize."""
+    seed entry. Also templates a small, explicitly-listed set of other
+    structural placeholders (GetNPUsers.py's domain, -usersfile's
+    filename, ldapsearch -b's DN) that are tied to a specific known
+    command shape -- everything else (usernames, wordlists in other
+    contexts, domain names outside these exact flags) is left alone,
+    since those are genuinely per-operator and unsafe to guess-
+    normalize in general."""
     templated = _TARGET_VAR_RE.sub("<target>", command)
     templated = _IPV4_RE.sub("<target>", templated)
+    if templated.startswith("GetNPUsers.py "):
+        templated = _GETNPUSERS_DOMAIN_RE.sub("<domain>", templated)
+        templated = _USERSFILE_RE.sub("<userlist>", templated)
+    if templated.startswith("ldapsearch "):
+        templated = _LDAP_BASE_RE.sub("'<base>'", templated)
     return templated
 
 

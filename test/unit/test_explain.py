@@ -69,3 +69,39 @@ def test_command_with_no_target_at_all_does_not_false_hit(conn):
     not be mangled into matching an unrelated seed entry."""
     save_explanation(conn, "id", "seed explanation for id", source="trinity_preseed")
     assert get_explanation(conn, "whoami") is None
+
+
+def test_real_getnpusers_command_hits_ad_seed_entry(conn):
+    """Regression test for docs/AD_ENGINE_OPEN_QUESTIONS.md's "explain
+    cache still misses real AD commands": GetNPUsers.py's real
+    domain/-usersfile/-dc-ip substitutions must hit the seed entry,
+    not just the target-only fix."""
+    save_explanation(
+        conn,
+        "GetNPUsers.py <domain>/ -usersfile <userlist> -no-pass -dc-ip <target>",
+        "seed explanation",
+        source="trinity_preseed",
+    )
+    real = "GetNPUsers.py htb.local/ -usersfile users.txt -no-pass -dc-ip 10.10.10.161"
+    assert get_explanation(conn, real) == "seed explanation"
+
+
+def test_real_ldapsearch_dn_command_hits_ad_seed_entry(conn):
+    """Same bug, ldapsearch's -b DN shape (from
+    suggest/engine.py's _suggest_for_ldap_anon)."""
+    save_explanation(
+        conn,
+        "ldapsearch -x -H ldap://<target> -b '<base>' '(objectClass=user)' sAMAccountName",
+        "seed explanation",
+        source="trinity_preseed",
+    )
+    real = "ldapsearch -x -H ldap://10.10.10.161 -b 'DC=htb,DC=local' '(objectClass=user)' sAMAccountName"
+    assert get_explanation(conn, real) == "seed explanation"
+
+
+def test_getnpusers_domain_templating_does_not_affect_unrelated_commands(conn):
+    """The GetNPUsers/-usersfile/-b templating is gated on a command
+    PREFIX check so it never touches unrelated commands that happen to
+    contain similar-looking tokens elsewhere."""
+    save_explanation(conn, "id", "seed explanation for id", source="trinity_preseed")
+    assert get_explanation(conn, "echo GetNPUsers.py fake/ -usersfile x") is None
