@@ -246,7 +246,135 @@ RAW_SHELL_PROFILE = CoachProfile(
 )
 
 
-DEFAULT_PROFILES: list[CoachProfile] = [RAW_SHELL_PROFILE]
+# --- Second-wave profile: evil-winrm ---
+#
+# evil-winrm's command surface is much more freeform than raw shell's
+# checklist (it IS a live PowerShell session against the WinRM
+# endpoint -- any cmdlet works, not just a small fixed set), which is
+# exactly the stress test the design doc predicted for this profile.
+#
+# One real behavioral wrinkle this surfaced, verified by reading the
+# evil-winrm 4.1 gem source (evil-winrm wasn't installed on this
+# machine; installed the published gem locally with `gem install
+# evil-winrm` to read its real source -- no live Windows target was
+# available to verify against, so nothing here was checked against an
+# actual WinRM session output; full details also logged to
+# docs/COACH_OPEN_QUESTIONS.md): evil-winrm reprints its distinctive
+# "*Evil-WinRM* PS <pwd>>" prompt before literally every command. If a
+# state's `recognize` pattern IS that live prompt -- the way
+# RAW_SHELL_PROFILE's own "landed" state reuses its own prompt pattern
+# -- it would re-match on every single operator line, and
+# `_advance_active_profile` returns early on ANY state-recognize
+# match (even a same-state re-match), before the stall counter ever
+# gets a chance to increment. In practice that would silently disable
+# stall nudges for this profile entirely. To avoid that without
+# touching the engine, "landed" recognizes evil-winrm's one-time
+# startup banner line ("Evil-WinRM shell v...", printed once at
+# connect) instead of the live prompt; `prompt_pattern` (profile-entry
+# detection) still uses the live "*Evil-WinRM* PS ...>" prompt as its
+# PRIMARY signal per spec, with the banner as a secondary alternative
+# so entry is still detected if Shoulder Mode was already recording
+# before the tool launched.
+_EVIL_WINRM_BANNER = re.compile(r"Evil-WinRM shell v")
+_EVIL_WINRM_PROMPT = re.compile(r"Evil-WinRM shell v|\*Evil-WinRM\*.{0,20}PS\s")
+# Real evil-winrm exits on a typed `exit`/`quit` (case-insensitive) at
+# its own prompt, or on a lost connection -- both paths funnel through
+# the same `custom_exit`, which prints "Exiting with code N" (no
+# "Info: " prefix on this one -- see evil-winrm.rb's print_message
+# call) right before the process quits. That message is the most
+# reliable signal since it fires on both graceful exit and dropped
+# connections; the literal `exit`/`quit` lines are kept too as a
+# faster/more direct signal for the common case.
+_EVIL_WINRM_EXIT = re.compile(r"^\s*(exit|quit)\s*$|Exiting with code \d+", re.IGNORECASE)
+
+_EVIL_WINRM_STATES = [
+    CoachState(
+        name="landed",
+        recognize=_EVIL_WINRM_BANNER,
+        expected_next=[
+            re.compile(r"whoami(\s+/priv)?\b", re.IGNORECASE),
+            re.compile(r"\bnet\s+user\b", re.IGNORECASE),
+            re.compile(r"\bhostname\b", re.IGNORECASE),
+        ],
+        stall_nudge=(
+            "You're in a PowerShell session as a specific user now -- "
+            "before going further, what's usually worth checking about "
+            "what that user's account is actually allowed to do on this "
+            "box?"
+        ),
+        stall_stronger_nudge=(
+            "Windows tokens carry named privileges separate from group "
+            "membership -- some, like SeImpersonatePrivilege or "
+            "SeBackupPrivilege, are exploitable on their own even without "
+            "local admin rights. Checking the token's privilege list is a "
+            "quick, standard move from here."
+        ),
+        stall_answer=(
+            "Run `whoami /priv` to list your token's privileges, and/or "
+            "`net user` to see the box's local accounts."
+        ),
+    ),
+    CoachState(
+        name="enumerated",
+        # Real header text of `whoami /priv`'s and `net user`'s own
+        # output (not the command being typed -- mirrors RAW_SHELL_
+        # PROFILE's "identified" state, which likewise recognizes `id`'s
+        # OUTPUT shape rather than the `id` command itself).
+        recognize=re.compile(r"PRIVILEGES INFORMATION|User accounts for \\", re.IGNORECASE),
+        expected_next=[
+            re.compile(r"^\s*upload\b", re.IGNORECASE),
+            re.compile(r"Get-LocalGroupMember", re.IGNORECASE),
+            re.compile(r"\bsysteminfo\b", re.IGNORECASE),
+        ],
+        stall_nudge=(
+            "You've got a read on privileges/accounts -- what would be "
+            "worth doing next to get a fuller picture of this box, or to "
+            "start moving a tool onto it?"
+        ),
+        stall_stronger_nudge=(
+            "Common next moves from here: check who's actually in the "
+            "local Administrators group, pull a fuller OS/patch picture, "
+            "or push a privesc-checking script (e.g. WinPEAS) onto the "
+            "box to automate the rest of this."
+        ),
+        stall_answer=(
+            "Try `Get-LocalGroupMember Administrators` (local admin "
+            "membership), `systeminfo` (OS/patch level), or "
+            "`upload <local_path> <remote_path>` to push a tool onto the "
+            "box."
+        ),
+    ),
+]
+
+EVIL_WINRM_PROFILE = CoachProfile(
+    tool_id="evil_winrm",
+    display_name="an evil-winrm session",
+    prompt_pattern=_EVIL_WINRM_PROMPT,
+    exit_pattern=_EVIL_WINRM_EXIT,
+    states=_EVIL_WINRM_STATES,
+    announce=(
+        "Looks like you're in an evil-winrm session. I'll narrate here if "
+        "you seem stuck -- I'm only watching, I won't type anything for "
+        "you."
+    ),
+)
+
+
+# ORDER MATTERS: evil-winrm goes first because when colors are
+# disabled (`evil-winrm --no-colors`, or any capture path that
+# otherwise strips ANSI), its literal, colorless prompt text --
+# "*Evil-WinRM* PS C:\Users\<user>\<dir>>" -- CONTAINS raw_shell's own
+# `PS [A-Z]:\\\S*>` pattern as a plain substring. `_try_enter_profile`
+# takes the first matching profile in this list, so if RAW_SHELL_
+# PROFILE were checked first it would misclassify a colorless
+# evil-winrm session as a generic landed shell. With colors enabled
+# (evil-winrm's default) this specific ambiguity doesn't actually
+# arise -- evil-winrm wraps "*Evil-WinRM*" and " PS " in separate ANSI
+# color codes, which breaks the contiguous substring raw_shell's
+# pattern needs -- but the no-color case is real and common enough
+# (logging, scripting, dumb terminals) to order around explicitly
+# rather than rely on the color codes always being there.
+DEFAULT_PROFILES: list[CoachProfile] = [EVIL_WINRM_PROFILE, RAW_SHELL_PROFILE]
 
 
 def new_session(profiles: list[CoachProfile] | None = None) -> CoachSession:
