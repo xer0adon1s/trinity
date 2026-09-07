@@ -45,8 +45,11 @@ ENTRIES: list[tuple[str, str, str]] = [
         "ModuleNotFoundError",
         "A Python script (an exploit PoC, a tool) needs a package that isn't "
         "installed in your current Python environment.",
-        "Install the missing package with pip (pip install <module_name>), "
-        "or check the tool's README for a requirements.txt to install from.",
+        "Install the missing package with pip (pip install <module_name>). "
+        "On newer distros (Arch, recent Debian/Ubuntu) a bare pip install may "
+        "be blocked (PEP 668, 'externally-managed-environment') -- use a venv "
+        "(python3 -m venv .venv && source .venv/bin/activate && pip install "
+        "<module_name>) or pipx/uv instead of fighting the system Python.",
     ),
     (
         "Address already in use",
