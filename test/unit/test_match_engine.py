@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from trinity.kb.severity import rate_severity, severity_from_cvss
-from trinity.match.engine import match_finding
+from trinity.match.engine import _path_product_terms, match_finding
 from trinity.parsers.nmap import Finding
 
 
@@ -112,6 +112,68 @@ def test_ms_bulletin_in_detail_surfaces_matching_searchsploit_exploit(seeded_con
     )
     matches = match_finding(seeded_conn, finding)
     assert any("eternalblue" in m.title.lower() or "ms17-010" in m.title.lower() for m in matches)
+
+
+def test_path_product_terms_extracts_product_shaped_last_segment():
+    """Last meaningful path segment only, and only when it looks like a
+    product/app name — /nibbleblog/ is a CMS, /admin/ is generic noise."""
+    assert _path_product_terms("/nibbleblog/") == ["nibbleblog"]
+    assert _path_product_terms("/nibbleblog") == ["nibbleblog"]
+    assert _path_product_terms("/blog/nibbleblog/") == ["nibbleblog"]
+    assert _path_product_terms("/PRTG/") == ["PRTG"]
+    assert _path_product_terms("/admin/") == []
+    assert _path_product_terms("/login/") == []
+    assert _path_product_terms("/backup/") == []
+    assert _path_product_terms("/upload/") == []
+    assert _path_product_terms("/images/") == []
+    assert _path_product_terms("/css/") == []
+    assert _path_product_terms("/cgi-bin/") == []
+    assert _path_product_terms("/phpmyadmin/") == []
+    assert _path_product_terms("/ab/") == []  # too short
+    assert _path_product_terms("/1234/") == []  # not letter-led
+    assert _path_product_terms("/index.php") == []  # punctuation, plus generic stem
+
+
+def test_path_finding_surfaces_matching_searchsploit_exploit(seeded_conn):
+    """Regression test, same shape as the MS-bulletin searchsploit
+    lookup: a gobuster/ffuf path finding (kind='path') never sets
+    .product, so the old code never queried searchsploit even when
+    ExploitDB already had the matching exploit locally. Nibbleblog's
+    file-upload PoC is the concrete case from the 6-box simulation.
+    Skips cleanly if searchsploit isn't installed."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="gobuster", kind="path", host="10.10.10.75",
+        path="/nibbleblog/", status_code=301,
+    )
+    matches = match_finding(seeded_conn, finding)
+    assert any("nibbleblog" in m.title.lower() for m in matches)
+
+
+def test_generic_path_finding_does_not_query_searchsploit_on_admin(seeded_conn):
+    """Companion to the product-shaped path lookup: /admin/ must not
+    become `searchsploit admin`. A generic-segment query is the noise
+    mode this extraction was written to avoid. If searchsploit isn't
+    installed the helper already returns [] so this is a no-op skip
+    in that environment; with it installed, no searchsploit-sourced
+    match should appear for a bare /admin/ path."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="gobuster", kind="path", host="10.10.10.1",
+        path="/admin/", status_code=301,
+    )
+    matches = match_finding(seeded_conn, finding)
+    assert not any(m.source == "searchsploit" for m in matches)
 
 
 # --- severity heuristic ---

@@ -151,6 +151,17 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
         bulletin_terms = _ms_bulletin_terms(finding.detail)
         if bulletin_terms:
             search_calls.append(bulletin_terms)
+    # Path findings (gobuster/ffuf) never populate .product — they're a
+    # URL path, not a service banner — so a product-shaped last segment
+    # like /nibbleblog/ used to never reach searchsploit even when
+    # ExploitDB already had the matching exploit locally. Same shape as
+    # the MS-bulletin extraction above: pull a real token out of the
+    # finding and query it; do not guess. Generic web segments (admin,
+    # login, images, ...) are skipped so this does not noise /admin/.
+    if finding.kind == "path" and finding.path:
+        path_terms = _path_product_terms(finding.path)
+        if path_terms:
+            search_calls.append(path_terms)
 
     for query_terms_ss in search_calls:
         for result in searchsploit.search(*query_terms_ss):
@@ -181,6 +192,50 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
 # Matches nmap NSE vuln-script naming (`smb-vuln-ms17-010`) as well as
 # bare mentions in script output text ("...(ms17-010)", "(MS08-067)").
 _MS_BULLETIN_RE = re.compile(r"ms(\d{2})-(\d{3})", re.IGNORECASE)
+
+
+# Last path segment must look like a product/app name, not a generic
+# web path: start with a letter, then letters/digits/hyphens, length >= 4.
+_PRODUCT_SHAPED_SEGMENT = re.compile(r"^[A-Za-z][A-Za-z0-9-]{3,}$")
+
+# Generic path segments that must never be sent to searchsploit. Starts
+# from suggest/engine.py's _INTERESTING_PATH_MARKERS (those are "worth
+# curling" for recon, not product names for ExploitDB) plus common web
+# junk that a naive last-segment query would otherwise fire on.
+_GENERIC_PATH_SEGMENTS = frozenset({
+    # _INTERESTING_PATH_MARKERS in suggest/engine.py
+    "admin", "login", "backup", "upload", "wp-admin", ".git",
+    "phpmyadmin", "config", "dashboard", "panel", "api",
+    # generic web junk
+    "images", "css", "js", "static", "assets", "index", "files",
+    "img", "includes", "fonts", "vendor", "public", "tmp", "www",
+    "html", "php", "txt", "icons", "media",
+    # obvious extra generic web paths — not product names
+    "cgi-bin", "cgi",
+})
+
+
+def _path_product_terms(path: str) -> list[str]:
+    """Extract a product-shaped last path segment for searchsploit.
+
+    `/nibbleblog/` -> `['nibbleblog']`. `/admin/`, `/login/`, `/images/`,
+    and short/punctuation-y segments return no terms. Same contract as
+    `_ms_bulletin_terms`: extract a real token already present on the
+    finding, or return empty — never invent a query.
+    """
+    last = ""
+    for segment in reversed(path.split("/")):
+        candidate = segment.split("?", 1)[0].strip()
+        if candidate:
+            last = candidate
+            break
+    if not last:
+        return []
+    if last.lower() in _GENERIC_PATH_SEGMENTS:
+        return []
+    if not _PRODUCT_SHAPED_SEGMENT.match(last):
+        return []
+    return [last]
 
 
 def _ms_bulletin_terms(detail: str) -> list[str]:
