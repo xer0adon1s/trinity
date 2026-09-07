@@ -1015,27 +1015,6 @@ def methods_cmd(box_name: str | None, index_name: str | None):
     console.print(format_index(index), highlight=False)
 
 
-@cli.command("stats")
-def stats_cmd():
-    """PROTOTYPE. Local progress. Hidden until you've rooted one box."""
-    from trinity.stats import compute_stats
-
-    conn = connect()
-    stats = compute_stats(conn)
-    if not stats.ready:
-        console.print(
-            "[dim]Root a box first. Stats are for after the win — they "
-            "don't teach scanning.[/dim]"
-        )
-        return
-    console.print(f"[bold]Rooted[/bold] {stats.rooted}   active {stats.active}   abandoned {stats.abandoned}")
-    console.print(f"Current streak: {stats.streak}")
-    if stats.techniques:
-        console.print("\n[bold]Techniques that have landed[/bold]")
-        for title in stats.techniques[:10]:
-            console.print(f"  • {title}")
-
-
 @cli.command("hash")
 @click.argument("value")
 def hash_cmd(value: str):
@@ -1068,66 +1047,6 @@ def gtfobins_cmd(binary: str | None):
         )
         return
     console.print(f"[bold]{hit.binary}[/bold]\n{hit.summary}\n[dim]{hit.source_url}[/dim]")
-
-
-@cli.command("read")
-@click.argument("path", type=click.Path(exists=True))
-@click.option("--box", "box_name", required=True)
-def read_cmd(path: str, box_name: str):
-    """PROTOTYPE. One-shot parse + TA sentences. Watch remains the default."""
-    from pathlib import Path
-
-    conn = connect()
-    box = get_or_create_box(conn, box_name)
-    touch_active_box(conn, box.id)
-    result = process_scan_file(conn, box.id, Path(path))
-    if result is None:
-        console.print("[yellow]Not a recognized scan format.[/yellow]")
-        return
-    console.print(f"[bold]{result.tool}[/bold] — {len(result.findings)} finding(s)")
-    for fr in result.findings:
-        f = fr.finding
-        label = f"{f.host}:{f.port}" if f.port else (f.path or f.host or "?")
-        if fr.matches:
-            top = fr.matches[0]
-            console.print(f"  {label} — {top.title} ({top.severity})")
-            console.print(f"  [dim]{top.summary}[/dim]")
-        else:
-            console.print(f"  {label} — [dim]no local match yet. That's a lead, not a dead end.[/dim]")
-    if result.suggestions:
-        console.print("\n[bold]What I'd do next[/bold]")
-        for command in result.suggestions:
-            console.print(f"  {command}")
-
-
-@cli.command("payloads")
-@click.argument("topic", required=False)
-def payloads_cmd(topic: str | None):
-    """PROTOTYPE. Tiny PayloadsAllTheThings topic index — titles + URLs only."""
-    from trinity.payloads import list_topics, lookup
-
-    if not topic:
-        for item in list_topics():
-            console.print(f"[bold]{item.id}[/bold]  {item.title}")
-        return
-    hit = lookup(topic)
-    if hit is None:
-        console.print(f"[dim]No local topic {topic!r}. Full catalogue is upstream, not in Trinity.[/dim]")
-        return
-    console.print(f"[bold]{hit.title}[/bold]\n[dim]{hit.source_url}[/dim]")
-
-
-@cli.command("journal")
-def journal_cmd():
-    """PROTOTYPE. Local technique journal / achievements. No leaderboard."""
-    from trinity.achievements import TAXONOMY_VERSION, evaluate
-
-    conn = connect()
-    rows = evaluate(conn)
-    console.print(f"[dim]taxonomy v{TAXONOMY_VERSION} — local only[/dim]")
-    for row in rows:
-        mark = "[green]✓[/green]" if row.unlocked else "[dim]·[/dim]"
-        console.print(f"  {mark} {row.title}")
 
 
 @cli.group("intake")

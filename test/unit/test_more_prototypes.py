@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-from trinity.achievements import evaluate
 from trinity.boxes import create_box, set_status
 from trinity.deadends import dead_end_line
 from trinity.graduation import NUDGE_AFTER, autorecon_nudge
@@ -13,7 +10,6 @@ from trinity.parsers.rustscan import parse_rustscan_text
 from trinity.process import detect_and_parse
 from trinity.report.data import gather_report_data
 from trinity.report.render import render_report
-from trinity.payloads import lookup as payload_lookup
 from trinity.sharing import scrub_identifying
 from trinity.stats import compute_stats
 
@@ -162,17 +158,3 @@ def test_graduation_after_enough_gobusters(conn):
         )
     conn.commit()
     assert autorecon_nudge(conn) is not None
-
-
-def test_payloads_index_is_titles_plus_urls():
-    hit = payload_lookup("lfi")
-    assert hit is not None
-    assert "github.com/swisskyrepo" in hit.source_url
-
-
-def test_achievements_unlock_on_flag(conn):
-    box = create_box(conn, "Ach")
-    add_loot(conn, box.id, "flag", "FLAG")
-    rows = {a.id: a.unlocked for a in evaluate(conn)}
-    assert rows["first_flag"] is True
-    assert rows["nmap_scan"] is False
