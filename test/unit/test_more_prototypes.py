@@ -79,14 +79,47 @@ def test_scrub_replaces_ipv4():
     assert "10.10.10.99" not in scrub_identifying("nmap -sV 10.10.10.99")
 
 
-def test_rustscan_parser(tmp_path):
+def test_rustscan_parser_greppable_format(tmp_path):
     path = tmp_path / "rustscan.txt"
-    path.write_text("Open 10.10.10.3:21\nOpen 10.10.10.3:80\n")
+    path.write_text("10.10.10.3 -> [21,80]\n")
     findings = parse_rustscan_text(path)
     assert {f.port for f in findings} == {21, 80}
+    assert all(f.host == "10.10.10.3" for f in findings)
     tool, parsed = detect_and_parse(path)
     assert tool == "rustscan"
     assert len(parsed) == 2
+
+
+def test_rustscan_parser_streaming_discovered_format(tmp_path):
+    path = tmp_path / "rustscan.txt"
+    path.write_text(
+        "Discovered open port 22/tcp on 10.10.10.3\n"
+        "Discovered open port 80/tcp on 10.10.10.3\n"
+    )
+    findings = parse_rustscan_text(path)
+    assert {f.port for f in findings} == {22, 80}
+    tool, parsed = detect_and_parse(path)
+    assert tool == "rustscan"
+    assert len(parsed) == 2
+
+
+def test_rustscan_parser_dedupes_across_both_formats(tmp_path):
+    path = tmp_path / "rustscan.txt"
+    path.write_text(
+        "Discovered open port 22/tcp on 10.10.10.3\n"
+        "10.10.10.3 -> [22,80]\n"
+    )
+    findings = parse_rustscan_text(path)
+    assert {f.port for f in findings} == {22, 80}
+    assert len(findings) == 2  # port 22 not duplicated
+
+
+def test_rustscan_parser_ignores_unrelated_txt_content(tmp_path):
+    # A plain notes file must not be misidentified as rustscan output.
+    path = tmp_path / "notes.txt"
+    path.write_text("Remember to check the admin panel later.\n")
+    assert parse_rustscan_text(path) == []
+    assert detect_and_parse(path) is None
 
 
 def test_dead_end_smb():

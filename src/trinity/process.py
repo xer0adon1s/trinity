@@ -8,6 +8,7 @@ drift out of sync with each other.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -119,11 +120,15 @@ def detect_and_parse(path: Path) -> tuple[str, list[Finding]] | None:
 
 
 def _mostly_rustscan_lines(path: Path) -> bool:
-    lines = [ln.strip() for ln in path.read_text(errors="ignore").splitlines() if ln.strip()]
-    if not lines:
-        return False
-    tagged = sum(1 for ln in lines if ln.lower().startswith("open "))
-    return tagged >= max(1, len(lines) // 2)
+    """Heuristic gate so a .txt file that merely CONTAINS a rustscan-
+    shaped line somewhere (e.g. pasted into a larger notes file)
+    doesn't get misidentified. Requires the file to be genuinely
+    rustscan-shaped: either at least one greppable 'host -> [ports]'
+    line, or at least one 'Discovered open port' line."""
+    text = path.read_text(errors="ignore")
+    if re.search(r"^\S+\s*->\s*\[[\d,]+\]", text, re.MULTILINE):
+        return True
+    return bool(re.search(r"Discovered open port \d+/tcp on \S+", text, re.IGNORECASE))
 
 
 def process_scan_file(conn: sqlite3.Connection, box_id: int, path: Path) -> ProcessResult | None:
