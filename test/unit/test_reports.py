@@ -143,3 +143,29 @@ def test_gather_report_data_raises_for_missing_box(conn):
     import pytest
     with pytest.raises(ValueError):
         gather_report_data(conn, 99999)
+
+
+def test_cli_report_mode_notebook_reaches_the_renderer_seam(tmp_path, monkeypatch):
+    """CLI-level check that --mode notebook is actually wired through
+    report_cmd to the renderer registry, not just reachable by calling
+    render_report() directly in a unit test."""
+    from click.testing import CliRunner
+
+    from trinity.cli.main import cli
+    from trinity.db import connect as db_connect
+
+    db_path = tmp_path / "trinity.db"
+
+    def _connect(*_args, **_kwargs):
+        return db_connect(db_path, seed_brain=True)
+
+    monkeypatch.setattr("trinity.cli.main.connect", _connect)
+    conn = db_connect(db_path, seed_brain=True)
+    box = create_box(conn, "NotebookCliBox")
+    _seed_timeline(conn, box.id)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["report", "--box", "NotebookCliBox", "--mode", "notebook"])
+    assert result.exit_code == 0, result.output
+    assert "Lab notebook" in result.output
+    assert "Not a share-export" in result.output

@@ -1,10 +1,10 @@
-"""PROTOTYPE — report renderer seam.
+"""Report renderer seam.
 
-gather_report_data() is already the stable contract. The CLI used to
-hard-import the two generators. This registry is the seam FEATURES_BACKLOG
-asked for so a third format (notebook markdown, Typst, …) can register
-without the core growing another if/else. Both existing generators keep
-their current signatures.
+gather_report_data() is the stable contract every renderer reads
+from. This registry is the seam FEATURES_BACKLOG asked for so a third
+format (notebook markdown, Typst, …) can register without the core
+growing another if/else. Both original generators (educational,
+professional) keep their existing signatures unchanged.
 
 Not a plugin package system. Just a dict.
 """

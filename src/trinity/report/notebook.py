@@ -1,4 +1,5 @@
-"""PROTOTYPE — lab-notebook tear-out (Trinity_suggestions.md 2.7).
+"""Lab-notebook tear-out (docs/FEATURES_BACKLOG.md, originally
+Trinity_suggestions.md 2.7).
 
 One-page markdown a beginner actually wants to keep: techniques,
 loot, errors, commands. Registered on the report renderer seam.
