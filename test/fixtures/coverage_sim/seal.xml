@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.250" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.250" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="8.2p1 Ubuntu 4ubuntu0.2"/>
+</port>
+<port protocol="tcp" portid="443">
+<state state="open" reason="syn-ack"/>
+<service name="https" method="probed" conf="10" product="nginx" version="1.18.0" extrainfo="Ubuntu"/>
+<script id="http-server-header" output="nginx/1.18.0 (Ubuntu)"/>
+<script id="http-title" output="Seal Market"/>
+</port>
+<port protocol="tcp" portid="8080">
+<state state="open" reason="syn-ack"/>
+<service name="http-proxy" method="probed" conf="10"/>
+<script id="http-title" output="Site doesn't have a title (text/html;charset=utf-8)."/>
+</port>
+</ports>
+</host>
+</nmaprun>

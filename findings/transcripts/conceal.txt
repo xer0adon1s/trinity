@@ -1,0 +1,131 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim-batch3/test/fixtures/coverage_sim/conceal.xml --box conceal --target 10.10.10.116
+──────────────────── 10.10.10.116:21 ftp (Microsoft ftpd ) ─────────────────────
+  Anonymous FTP login  [MEDIUM]  (score 0.9, user_curated)
+  FTP server allows the 'anonymous' user with any/blank password. Always worth 
+checking before anything else on port 21.
+  Try: `ftp <target>` then username `anonymous`, any password.
+
+─────────────── 10.10.10.116:80 http (Microsoft IIS httpd 10.0) ────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.9, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+─────────────── 10.10.10.116:135 msrpc (Microsoft Windows RPC ) ────────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+──────── 10.10.10.116:139 netbios-ssn (Microsoft Windows netbios-ssn ) ─────────
+  No local match — this would be a candidate for AI escalation.
+──────────────────────── 10.10.10.116:445 microsoft-ds ─────────────────────────
+  SMB null session / anonymous enumeration  [MEDIUM]  (score 0.9, user_curated)
+  SMB (port 445/139) often allows unauthenticated enumeration of shares, users, 
+and groups — a very common early foothold path.
+  Try: `smbclient -L //<target>/ -N`, `enum4linux -a <target>`, or `crackmapexec
+smb <target> --shares -u '' -p ''`.
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
+  (run `trinity explain "ftp $TARGET  # login as anonymous, then: ls -la && get 
+any interesting files"` to break this down)
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+
+[exit 0]
+
+$ trinity next --box conceal
+─────────────────────────────── Recommended next ───────────────────────────────
+enum4linux-ng -A $TARGET
+
+'enum4linux-ng' isn't installed. Depending on your system:
+  Debian/Ubuntu:  sudo apt install enum4linux-ng
+  Otherwise:      https://github.com/cddmp/enum4linux-ng (pip install or clone +
+run directly)
+
+Once that's installed, just run this same command again -- I'll pick up right 
+where we left off: `trinity next --box "conceal"`
+
+(done? `trinity did --box "conceal"`  ·  skipping this one? `trinity skip --box 
+"conceal"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+[exit 0]
+
+$ trinity suggest --box conceal
+ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
+Port 21's nmap scripts already confirmed anonymous FTP login works — don't 
+re-check it, go straight to listing and pulling whatever files are there.
+
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+enum4linux-ng -A $TARGET
+Port 139 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+enum4linux-ng -A $TARGET
+Port 445 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+
+[exit 0]
+
+$ trinity hint --box conceal
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the enum phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.102" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.102" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="21">
+<state state="open" reason="syn-ack"/>
+<service name="ftp" method="probed" conf="10" product="vsftpd" version="3.0.3"/>
+<script id="ftp-anon" output="Anonymous FTP login allowed (FTP code 230)"/>
+</port>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="7.6p1 Ubuntu 4"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.29" extrainfo="Ubuntu"/>
+<script id="http-generator" output="Drupal 7 (http://drupal.org)"/>
+<script id="http-server-header" output="Apache/2.4.29 (Ubuntu)"/>
+<script id="http-title" output="Welcome to 192.168.56.103 | 192.168.56.103"/>
+</port>
+<port protocol="tcp" portid="5435">
+<state state="open" reason="syn-ack"/>
+<service name="tcpwrapped" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="8082">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="H2 database http console"/>
+<script id="http-title" output="H2 Console"/>
+</port>
+<port protocol="tcp" portid="9092">
+<state state="open" reason="syn-ack"/>
+<service name="XmlIpcRegSvc" method="probed" conf="10"/>
+</port>
+</ports>
+</host>
+</nmaprun>

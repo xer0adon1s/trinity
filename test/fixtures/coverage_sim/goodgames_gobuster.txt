@@ -1,0 +1,4 @@
+/login                 (Status: 200) [Size: 0]
+/signup                (Status: 200) [Size: 0]
+/blog                  (Status: 200) [Size: 0]
+/profile               (Status: 200) [Size: 0]

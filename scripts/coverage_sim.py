@@ -1433,6 +1433,325 @@ BOXES: dict[str, dict] = {
             "/login.php             (Status: 200) [Size: 0]",
         ],
     },
+    # --- batch 3: 10 Linux + 10 Windows (coverage-sim-batch3) ---
+    "cap": {
+        "host": "10.10.10.245",
+        "ports": [
+            port(21, "ftp", "vsftpd", "3.0.3"),
+            port(22, "ssh", "OpenSSH", "8.2p1 Ubuntu 4ubuntu0.1"),
+            port(80, "http", "gunicorn", scripts=[
+                ("http-title", "Security Dashboard"),
+            ]),
+        ],
+        "gobuster": [
+            "/ip                    (Status: 200) [Size: 0]",
+            "/capture               (Status: 302) [Size: 0]",
+            "/data                  (Status: 302) [Size: 0]",
+        ],
+    },
+    "haystack": {
+        "host": "10.10.10.115",
+        "ports": [
+            port(22, "ssh", "OpenSSH", "7.4"),
+            port(80, "http", "nginx", "1.12.2", scripts=[
+                ("http-server-header", "nginx/1.12.2"),
+                ("http-title", "Site doesn't have a title (text/html)."),
+            ]),
+            # nmap fingerprints nginx; body is Elasticsearch JSON API (0xdf).
+            port(9200, "http", "nginx", "1.12.2", scripts=[
+                ("http-server-header", "nginx/1.12.2"),
+                ("http-methods", "Potentially risky methods: DELETE"),
+                ("http-title", "Site doesn't have a title (application/json; charset=UTF-8)."),
+            ]),
+        ],
+    },
+    "luanne": {
+        "host": "10.10.10.218",
+        "ports": [
+            port(22, "ssh", "OpenSSH", "8.0", extrainfo="NetBSD 20190418-hpn13v14-lpk"),
+            port(80, "http", "nginx", "1.19.0", scripts=[
+                ("http-server-header", "nginx/1.19.0"),
+                ("http-title", "401 Unauthorized"),
+                ("http-robots.txt", "1 disallowed entry\n/weather"),
+            ]),
+            port(9001, "http", "Medusa httpd", "1.12", extrainfo="Supervisor process manager", scripts=[
+                ("http-server-header", "Medusa/1.12"),
+                ("http-title", "Error response"),
+            ]),
+        ],
+        "gobuster": [
+            "/weather               (Status: 200) [Size: 0]",
+        ],
+    },
+    "hawk": {
+        "host": "10.10.10.102",
+        "ports": [
+            port(21, "ftp", "vsftpd", "3.0.3", scripts=[
+                ("ftp-anon", "Anonymous FTP login allowed (FTP code 230)"),
+            ]),
+            port(22, "ssh", "OpenSSH", "7.6p1 Ubuntu 4"),
+            port(80, "http", "Apache httpd", "2.4.29", extrainfo="Ubuntu", scripts=[
+                ("http-generator", "Drupal 7 (http://drupal.org)"),
+                ("http-server-header", "Apache/2.4.29 (Ubuntu)"),
+                ("http-title", "Welcome to 192.168.56.103 | 192.168.56.103"),
+            ]),
+            port(5435, "tcpwrapped"),
+            port(8082, "http", "H2 database http console", scripts=[
+                ("http-title", "H2 Console"),
+            ]),
+            port(9092, "XmlIpcRegSvc"),
+        ],
+    },
+    "seal": {
+        "host": "10.10.10.250",
+        "ports": [
+            port(22, "ssh", "OpenSSH", "8.2p1 Ubuntu 4ubuntu0.2"),
+            port(443, "https", "nginx", "1.18.0", extrainfo="Ubuntu", scripts=[
+                ("http-server-header", "nginx/1.18.0 (Ubuntu)"),
+                ("http-title", "Seal Market"),
+            ]),
+            port(8080, "http-proxy", scripts=[
+                ("http-title", "Site doesn't have a title (text/html;charset=utf-8)."),
+            ]),
+        ],
+        "gobuster": [
+            "/manager               (Status: 302) [Size: 0]",
+            "/git                   (Status: 301) [Size: 0]",
+        ],
+    },
+    "spectra": {
+        "host": "10.10.10.229",
+        "ports": [
+            port(22, "ssh", "OpenSSH", "8.1"),
+            port(80, "http", "nginx", "1.17.4", scripts=[
+                ("http-server-header", "nginx/1.17.4"),
+                ("http-title", "Site doesn't have a title (text/html)."),
+            ]),
+            port(3306, "mysql", "MySQL", extrainfo="unauthorized"),
+        ],
+        # 0xdf: /main is WordPress; directory listing shows wp-config.php.save
+        "gobuster": [
+            "/main                  (Status: 301) [Size: 0]",
+            "/main/wp-login.php     (Status: 200) [Size: 0]",
+            "/main/wp-config.php.save (Status: 200) [Size: 0]",
+        ],
+    },
+    "goodgames": {
+        "host": "10.10.11.130",
+        "ports": [
+            port(80, "http", "Werkzeug httpd", "2.0.2", extrainfo="Python 3.9.2", scripts=[
+                ("http-server-header", "Werkzeug/2.0.2 Python/3.9.2"),
+                ("http-title", "GoodGames | Community and Store"),
+            ]),
+        ],
+        "gobuster": [
+            "/login                 (Status: 200) [Size: 0]",
+            "/signup                (Status: 200) [Size: 0]",
+            "/blog                  (Status: 200) [Size: 0]",
+            "/profile               (Status: 200) [Size: 0]",
+        ],
+    },
+    "paper": {
+        "host": "10.10.11.143",
+        "ports": [
+            port(22, "ssh", "OpenSSH", "8.0"),
+            port(80, "http", "Apache httpd", "2.4.37", extrainfo="centos OpenSSL/1.1.1k mod_fcgid/2.3.9", scripts=[
+                ("http-title", "HTTP Server Test Page powered by CentOS"),
+            ]),
+            port(443, "https", "Apache httpd", "2.4.37", extrainfo="centos OpenSSL/1.1.1k mod_fcgid/2.3.9", scripts=[
+                ("http-title", "HTTP Server Test Page powered by CentOS"),
+            ]),
+        ],
+        # Host office.paper reveals WordPress 5.2.3 (0xdf); attested path.
+        "gobuster": [
+            "/wordpress             (Status: 301) [Size: 0]",
+            "/wp-login.php          (Status: 200) [Size: 0]",
+        ],
+    },
+    "previse": {
+        "host": "10.10.11.104",
+        "ports": [
+            port(22, "ssh", "OpenSSH", "7.6p1 Ubuntu 4ubuntu0.3"),
+            port(80, "http", "Apache httpd", "2.4.29", extrainfo="Ubuntu", scripts=[
+                ("http-server-header", "Apache/2.4.29 (Ubuntu)"),
+                ("http-title", "Previse Login"),
+            ]),
+        ],
+        "gobuster": [
+            "/login.php             (Status: 200) [Size: 0]",
+            "/accounts.php          (Status: 200) [Size: 0]",
+            "/files.php             (Status: 200) [Size: 0]",
+            "/file_logs.php         (Status: 200) [Size: 0]",
+            "/download.php          (Status: 200) [Size: 0]",
+        ],
+    },
+    "pandora": {
+        "host": "10.10.11.136",
+        "ports": [
+            port(22, "ssh", "OpenSSH", "8.2p1 Ubuntu 4ubuntu0.3"),
+            port(80, "http", "Apache httpd", "2.4.41", extrainfo="Ubuntu", scripts=[
+                ("http-title", "Play | Landing"),
+            ]),
+        ],
+        # Pandora FMS is localhost-only after SSH (0xdf) — do not invent a
+        # public /pandora_console gobuster hit. SNMP UDP 161 is the
+        # foothold path and is outside the TCP nmap fixture.
+    },
+    "bastion": {
+        "host": "10.10.10.134",
+        "ports": [
+            port(22, "ssh", "OpenSSH", "for_Windows_7.9"),
+            port(135, "msrpc", "Microsoft Windows RPC"),
+            port(139, "netbios-ssn", "Microsoft Windows netbios-ssn"),
+            port(445, "microsoft-ds", "Windows Server 2016 Standard 14393 microsoft-ds", scripts=[
+                ("smb-os-discovery", "OS: Windows Server 2016 Standard 14393\nComputer name: Bastion"),
+            ]),
+        ],
+    },
+    "love": {
+        "host": "10.10.10.239",
+        "ports": [
+            port(80, "http", "Apache httpd", "2.4.46", extrainfo="Win64 OpenSSL/1.1.1j PHP/7.3.27", scripts=[
+                ("http-server-header", "Apache/2.4.46 (Win64) OpenSSL/1.1.1j PHP/7.3.27"),
+                ("http-title", "Voting System using PHP"),
+            ]),
+            port(135, "msrpc", "Microsoft Windows RPC"),
+            port(139, "netbios-ssn", "Microsoft Windows netbios-ssn"),
+            port(443, "https", "Apache httpd", "2.4.46", extrainfo="OpenSSL/1.1.1j PHP/7.3.27", scripts=[
+                ("http-title", "403 Forbidden"),
+            ]),
+            port(445, "microsoft-ds", "Microsoft Windows 7 - 10 microsoft-ds", extrainfo="workgroup: WORKGROUP"),
+            port(3306, "mysql"),
+            port(5000, "http", "Apache httpd", "2.4.46", extrainfo="OpenSSL/1.1.1j PHP/7.3.27", scripts=[
+                ("http-title", "403 Forbidden"),
+            ]),
+            port(5985, "http", "Microsoft HTTPAPI httpd", "2.0", extrainfo="SSDP/UPnP"),
+        ],
+    },
+    "driver": {
+        "host": "10.10.11.106",
+        "ports": [
+            port(80, "http", "Microsoft IIS httpd", "10.0", scripts=[
+                ("http-auth", "HTTP/1.1 401 Unauthorized\nBasic realm=MFP Firmware Update Center. Please enter password for admin"),
+                ("http-server-header", "Microsoft-IIS/10.0"),
+                ("http-title", "Site doesn't have a title (text/html; charset=UTF-8)."),
+            ]),
+            port(135, "msrpc", "Microsoft Windows RPC"),
+            port(445, "microsoft-ds", "Microsoft Windows 7 - 10 microsoft-ds", extrainfo="workgroup: WORKGROUP"),
+            port(5985, "http", "Microsoft HTTPAPI httpd", "2.0", extrainfo="SSDP/UPnP"),
+        ],
+    },
+    "heist": {
+        "host": "10.10.10.149",
+        "ports": [
+            port(80, "http", "Microsoft IIS httpd", "10.0", scripts=[
+                ("http-server-header", "Microsoft-IIS/10.0"),
+                ("http-title", "Support Login Page"),
+            ]),
+            port(135, "msrpc", "Microsoft Windows RPC"),
+            port(445, "microsoft-ds"),
+            port(5985, "http", "Microsoft HTTPAPI httpd", "2.0", extrainfo="SSDP/UPnP"),
+        ],
+        "gobuster": [
+            "/attachments           (Status: 301) [Size: 0]",
+            "/login.php             (Status: 200) [Size: 0]",
+        ],
+    },
+    "sniper": {
+        "host": "10.10.10.151",
+        "ports": [
+            port(80, "http", "Microsoft IIS httpd", "10.0", scripts=[
+                ("http-server-header", "Microsoft-IIS/10.0"),
+                ("http-title", "Sniper Co."),
+            ]),
+            port(135, "msrpc", "Microsoft Windows RPC"),
+            port(139, "netbios-ssn", "Microsoft Windows netbios-ssn"),
+            port(445, "microsoft-ds"),
+        ],
+        "gobuster": [
+            "/blog                  (Status: 301) [Size: 0]",
+            "/user                  (Status: 301) [Size: 0]",
+        ],
+    },
+    "omni": {
+        "host": "10.10.10.204",
+        "ports": [
+            port(135, "msrpc", "Microsoft Windows RPC"),
+            port(5985, "upnp", "Microsoft IIS httpd"),
+            port(8080, "upnp", "Microsoft IIS httpd", scripts=[
+                ("http-auth", "HTTP/1.1 401 Unauthorized\nBasic realm=Windows Device Portal"),
+                ("http-server-header", "Microsoft-HTTPAPI/2.0"),
+                ("http-title", "Site doesn't have a title."),
+            ]),
+            port(29817, "unknown"),
+            port(29819, "arcserve", "ARCserve Discovery"),
+            port(29820, "unknown"),
+        ],
+    },
+    "nest": {
+        "host": "10.10.10.178",
+        "ports": [
+            port(445, "microsoft-ds"),
+            port(4386, "unknown", scripts=[
+                ("fingerprint-strings", "Reporting Service V1.2\nUnrecognised command"),
+            ]),
+        ],
+    },
+    # Post-IPsec TCP view (0xdf after VPN up). SNMP/IPsec prerequisite noted in scoring.
+    "conceal": {
+        "host": "10.10.10.116",
+        "ports": [
+            port(21, "ftp", "Microsoft ftpd", scripts=[
+                ("ftp-anon", "Anonymous FTP login allowed (FTP code 230)"),
+            ]),
+            port(80, "http", "Microsoft IIS httpd", "10.0", scripts=[
+                ("http-server-header", "Microsoft-IIS/10.0"),
+                ("http-title", "IIS Windows"),
+            ]),
+            port(135, "msrpc", "Microsoft Windows RPC"),
+            port(139, "netbios-ssn", "Microsoft Windows netbios-ssn"),
+            port(445, "microsoft-ds"),
+        ],
+    },
+    "fuse": {
+        "host": "10.10.10.193",
+        "ports": [
+            port(53, "domain"),
+            port(80, "http", "Microsoft IIS httpd", "10.0", scripts=[
+                ("http-title", "Site doesn't have a title (text/html)."),
+            ]),
+            port(88, "kerberos-sec", "Microsoft Windows Kerberos"),
+            port(135, "msrpc", "Microsoft Windows RPC"),
+            port(139, "netbios-ssn", "Microsoft Windows netbios-ssn"),
+            port(389, "ldap", "Microsoft Windows Active Directory LDAP", extrainfo="Domain: fabricorp.local"),
+            port(445, "microsoft-ds", "Windows Server 2016 Standard 14393 microsoft-ds", extrainfo="workgroup: FABRICORP"),
+            port(464, "kpasswd5"),
+            port(593, "ncacn_http", "Microsoft Windows RPC over HTTP", "1.0"),
+            port(636, "ldapssl"),
+            port(3268, "ldap", "Microsoft Windows Active Directory LDAP", extrainfo="Domain: fabricorp.local"),
+            port(5985, "http", "Microsoft HTTPAPI httpd", "2.0", extrainfo="SSDP/UPnP"),
+        ],
+        "gobuster": [
+            "/papercut              (Status: 301) [Size: 0]",
+        ],
+    },
+    "support": {
+        "host": "10.10.11.174",
+        "ports": [
+            port(53, "domain"),
+            port(88, "kerberos-sec", "Microsoft Windows Kerberos"),
+            port(135, "msrpc", "Microsoft Windows RPC"),
+            port(139, "netbios-ssn", "Microsoft Windows netbios-ssn"),
+            port(389, "ldap", "Microsoft Windows Active Directory LDAP", extrainfo="Domain: support.htb0., Site: Default-First-Site-Name"),
+            port(445, "microsoft-ds"),
+            port(464, "kpasswd5"),
+            port(593, "ncacn_http", "Microsoft Windows RPC over HTTP", "1.0"),
+            port(636, "ldapssl"),
+            port(3268, "ldap", "Microsoft Windows Active Directory LDAP", extrainfo="Domain: support.htb0."),
+            port(5985, "http", "Microsoft HTTPAPI httpd", "2.0", extrainfo="SSDP/UPnP"),
+            port(9389, "mc-nmf", ".NET Message Framing"),
+        ],
+    },
 }
 
 

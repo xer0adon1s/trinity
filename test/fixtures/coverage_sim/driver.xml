@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.11.106" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.11.106" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft IIS httpd" version="10.0"/>
+<script id="http-auth" output="HTTP/1.1 401 Unauthorized
+Basic realm=MFP Firmware Update Center. Please enter password for admin"/>
+<script id="http-server-header" output="Microsoft-IIS/10.0"/>
+<script id="http-title" output="Site doesn't have a title (text/html; charset=UTF-8)."/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10" product="Microsoft Windows 7 - 10 microsoft-ds" extrainfo="workgroup: WORKGROUP"/>
+</port>
+<port protocol="tcp" portid="5985">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft HTTPAPI httpd" version="2.0" extrainfo="SSDP/UPnP"/>
+</port>
+</ports>
+</host>
+</nmaprun>

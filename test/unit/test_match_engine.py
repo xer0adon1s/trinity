@@ -247,10 +247,35 @@ def test_nmap_role_words_stripped_from_searchsploit_product_query():
     assert _searchsploit_query_terms(
         "Node.js Express framework", None
     ) == ["Node.js"]
+    assert _searchsploit_query_terms(
+        "H2 database http console", None
+    ) == ["H2 database"]
+    assert _searchsploit_query_terms(
+        "Supervisor process manager", None
+    ) == ["Supervisor"]
     # existing strip still works
     assert _searchsploit_query_terms("Samba smbd", "3.0.20-Debian") == [
         "Samba", "3.0.20",
     ]
+
+
+def test_h2_console_product_surfaces_matching_searchsploit_exploit(seeded_conn):
+    """HTB Hawk: nmap product is 'H2 database http console'. The unstripped
+    phrase ANDs and returns zero; 'H2 database' has the Alias RCE used on
+    that box locally."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.102", port=8082,
+        service="http", product="H2 database http console",
+    )
+    matches = match_finding(seeded_conn, finding)
+    titles = " ".join(m.title.lower() for m in matches)
+    assert "h2" in titles
 
 
 def test_icecast_nmap_product_surfaces_matching_searchsploit_exploit(seeded_conn):
@@ -307,6 +332,37 @@ def test_nodejs_express_product_surfaces_serialize_searchsploit_exploit(seeded_c
     matches = match_finding(seeded_conn, finding)
     titles = " ".join(m.title.lower() for m in matches)
     assert "serialize" in titles or "node" in titles
+
+
+def test_supervisor_process_manager_in_detail_surfaces_searchsploit(seeded_conn):
+    """HTB Luanne: product is 'Medusa httpd' but extrainfo is
+    'Supervisor process manager'. searchsploit Supervisor has the
+    XML-RPC RCE; Medusa alone does not."""
+    from trinity.kb import searchsploit as searchsploit_module
+    from trinity.match.engine import _process_manager_terms
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    assert _process_manager_terms("Supervisor process manager") == ["Supervisor"]
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.218", port=9001,
+        service="http", product="Medusa httpd", version="1.12",
+        detail="Supervisor process manager | [http-server-header] Medusa/1.12",
+    )
+    matches = match_finding(seeded_conn, finding)
+    titles = " ".join(m.title.lower() for m in matches)
+    assert "supervisor" in titles
+
+
+def test_path_underscore_segment_queries_leading_product_component():
+    """Coverage-sim batch3: /pandora_console/ must not be discarded just
+    because of the underscore, and must query 'pandora' (what ExploitDB
+    indexes) rather than the full path suffix."""
+    assert _path_product_terms("/pandora_console/") == ["pandora"]
+    assert _path_product_terms("/pandora_console") == ["pandora"]
+    assert _path_product_terms("/nibbleblog/") == ["nibbleblog"]
 
 
 def test_version_specific_kb_entry_does_not_fire_without_matching_version(seeded_conn):

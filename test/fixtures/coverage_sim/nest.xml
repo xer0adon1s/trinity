@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.178" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.178" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="4386">
+<state state="open" reason="syn-ack"/>
+<service name="unknown" method="probed" conf="10"/>
+<script id="fingerprint-strings" output="Reporting Service V1.2
+Unrecognised command"/>
+</port>
+</ports>
+</host>
+</nmaprun>

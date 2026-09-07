@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.239" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.239" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.46" extrainfo="Win64 OpenSSL/1.1.1j PHP/7.3.27"/>
+<script id="http-server-header" output="Apache/2.4.46 (Win64) OpenSSL/1.1.1j PHP/7.3.27"/>
+<script id="http-title" output="Voting System using PHP"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Microsoft Windows netbios-ssn"/>
+</port>
+<port protocol="tcp" portid="443">
+<state state="open" reason="syn-ack"/>
+<service name="https" method="probed" conf="10" product="Apache httpd" version="2.4.46" extrainfo="OpenSSL/1.1.1j PHP/7.3.27"/>
+<script id="http-title" output="403 Forbidden"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10" product="Microsoft Windows 7 - 10 microsoft-ds" extrainfo="workgroup: WORKGROUP"/>
+</port>
+<port protocol="tcp" portid="3306">
+<state state="open" reason="syn-ack"/>
+<service name="mysql" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="5000">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.46" extrainfo="OpenSSL/1.1.1j PHP/7.3.27"/>
+<script id="http-title" output="403 Forbidden"/>
+</port>
+<port protocol="tcp" portid="5985">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft HTTPAPI httpd" version="2.0" extrainfo="SSDP/UPnP"/>
+</port>
+</ports>
+</host>
+</nmaprun>
