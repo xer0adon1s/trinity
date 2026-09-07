@@ -858,9 +858,9 @@ def unlock_cmd(box_name: str, action: str):
 @click.option("--value", default=None, help="The secret/flag/hash itself. Required for add.")
 @click.option("--note", default=None, help="Optional context (where you found it).")
 def loot_cmd(action: str, box_name: str, kind: str | None, value: str | None, note: str | None):
-    """PROTOTYPE. Record or list evidence found on a box. Power-user
-    verb — not taught by the wizard. Flows into the timeline and both
-    report templates."""
+    """Record or list evidence found on a box (credentials, hashes,
+    tokens, flags). Power-user verb — not taught by the wizard. Flows
+    into the timeline and both report templates."""
     from trinity.loot import add_loot, list_loot
 
     conn = connect()

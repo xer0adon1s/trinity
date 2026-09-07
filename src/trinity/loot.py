@@ -1,13 +1,10 @@
-"""PROTOTYPE — loot / evidence tracker (FEATURES_BACKLOG.md).
+"""Loot / evidence tracker (docs/FEATURES_BACKLOG.md).
 
-Alexander confirmed this as real needed functionality, not scope
-creep: credentials, hashes, tokens, flags, flowing into the timeline
-and both report templates. No dedicated design doc existed.
-
-1.10 (freeze professional-mode growth) is in tension with a full
-loot section on the professional report. This draft stores loot on
-the shared spine and lets both renderers mention it. Claude should
-decide how heavy the professional section is.
+Credentials, hashes, tokens, flags — flows into the timeline and both
+report templates. Shared spine (one `loot` table, one `LootItem`
+model); the professional-mode report section stays short (count +
+flag count + list), matching the "edu is focus, keep professional-mode
+report growth minimal for now" call from the agentic-OS pivot session.
 """
 from __future__ import annotations
 
