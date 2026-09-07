@@ -114,6 +114,57 @@ def test_ms_bulletin_in_detail_surfaces_matching_searchsploit_exploit(seeded_con
     assert any("eternalblue" in m.title.lower() or "ms17-010" in m.title.lower() for m in matches)
 
 
+def test_version_specific_kb_entry_does_not_fire_without_matching_version(seeded_conn):
+    """Regression test: found live during the 2026-09-07 AD/Windows
+    simulation exercise (HTB Netmon). The vsftpd 2.3.4 backdoor KB
+    entry is version-SPECIFIC (match_version='2.3.4') but stage 1 only
+    ever BOOSTED score on a version match, never REQUIRED it -- so any
+    finding sharing match_service='ftp' surfaced it at 0.9 confidence
+    regardless of actual version, including services with no version
+    at all ('Microsoft ftpd', a completely different FTP server).
+    Generic, version-agnostic KB entries (e.g. 'Anonymous FTP login')
+    are unaffected and must keep firing on service alone."""
+    finding = Finding(source_tool="nmap", kind="port", host="10.10.10.152", port=21,
+                       service="ftp", product="Microsoft ftpd", version=None)
+    matches = match_finding(seeded_conn, finding)
+    assert not any("vsftpd" in m.title.lower() for m in matches)
+
+
+def test_service_scoped_kb_entry_does_not_fts_cross_match_different_service(seeded_conn):
+    """Regression test: found live during the AD simulation exercise
+    (HTB Netmon). An LDAP-scoped 'anonymous bind' KB entry FTS-attached
+    to an Anonymous-FTP finding purely because both texts contain the
+    word 'anonymous' -- match_service was set on the KB row but only
+    honoured in stage 1's exact filter, not stage 2's FTS fallback.
+    A finding with a known, different service must not pull in a
+    KB entry scoped to yet another specific service. The AD-flavored
+    KB entry itself lives on a separate feature branch, not main, so
+    this test inserts an equivalent minimal LDAP-scoped row directly
+    to reproduce the exact cross-match shape without depending on that
+    branch landing first."""
+    seeded_conn.execute(
+        "INSERT INTO kb_entries (source, title, summary, detail, match_service, "
+        "match_version, tags, severity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            "user_curated",
+            "Anonymous LDAP bind on an Active Directory DC",
+            "The DC answered an unauthenticated LDAP query.",
+            "Dump users/groups next.",
+            "ldap",
+            None,
+            "ad,ldap,anonymous",
+            "medium",
+        ),
+    )
+    seeded_conn.commit()
+
+    finding = Finding(source_tool="nmap", kind="port", host="10.10.10.152", port=21,
+                       service="ftp", product="Microsoft ftpd",
+                       detail="Anonymous FTP login allowed (FTP code 230)")
+    matches = match_finding(seeded_conn, finding)
+    assert not any("ldap" in m.title.lower() for m in matches)
+
+
 # --- severity heuristic ---
 
 def test_backdoor_rated_critical():

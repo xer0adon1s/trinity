@@ -223,6 +223,12 @@ the community to extend Trinity faster than any single maintainer could.
 
 ## Roadmap
 
+**Active Cursor homework (filed 2026-09-07, not started):**
+[docs/CURSOR_HOMEWORK.md](./docs/CURSOR_HOMEWORK.md) — coverage
+simulation, AD engine prototype, then AD-specific simulation.
+Those three specs are the assigned build/test work. They do not
+replace the design-doc queue below.
+
 **Built: Instructor Mode.** [docs/INSTRUCTOR_MODE.md](./docs/INSTRUCTOR_MODE.md)
 describes and remains the reference for the coach layer that closes
 the gap between "wizard hands off a box" and "operator has no idea
