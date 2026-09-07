@@ -129,9 +129,35 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
     # gated on "nothing found yet." searchsploit's mirror is much larger
     # than Trinity's own curated KB and needs no network call, so it's
     # cheap insurance either way, run before ever considering AI escalation.
+    #
+    # Also queries any MS-bulletin ID found in the finding's OWN detail
+    # text (e.g. nmap's `smb-vuln-ms17-010`/`smb-vuln-ms08-067` NSE
+    # scripts print "VULNERABLE... (ms17-010)" directly in their output)
+    # -- found missing during a Linux/Windows box simulation exercise:
+    # nmap had already confirmed EternalBlue/MS08-067 by name in its own
+    # script output, searchsploit genuinely has the matching exploits
+    # locally (`searchsploit ms17-010` returns real, verified results),
+    # but the old code only ever queried product+version, so a
+    # product-less/version-less SMB finding with the answer already
+    # sitting in `detail` got nothing. A raw CVE id (e.g.
+    # "CVE-2017-0143") is deliberately NOT queried here -- searchsploit's
+    # own index is keyed off exploit titles/MS-bulletin references, not
+    # CVE numbers, so a bare CVE query reliably returns nothing.
+    seen_ss_keys: set[tuple[str, str]] = {(m.title, m.detail or "") for m in matches}
+    search_calls: list[list[str]] = []
     if finding.product:
-        query_terms_ss = _searchsploit_query_terms(finding.product, finding.version)
+        search_calls.append(_searchsploit_query_terms(finding.product, finding.version))
+    if finding.detail:
+        bulletin_terms = _ms_bulletin_terms(finding.detail)
+        if bulletin_terms:
+            search_calls.append(bulletin_terms)
+
+    for query_terms_ss in search_calls:
         for result in searchsploit.search(*query_terms_ss):
+            key = (result.title, f"PoC: {result.path}" if result.path else "")
+            if key in seen_ss_keys:
+                continue
+            seen_ss_keys.add(key)
             matches.append(
                 KBMatch(
                     kb_id=None,
@@ -147,15 +173,71 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
                     severity=rate_severity(result.title, result.codes),
                 )
             )
-        matches.sort(key=lambda m: m.score, reverse=True)
+    matches.sort(key=lambda m: m.score, reverse=True)
 
     return matches[:limit]
 
 
+# Matches nmap NSE vuln-script naming (`smb-vuln-ms17-010`) as well as
+# bare mentions in script output text ("...(ms17-010)", "(MS08-067)").
+_MS_BULLETIN_RE = re.compile(r"ms(\d{2})-(\d{3})", re.IGNORECASE)
+
+
+def _ms_bulletin_terms(detail: str) -> list[str]:
+    """Extract MS-bulletin IDs (e.g. 'ms17-010', 'MS08-067') from a
+    finding's detail text -- this is what nmap's smb-vuln-* NSE scripts
+    print directly in their output when they confirm a well-known SMB
+    RCE, and it's also what searchsploit's own exploit titles are
+    actually keyed against (unlike raw CVE numbers, which searchsploit
+    rarely indexes on). Deduplicated, order-preserving."""
+    seen: set[str] = set()
+    terms: list[str] = []
+    for match in _MS_BULLETIN_RE.finditer(detail):
+        bulletin = f"ms{match.group(1)}-{match.group(2)}".lower()
+        if bulletin not in seen:
+            seen.add(bulletin)
+            terms.append(bulletin)
+    return terms
+
+
+# Tokens that are too generic to mean anything on their own, so ORing
+# them in would match almost any KB entry regardless of actual topic --
+# found live during a Linux/Windows box simulation exercise: an nmap
+# vuln-script hit for MS17-010 (whose own output naturally contains the
+# words "CVE", "VULNERABLE", and "in") was cross-matching the unrelated
+# vsftpd-backdoor KB entry purely because that entry's title/summary
+# also happens to contain "CVE" and "VULNERABLE" -- neither finding has
+# anything to do with the other's service. Two categories filtered:
+# ordinary English stopwords, and generic security-report vocabulary
+# that shows up in nearly every vuln-scan/KB-entry regardless of the
+# actual vulnerability (CVE, VULNERABLE, remote, code execution, risk
+# ratings, etc). Real distinguishing terms (service/product names, CVE
+# NUMBERS, MS-bulletin IDs, port-specific keywords) are untouched.
+_FTS_STOPWORDS = frozenset({
+    # ordinary English stopwords that leak in from script/detail prose
+    "a", "an", "the", "in", "on", "of", "to", "for", "and", "or", "is",
+    "are", "be", "by", "with", "this", "that", "it", "as", "at", "via",
+    "can", "not", "no", "may", "these", "was", "were", "has", "have",
+    # generic security-report vocabulary -- present in almost every
+    # vuln-scan/KB-entry regardless of the SPECIFIC vulnerability, so
+    # matching on these alone is noise, not signal
+    "cve", "vulnerable", "vulnerability", "vulnerabilities", "remote",
+    "code", "execution", "risk", "factor", "high", "medium", "low",
+    "critical", "state", "exists", "allows", "attacker", "attackers",
+    "crafted", "server", "servers", "service", "system", "version",
+    "windows", "microsoft",
+})
+
+
 def _fts_query(text: str) -> str:
     """Turn free text into a safe FTS5 MATCH query: OR together each
-    alphanumeric token so partial term matches still surface results."""
-    tokens = [t for t in "".join(c if c.isalnum() else " " for c in text).split() if t]
+    alphanumeric token so partial term matches still surface results.
+    Stopwords and generic security-report vocabulary are dropped first
+    (see `_FTS_STOPWORDS`) so a finding's incidental prose (nmap script
+    output, generic "VULNERABLE"/"CVE" language) can't cross-match a
+    KB entry about a completely unrelated service/vulnerability."""
+    raw_tokens = [t for t in "".join(c if c.isalnum() else " " for c in text).split() if t]
+    tokens = [t for t in raw_tokens if len(t) >= 3 and t.lower() not in _FTS_STOPWORDS]
     if not tokens:
         return '""'
     return " OR ".join(f'"{t}"' for t in tokens)

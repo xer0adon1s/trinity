@@ -45,6 +45,75 @@ def test_result_limit_is_respected(seeded_conn):
     assert len(matches) == 1
 
 
+def test_generic_vuln_language_does_not_cross_match_unrelated_kb_entry(seeded_conn):
+    """Regression test: found live during a Linux/Windows box simulation
+    exercise. An nmap smb-vuln-ms17-010 script hit's own detail text
+    naturally contains generic security-report vocabulary ("VULNERABLE",
+    "CVE", "in") that also happens to appear in the unrelated vsftpd
+    backdoor KB entry's title/summary -- the old unfiltered FTS query
+    OR'd every token together and cross-matched the two, even though a
+    Windows SMB finding has nothing to do with an FTP backdoor. This
+    finding has no ftp/vsftpd service anywhere in it."""
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.40", port=445,
+        service="microsoft-ds",
+        product="Windows 7 Professional 7601 Service Pack 1 microsoft-ds",
+        detail=(
+            "[smb-vuln-ms17-010] VULNERABLE: Remote Code Execution "
+            "vulnerability in Microsoft SMBv1 servers (ms17-010). "
+            "Risk factor: HIGH. CVE:CVE-2017-0143"
+        ),
+    )
+    matches = match_finding(seeded_conn, finding)
+    assert not any("vsftpd" in m.title.lower() for m in matches)
+
+
+def test_generic_vuln_language_does_not_cross_match_linux_only_kb_entry(seeded_conn):
+    """Same bug, different pairing: a Windows XP smb-vuln-ms08-067 hit
+    should not cross-match the Linux-only 'SUID binaries' privesc KB
+    entry just because both mention generic vuln-report vocabulary."""
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.4", port=445,
+        service="microsoft-ds", product="Windows XP microsoft-ds",
+        detail=(
+            "[smb-vuln-ms08-067] VULNERABLE: Microsoft Windows system "
+            "vulnerable to remote code execution (MS08-067). "
+            "CVE:CVE-2008-4250"
+        ),
+    )
+    matches = match_finding(seeded_conn, finding)
+    assert not any("suid" in m.title.lower() for m in matches)
+
+
+def test_ms_bulletin_in_detail_surfaces_matching_searchsploit_exploit(seeded_conn):
+    """Regression test, second half of the same simulation-exercise
+    finding: nmap's smb-vuln-ms17-010 script confirms EternalBlue BY
+    NAME in the finding's own detail text, and searchsploit genuinely
+    has matching, verified exploits locally -- but the old code only
+    ever queried searchsploit using finding.product/version, so a
+    Windows SMB finding whose real signal lives in `detail` (not
+    product/version) got nothing back. This needs a live searchsploit
+    binary to actually return results; skips cleanly if unavailable."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.40", port=445,
+        service="microsoft-ds",
+        product="Windows 7 Professional 7601 Service Pack 1 microsoft-ds",
+        detail=(
+            "[smb-vuln-ms17-010] VULNERABLE: Remote Code Execution "
+            "vulnerability in Microsoft SMBv1 servers (ms17-010). "
+            "Risk factor: HIGH. CVE:CVE-2017-0143"
+        ),
+    )
+    matches = match_finding(seeded_conn, finding)
+    assert any("eternalblue" in m.title.lower() or "ms17-010" in m.title.lower() for m in matches)
+
+
 # --- severity heuristic ---
 
 def test_backdoor_rated_critical():
