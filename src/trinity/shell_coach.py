@@ -135,12 +135,29 @@ class CoachSession:
         # Check for entry into a NEW state first (specific-before-stall,
         # same "specific-before-general" ordering discipline shoulder.py
         # already uses for its own milestone patterns).
+        #
+        # IMPORTANT: only short-circuit here on a genuine transition to
+        # a DIFFERENT state (`state is not self.active_state`). A
+        # re-match of the state that's ALREADY active must fall
+        # through to the expected_next/stall-counting logic below,
+        # rather than returning early -- otherwise any state whose
+        # `recognize` pattern matches something the tool reprints on
+        # EVERY line (a live, per-command prompt, as opposed to a
+        # one-time banner/output shape) would return early forever,
+        # permanently starving stall_counter and silently disabling
+        # the nudge ladder for that entire profile. Found live via two
+        # independently-built profiles (evil-winrm, msfconsole) hitting
+        # this from different angles before either touched the engine
+        # -- see docs/COACH_OPEN_QUESTIONS.md for the full history.
+        # Both profiles' existing workarounds (banner/one-shot-command
+        # `recognize` patterns instead of the live prompt) remain
+        # valid and are NOT reverted by this fix -- see the open
+        # questions doc for that follow-up discussion.
         for state in profile.states:
-            if state.recognize.search(line):
-                if state is not self.active_state:
-                    self.active_state = state
-                    self.stall_counter = 0
-                    self.stall_level = 0
+            if state.recognize.search(line) and state is not self.active_state:
+                self.active_state = state
+                self.stall_counter = 0
+                self.stall_level = 0
                 return None
 
         # No new state entered. If we're inside a known state, check

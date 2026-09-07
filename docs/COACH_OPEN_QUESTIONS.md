@@ -10,7 +10,18 @@ shipping the profile it was found under — each was worked around at
 the profile-authoring level, documented in code comments at the
 point of the workaround.
 
-## A recurring `recognize` pattern silently disables stall nudges
+## A recurring `recognize` pattern silently disables stall nudges — FIXED
+
+**Status: fixed in `CoachSession._advance_active_profile`** (see
+`test/unit/test_shell_coach_engine_fix.py` for the regression suite).
+The section below is kept as historical record of how this was found
+and reasoned about — both real profiles' existing workarounds
+(banner/one-shot-command `recognize` patterns instead of a tool's
+live per-line prompt) remain in place and are unaffected by this fix;
+they were correct defensive choices independent of the engine bug,
+not made obsolete by fixing it (a future profile author can now
+safely reuse a live prompt as a state's `recognize` pattern too, but
+doesn't have to retrofit existing profiles to do so).
 
 **Found while building:** `EVIL_WINRM_PROFILE` (step 3,
 `docs/COACH_EVILWINRM_SPEC.md`).
@@ -77,21 +88,20 @@ future profile whose tool reprints a persistent prompt AND has no
 comparable one-time landing/transition signal would hit this with no
 clean profile-level fix available.
 
-**Possible engine-level fix, NOT applied here (now confirmed needed
-by TWO independent profiles, not a one-off):** don't short-circuit on
-a re-match of the state that's *already* active — only return early
-on a transition to a genuinely *different* state, and let a
-same-state re-match fall through to the stall-counting logic below it
-(still resetting the counter, just not skipping the return). That
-would let a profile safely reuse its own prompt pattern as a state's
-`recognize` without losing stall detection or causing state
-thrashing, matching the more intuitive reading of "this line reaffirms
-where we are" rather than "this line means nothing happened."
-Flagging rather than implementing since it changes `CoachSession`'s
-control flow, which the specs for both second-wave profiles were
-explicit about not doing unilaterally — worth prioritizing for the
-NEXT profile added, since two-for-two hitting the same workaround is
-a real signal, not a coincidence.
+**Engine-level fix, now applied:** don't short-circuit on a re-match
+of the state that's *already* active — only return early on a
+transition to a genuinely *different* state, and let a same-state
+re-match fall through to the stall-counting logic below it (still
+resetting the counter, just not skipping the return). This lets a
+profile safely reuse its own prompt pattern as a state's `recognize`
+without losing stall detection or causing state thrashing, matching
+the more intuitive reading of "this line reaffirms where we are"
+rather than "this line means nothing happened." Confirmed via a
+dedicated regression suite (`test/unit/test_shell_coach_engine_fix.py`)
+built around a minimal synthetic profile shaped exactly like the
+failure case, verified to genuinely fail against the pre-fix code
+(not just pass trivially), and re-verified live against a real
+spawned pty subprocess.
 
 ## msfconsole: other checklist-shape gaps (found 2026-09-07)
 
