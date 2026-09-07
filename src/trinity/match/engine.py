@@ -349,7 +349,24 @@ def _fts_query(text: str) -> str:
 # finds plenty). Stripped, not the whole product string, so genuine
 # multi-word products (e.g. "Apache httpd") still search sensibly since
 # only known noisy suffixes are removed.
-_NOISY_PRODUCT_SUFFIXES = re.compile(r"\b(smbd|httpd|daemon)\b", re.IGNORECASE)
+#
+# smtpd/pop3d/nntpd/listener found live during coverage-sim: nmap's
+# "JAMES smtpd 2.3.2" and "Oracle TNS listener 11.2.0.2.0" AND those
+# role words against searchsploit and return zero, while "JAMES 2.3.2"
+# / "Oracle TNS" have verified local exploits. Same shape as smbd.
+_NOISY_PRODUCT_SUFFIXES = re.compile(
+    r"\b(smbd|httpd|daemon|smtpd|pop3d|nntpd|listener)\b",
+    re.IGNORECASE,
+)
+
+# Multi-word nmap role phrases that are not the product name.
+# Found live: "Icecast streaming media server" and
+# "Redis key-value store" AND the whole phrase and return zero,
+# while `searchsploit Icecast` / `searchsploit Redis` have hits.
+_NOISY_PRODUCT_PHRASES = re.compile(
+    r"\b(streaming media server|key-value store|remote admin)\b",
+    re.IGNORECASE,
+)
 
 # Distro/packaging suffixes nmap tacks onto version strings (e.g.
 # "3.0.20-Debian", "4.7p1 Debian 8ubuntu1") that searchsploit's search
@@ -361,7 +378,8 @@ def _searchsploit_query_terms(product: str, version: str | None) -> list[str]:
     """Clean nmap's product/version strings into terms searchsploit can
     actually match against. nmap's fingerprints are written for humans
     (e.g. "Samba smbd" / "3.0.20-Debian"), not for exact-ish search tools."""
-    clean_product = _NOISY_PRODUCT_SUFFIXES.sub("", product).strip()
+    clean_product = _NOISY_PRODUCT_PHRASES.sub("", product)
+    clean_product = _NOISY_PRODUCT_SUFFIXES.sub("", clean_product).strip()
     clean_product = re.sub(r"\s+", " ", clean_product)
 
     terms = [clean_product] if clean_product else [product]

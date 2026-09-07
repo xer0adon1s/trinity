@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 from trinity.kb.severity import rate_severity, severity_from_cvss
-from trinity.match.engine import _path_product_terms, match_finding
+from trinity.match.engine import (
+    _path_product_terms,
+    _searchsploit_query_terms,
+    match_finding,
+)
 from trinity.parsers.nmap import Finding
 
 
@@ -212,6 +216,66 @@ def test_generic_path_finding_does_not_query_searchsploit_on_admin(seeded_conn):
     )
     matches = match_finding(seeded_conn, finding)
     assert not any(m.source == "searchsploit" for m in matches)
+
+
+def test_nmap_role_words_stripped_from_searchsploit_product_query():
+    """nmap fingerprints include role words searchsploit ANDs against
+    and then returns zero. Same shape as the existing smbd/httpd strip.
+    Coverage-sim: Icecast / JAMES / Redis product strings."""
+    assert _searchsploit_query_terms(
+        "Icecast streaming media server", None
+    ) == ["Icecast"]
+    assert _searchsploit_query_terms("JAMES smtpd", "2.3.2") == ["JAMES", "2.3.2"]
+    assert _searchsploit_query_terms(
+        "JAMES Remote Admin", "2.3.2"
+    ) == ["JAMES", "2.3.2"]
+    assert _searchsploit_query_terms(
+        "Redis key-value store", "4.0.9"
+    ) == ["Redis", "4.0.9"]
+    assert _searchsploit_query_terms(
+        "Oracle TNS listener", "11.2.0.2.0"
+    ) == ["Oracle TNS", "11.2.0.2.0"]
+    # existing strip still works
+    assert _searchsploit_query_terms("Samba smbd", "3.0.20-Debian") == [
+        "Samba", "3.0.20",
+    ]
+
+
+def test_icecast_nmap_product_surfaces_matching_searchsploit_exploit(seeded_conn):
+    """THM Ice: nmap product is 'Icecast streaming media server' with no
+    version. The unstripped phrase returns zero local exploits; Icecast
+    alone has the CVE-2004-1561 Win32 header overwrite used on that box."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.139.241", port=8000,
+        service="http", product="Icecast streaming media server",
+    )
+    matches = match_finding(seeded_conn, finding)
+    assert any("icecast" in m.title.lower() for m in matches)
+
+
+def test_james_smtpd_product_surfaces_matching_searchsploit_exploit(seeded_conn):
+    """HTB SolidState: nmap product 'JAMES smtpd' 2.3.2. The unstripped
+    query ANDs smtpd and returns zero; JAMES 2.3.2 has the Apache James
+    Server RCE / insecure-user-creation exploits locally."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.51", port=25,
+        service="smtp", product="JAMES smtpd", version="2.3.2",
+    )
+    matches = match_finding(seeded_conn, finding)
+    titles = " ".join(m.title.lower() for m in matches)
+    assert "james" in titles
 
 
 def test_version_specific_kb_entry_does_not_fire_without_matching_version(seeded_conn):
