@@ -143,17 +143,19 @@ than redesigning `CoachState`/`CoachSession`.
   None when `active_state is None`). **Alexander's call: low
   priority, future feature, not critical.**
 
-- **Meterpreter is a nested session.** A successful `run`/`exploit`
-  often drops the operator into `meterpreter >` rather than leaving
-  them at `msf6 >` to type `sessions`. The spec's `fired →
-  expected_next: sessions` does not represent that fork. The coach
-  stays in the msfconsole profile (exit_pattern does not match
-  `meterpreter >`) and will eventually stall-nudge toward `sessions`
-  while they are already inside the session. A nested profile or a
-  graph-shaped state machine would be needed; both are engine
-  changes. **Alexander's call: agreed important — full plan +
-  implementation, tracked as its own follow-up (not a quick patch;
-  needs an engine-level design pass, unlike the `back` fix above).**
+- **Meterpreter is a nested session — FIXED.** See
+  `docs/COACH_METERPRETER_NESTING_DESIGN.md` for the full design and
+  `test/unit/test_shell_coach_meterpreter.py` for the regression
+  suite. Resolved via a `profile_stack` on `CoachSession` plus
+  `nested_profiles` on `CoachProfile` — a LIFO stack, not a full
+  graph-shaped state machine, since nesting always returns to the
+  exact parent it was entered from. A new `METERPRETER_PROFILE` is
+  registered only as `MSFCONSOLE_PROFILE.nested_profiles`. Popping
+  back to the parent resets `active_state` to a blank slate rather
+  than restoring msfconsole's prior state, so backing out of a real
+  Meterpreter session no longer triggers stale "have you listed your
+  sessions" nagging. A dropped/died Meterpreter connection (no typed
+  exit) is also handled via the parent's own prompt reappearing.
 
 - **Custom `Prompt`/`PromptChar`.** Operators can `setg Prompt`
   (`%T` timestamp, `%W` workspace, arbitrary text). We only match
