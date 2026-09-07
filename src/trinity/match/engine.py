@@ -258,6 +258,15 @@ _GENERIC_PATH_SEGMENTS = frozenset({
     # `searchsploit themes` and returned unrelated WordPress theme
     # exploits. Same class as images/css/static.
     "themes", "javascript", "classes", "widgets",
+    # coverage-sim: these last segments are product-shaped but are
+    # common English / brand words. Live they became `searchsploit fuel`
+    # → Franklin Fueling (THM Ignite Fuel CMS), `searchsploit simple` →
+    # AnalogX SimpleServer (THM Simple CTF / CMS Made Simple),
+    # `searchsploit internal` → antivirus noise (THM Vulnversity),
+    # `searchsploit music`/`artwork` → music-store SQLi (HTB OpenAdmin),
+    # `searchsploit askjeeves` → Ask.com toolbar (HTB Jeeves / Jenkins).
+    # Same class as themes: skip the bad query; do not invent a better one.
+    "fuel", "simple", "internal", "music", "artwork", "askjeeves",
 })
 
 

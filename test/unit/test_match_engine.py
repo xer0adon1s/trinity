@@ -171,6 +171,11 @@ def test_path_product_terms_extracts_product_shaped_last_segment():
     assert _path_product_terms("/phpmyadmin/") == []
     assert _path_product_terms("/themes/") == []
     assert _path_product_terms("/javascript/") == []
+    assert _path_product_terms("/fuel/") == []
+    assert _path_product_terms("/simple/") == []
+    assert _path_product_terms("/internal/") == []
+    assert _path_product_terms("/music/") == []
+    assert _path_product_terms("/askjeeves/") == []
     assert _path_product_terms("/ab/") == []  # too short
     assert _path_product_terms("/1234/") == []  # not letter-led
     assert _path_product_terms("/index.php") == []  # punctuation, plus generic stem
