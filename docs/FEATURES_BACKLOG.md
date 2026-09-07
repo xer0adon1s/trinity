@@ -204,14 +204,21 @@ work rather than backlog:
    runs `autorecon <target>` themselves in their own terminal pane —
    Trinity reacting to output it didn't generate is identical in kind
    to how it already reacts to nmap/gobuster output.
-3. **Graduation nudge, tightened.** The original one-line "you've done
-   this manual pattern N times, try AutoRecon" nudge exists as a
-   prototype (`graduation.py`) but was flagged during triage as
-   over-firing (repeats on every `next` call once the threshold is
-   crossed, stacking with several other advisory messages). Fix: fire
-   once per box lifetime, not on every subsequent call, and consider
-   surfacing it more prominently in the wizard's own intro/teaching
-   material given the new priority, rather than only as a quiet aside.
+3. **Graduation nudge, tightened.** RESOLVED. The original one-line
+   "you've done this manual pattern N times, try AutoRecon" nudge was
+   over-firing (repeated on every `next` call once the threshold was
+   crossed) AND was counting completions across ALL boxes globally
+   instead of the current box. Both fixed in `graduation.py`:
+   `gobuster_completions()` now takes an optional `box_id` to scope
+   the count correctly, and `autorecon_nudge()`/`mark_nudged()` track
+   a `timeline` event so the nudge fires exactly once per box
+   lifetime. `advisories.py`'s `pick_advisory()` only calls
+   `mark_nudged()` on the actual winning advisory, never at mere
+   detection time -- so a nudge that was eligible but got outranked by
+   something more urgent (e.g. a rabbit-hole stuck-signal) stays
+   eligible to fire on a later call instead of being silently burned.
+   Live-verified: two consecutive `trinity next` calls on the same
+   box, nudge shown once, silent on the second call.
 
 This preserves the calculator metaphor correctly: Trinity still never
 does the "long division" (running tools) FOR the operator; it becomes

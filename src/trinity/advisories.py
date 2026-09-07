@@ -104,7 +104,7 @@ def _autorecon_advisory(conn: sqlite3.Connection, box: Box) -> Advisory | None:
 
     if box.mode == "professional":
         return None
-    nudge = autorecon_nudge(conn)
+    nudge = autorecon_nudge(conn, box.id)
     if nudge is None:
         return None
     return Advisory(kind="autorecon", priority=50, sentence=nudge)
@@ -127,8 +127,19 @@ def pick_advisory(conn: sqlite3.Connection, box: Box) -> Advisory | None:
     """Asks every registered provider for its opinion, returns only the
     single lowest-priority-number (most urgent) one with something to
     say. Everything else is silently deferred -- callers only ever see
-    one winner, never a list."""
+    one winner, never a list.
+
+    One-shot advisories (currently just AutoRecon's graduation nudge)
+    are marked as shown ONLY here, on the actual winner -- never inside
+    the provider itself at detection time. This matters: a nudge that
+    was eligible but got outranked by something more urgent (e.g. a
+    rabbit-hole stuck-signal) must stay eligible to win a LATER call,
+    not get silently burned just because it was detected once."""
     candidates = [a for a in (provider(conn, box) for provider in PROVIDERS) if a is not None]
     if not candidates:
         return None
-    return min(candidates, key=lambda a: a.priority)
+    winner = min(candidates, key=lambda a: a.priority)
+    if winner.kind == "autorecon":
+        from trinity.graduation import mark_nudged
+        mark_nudged(conn, box.id)
+    return winner

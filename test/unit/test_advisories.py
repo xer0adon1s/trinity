@@ -99,3 +99,62 @@ def test_unlock_advisory_names_the_real_box_in_its_sentence(conn):
         result = _unlock_advisory(conn, box)
     assert result is not None
     assert "NamedBox" in result.sentence
+
+
+def _insert_completed_gobuster(conn, box_id: int, count: int) -> None:
+    for _ in range(count):
+        conn.execute(
+            "INSERT INTO suggestions (box_id, phase, command, rationale, accepted) "
+            "VALUES (?, 'enum', 'gobuster dir -u http://x -w y', 'why', 1)",
+            (box_id,),
+        )
+    conn.commit()
+
+
+def test_autorecon_advisory_only_fires_once_per_box(conn):
+    box = create_box(conn, "OnceOnlyBox")
+    _insert_completed_gobuster(conn, box.id, 3)
+
+    first = pick_advisory(conn, box)
+    assert first is not None
+    assert first.kind == "autorecon"
+
+    second = pick_advisory(conn, box)
+    assert second is None  # already shown once, never fires again for this box
+
+
+def test_autorecon_advisory_stays_eligible_if_outranked_by_a_higher_priority_advisory(conn):
+    box = create_box(conn, "DeferredBox")
+    _insert_completed_gobuster(conn, box.id, 3)
+
+    rabbit_advisory = Advisory(kind="rabbit_hole", priority=0, sentence="stuck signal")
+    from trinity.advisories import _autorecon_advisory
+
+    with patch(
+        "trinity.advisories.PROVIDERS",
+        [lambda c, b: rabbit_advisory, lambda c, b: None, lambda c, b: None, _autorecon_advisory],
+    ):
+        first = pick_advisory(conn, box)
+    assert first is not None
+    assert first.kind == "rabbit_hole"  # outranked the autorecon nudge
+
+    # AutoRecon's nudge was eligible but never actually shown -- it
+    # must still be eligible on a later call, not silently burned.
+    with patch(
+        "trinity.advisories.PROVIDERS",
+        [lambda c, b: None, lambda c, b: None, lambda c, b: None, _autorecon_advisory],
+    ):
+        second = pick_advisory(conn, box)
+    assert second is not None
+    assert second.kind == "autorecon"
+
+
+def test_autorecon_advisory_is_scoped_per_box_not_global(conn):
+    box_a = create_box(conn, "ScopeBoxA")
+    box_b = create_box(conn, "ScopeBoxB")
+    _insert_completed_gobuster(conn, box_a.id, 3)
+    # box_b has NO completed gobuster suggestions of its own.
+
+    from trinity.advisories import _autorecon_advisory
+    assert _autorecon_advisory(conn, box_a) is not None
+    assert _autorecon_advisory(conn, box_b) is None
