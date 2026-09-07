@@ -103,6 +103,30 @@ failure case, verified to genuinely fail against the pre-fix code
 (not just pass trivially), and re-verified live against a real
 spawned pty subprocess.
 
+## `back` does not deselect — FIXED
+
+**Status: fixed via a `top_level` CoachState in `MSFCONSOLE_PROFILE`**
+(see `test_msfconsole_back_returns_to_top_level_no_stale_module_nudge`
+in `test/unit/test_shell_coach_msfconsole.py`). `back` is now
+recognized the same safe way `use`/`search` are — a one-shot typed
+command, not a live reprinting prompt — so it's a valid `recognize`
+pattern per the engine fix above. `back` returning the console to
+`msf6 >` now correctly clears `active_state` off whatever
+module-context state (module_selected/options_set/fired) was
+previously active, instead of leaving stall nudges stuck on stale
+module-specific advice (e.g. "set RHOSTS") after the operator had
+already backed out with nothing selected.
+
+## Other required options (TARGETURI, RPORT, SMBUSER, etc.) — left as-is
+
+Alexander's call (2026-09-07): current scoping is fine, note for
+later, low priority. Only `set RHOSTS`/`set RHOST`/`setg RHOSTS`
+enters `options_set` — LHOST/LPORT/payload remain on-track
+`expected_next` from `module_selected` so setting a callback address
+alone doesn't pretend the module is ready to fire. Not revisited
+unless a real profile run shows this under-triggering `options_set`
+in practice.
+
 ## msfconsole: other checklist-shape gaps (found 2026-09-07)
 
 The existing shallow checklist (`recognize` = "we are in this state",
@@ -116,7 +140,8 @@ than redesigning `CoachState`/`CoachSession`.
   `use` in the stream. Profile entry still fires; `active_state`
   stays None until the next `use`/`search`/`set RHOSTS`/`run`. A
   stall at that empty-state prompt produces no nudge (engine returns
-  None when `active_state is None`).
+  None when `active_state is None`). **Alexander's call: low
+  priority, future feature, not critical.**
 
 - **Meterpreter is a nested session.** A successful `run`/`exploit`
   often drops the operator into `meterpreter >` rather than leaving
@@ -126,22 +151,16 @@ than redesigning `CoachState`/`CoachSession`.
   `meterpreter >`) and will eventually stall-nudge toward `sessions`
   while they are already inside the session. A nested profile or a
   graph-shaped state machine would be needed; both are engine
-  changes.
-
-- **`back` does not deselect.** `back` returns the prompt to
-  `msf6 >` but matches no new state's `recognize` and is not an
-  exit. Stall hints stay on whatever state was active (e.g. still
-  talking about `set RHOSTS` at the top-level prompt).
+  changes. **Alexander's call: agreed important — full plan +
+  implementation, tracked as its own follow-up (not a quick patch;
+  needs an engine-level design pass, unlike the `back` fix above).**
 
 - **Custom `Prompt`/`PromptChar`.** Operators can `setg Prompt`
   (`%T` timestamp, `%W` workspace, arbitrary text). We only match
   the default `msf`/`msf5`/`msf6` (+ module-context) form from
   driver.rb. Fancy Kali two-line OS prompts after exit are also
   unmatched; only `user@host:...$`/`#` is treated as "shell came
-  back."
+  back." **Alexander's call: low priority, future feature.**
 
-- **Other required options.** `TARGETURI`, `RPORT`, `SMBUSER`, etc.
-  do not enter `options_set`. Only `set RHOSTS`/`set RHOST`/
-  `setg RHOSTS` does — LHOST/LPORT/payload remain on-track
-  `expected_next` from `module_selected` so setting a callback
-  address alone does not pretend the module is ready to fire.
+- **Other required options.** See "Other required options" above —
+  resolved as a logged decision, not a bug.

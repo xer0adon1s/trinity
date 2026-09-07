@@ -44,28 +44,57 @@ were implemented. Doc reviews.
   netexec first; this pass kept ldapsearch so the first two AD steps
   stay in one tool family and don't require a new tools.py entry.
 
-## Explain cache still misses real AD commands (found 2026-09-07, Doc review)
+## Explain cache still misses real AD commands (found 2026-09-07, Doc review) — FIXED
+
+**Status: fixed in `explain.py` + `explain_seed/ad_seed.py`** (see
+`test_real_getnpusers_command_hits_ad_seed_entry` and
+`test_real_ldapsearch_dn_command_hits_ad_seed_entry` in
+`test/unit/test_explain.py`). Alexander's call (2026-09-07): high
+priority, "plan and implement the fix that best aligns with our
+project and its goals and use cases."
 
 The systemic `<target>`-vs-real-substitution bug affecting the WHOLE
 explain-seed library (not AD-specific) was fixed in `explain.py` --
 see the "explain: match real target substitutions against templated
-seed keys" commit on main. That fix handles target-host substitution
+seed keys" commit on main. That fix handled target-host substitution
 only (IPv4 literal or `$TARGET`).
 
-It does NOT fix AD's `GetNPUsers.py`/`ldapsearch` seed entries, which
+It did NOT fix AD's `GetNPUsers.py`/`ldapsearch` seed entries, which
 have additional real-vs-template mismatches beyond the target:
 `<domain>` vs a real realm (`htb.local`), `<userlist>` vs a real
 filename (`users.txt`), and the real suggested command includes a
-`-dc-ip <target>` flag the seed key doesn't have at all. Confirmed
+`-dc-ip <target>` flag the seed key didn't have at all. Confirmed
 live: `trinity explain "GetNPUsers.py htb.local/ -usersfile users.txt
--no-pass -dc-ip 10.10.10.161"` still falls through to the AI-escalation
+-no-pass -dc-ip 10.10.10.161"` still fell through to the AI-escalation
 prompt even after the general fix.
 
-This needs either (a) making `suggest_for_port`'s AD rules emit the
-EXACT same command shape as the seed key (drop `-dc-ip` from the
-suggestion, or add it to the seed key -- whichever is more correct
-Impacket usage), or (b) a more general per-placeholder templating
-scheme in explain.py (risky -- domain/userlist names are genuinely
-per-operator, per earlier design note against guess-normalizing them).
-Logged, not fixed -- needs a decision on which approach, not a quick
-mechanical patch.
+**Chosen approach: (a), not (b).** Of the two options logged below,
+went with making the seed keys and `_templated()` match the EXACT
+real command shape `suggest_for_port` emits (option a), not a general
+per-placeholder templating scheme (option b). Reasoning: option (b)
+was explicitly flagged as riskier in the original note ("domain/
+userlist names are genuinely per-operator, per earlier design note
+against guess-normalizing them") -- a general scheme would need to
+guess which arbitrary token is a "placeholder" across the whole
+86-entry seed library, with real risk of silently mis-normalizing an
+unrelated command. Option (a) is a small, explicit, auditable
+addition: two new prefix-gated regexes in `explain.py`
+(`_GETNPUSERS_DOMAIN_RE`, `_USERSFILE_RE`, `_LDAP_BASE_RE`), each
+anchored to a specific flag/command shape (`GetNPUsers.py <x>/`,
+`-usersfile <x>`, `ldapsearch ... -b '<x>'`), gated behind a command-
+prefix check (`startswith("GetNPUsers.py ")` / `startswith("ldapsearch ")`)
+so it can never touch an unrelated command. This only affects the
+explain-cache LOOKUP KEY (matching a real command to a cached
+explanation) -- it does NOT touch `suggest/engine.py`'s actual
+suggestion output, so the "don't guess-normalize per-operator names in
+what's shown to the user" principle from the original design note is
+untouched. Also updated the two AD seed entries themselves
+(`explain_seed/ad_seed.py`) to the exact real command shapes (added
+`-dc-ip <target>` to the GetNPUsers entry; added a new entry for the
+ldapsearch `-b` follow-up, which had no seed entry at all before).
+
+Verified live via the real `trinity` CLI against a throwaway `HOME`:
+both real commands (`GetNPUsers.py htb.local/ -usersfile users.txt
+-no-pass -dc-ip 10.10.10.161` and `ldapsearch -x -H ldap://10.10.10.161
+-b 'DC=htb,DC=local' '(objectClass=user)' sAMAccountName`) now return
+"From local cache" instead of falling through to AI-escalation.
