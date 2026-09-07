@@ -16,8 +16,7 @@ from trinity.kb.seed import seed
 from trinity.platform_registry import get_platform, list_platform_ids, resolve_theme
 from trinity.process import process_scan_file
 from trinity.report.data import gather_report_data
-from trinity.report.educational import generate_educational_report
-from trinity.report.professional import generate_professional_report
+from trinity.report.render import render_report
 from trinity.sharing import is_sharing_enabled, set_sharing_enabled, write_share_bundle
 from trinity.suggest.engine import suggest_next_commands
 from trinity.timeline import log_event
@@ -197,8 +196,11 @@ def suggest_cmd(box_name: str):
 def explain_cmd(command: str, box_name: str | None):
     """Explain a command in plain (ELI5) terms. Checks the local cache
     first — free and instant if this exact command has been explained
-    before, on any box, ever. Only asks you to bring in AI help on a
-    genuine cache miss."""
+    before, on any box, ever. On a genuine cache miss, tries the Agent
+    Harness (docs/AGENT_HARNESS.md) automatically: if an agent CLI is
+    detected, asks it directly and queues the answer for review
+    (`trinity intake approve/reject`) rather than trusting it outright.
+    Falls back to the manual copy-paste flow if no agent is found."""
     conn = connect()
     cached = get_explanation(conn, command)
 
@@ -206,6 +208,24 @@ def explain_cmd(command: str, box_name: str | None):
         console.print("[green]From local cache (no tokens spent):[/green]\n")
         console.print(cached)
     else:
+        from trinity.agent_harness import ask_agent
+        from trinity.intake import submit_candidate
+
+        answer, agent_name = ask_agent(build_escalation_prompt(command))
+        if answer:
+            candidate_id = submit_candidate(
+                conn, "explanation", {"command": command, "explanation": answer}, "agent_harness",
+            )
+            console.print(f"[yellow]Not in the local cache yet — asked {agent_name} for you.[/yellow]\n")
+            console.print(f"[dim]{'-' * 60}[/dim]")
+            console.print(f"[bold]AI DRAFT — UNVERIFIED[/bold] (candidate #{candidate_id}, pending review)\n")
+            console.print(answer)
+            console.print(f"[dim]{'-' * 60}[/dim]\n")
+            console.print(
+                "[dim]Not cached yet — review and approve it first:[/dim]\n"
+                f"  [bold]trinity intake approve {candidate_id}[/bold]"
+            )
+            return
         console.print("[yellow]Not in the local cache yet.[/yellow] Bring this to your AI assistant:\n")
         console.print(f"[dim]{'-' * 60}[/dim]")
         console.print(build_escalation_prompt(command))
@@ -241,7 +261,13 @@ def cache_explanation_cmd(command: str, explanation: str):
 @click.option("--start", "start_date", default=None)
 @click.option("--end", "end_date", default=None)
 @click.option("--notes", default=None)
-def engagement_set_cmd(box_name, client_name, scope, authorization_ref, tester_name, start_date, end_date, notes):
+@click.option("--classification", default=None, help="e.g. TLP:CLEAR / Confidential")
+@click.option("--version", "report_version", default=None, help="Report version string.")
+@click.option("--distribution", default=None, help="Who may receive the deliverable.")
+def engagement_set_cmd(
+    box_name, client_name, scope, authorization_ref, tester_name, start_date, end_date,
+    notes, classification, report_version, distribution,
+):
     """Set engagement front matter for a box (used in professional-mode
     reports). Only overwrites fields you actually pass — safe to call
     repeatedly to fill in details as they become known."""
@@ -261,16 +287,23 @@ def engagement_set_cmd(box_name, client_name, scope, authorization_ref, tester_n
         "start_date": start_date if start_date is not None else current.get("start_date"),
         "end_date": end_date if end_date is not None else current.get("end_date"),
         "notes": notes if notes is not None else current.get("notes"),
+        "classification": classification if classification is not None else current.get("classification"),
+        "report_version": report_version if report_version is not None else current.get("report_version"),
+        "distribution": distribution if distribution is not None else current.get("distribution"),
     }
 
     conn.execute(
         """
-        INSERT INTO engagement_meta (box_id, client_name, scope, authorization_ref, tester_name, start_date, end_date, notes)
-        VALUES (:box_id, :client_name, :scope, :authorization_ref, :tester_name, :start_date, :end_date, :notes)
+        INSERT INTO engagement_meta (box_id, client_name, scope, authorization_ref, tester_name,
+            start_date, end_date, notes, classification, report_version, distribution)
+        VALUES (:box_id, :client_name, :scope, :authorization_ref, :tester_name, :start_date,
+            :end_date, :notes, :classification, :report_version, :distribution)
         ON CONFLICT(box_id) DO UPDATE SET
             client_name = excluded.client_name, scope = excluded.scope,
             authorization_ref = excluded.authorization_ref, tester_name = excluded.tester_name,
-            start_date = excluded.start_date, end_date = excluded.end_date, notes = excluded.notes
+            start_date = excluded.start_date, end_date = excluded.end_date, notes = excluded.notes,
+            classification = excluded.classification, report_version = excluded.report_version,
+            distribution = excluded.distribution
         """,
         {"box_id": box.id, **updated},
     )
@@ -278,9 +311,27 @@ def engagement_set_cmd(box_name, client_name, scope, authorization_ref, tester_n
     console.print(f"[green]Engagement details updated for {box_name}.[/green]")
 
 
+@cli.command("engagement-show")
+@click.option("--box", "box_name", required=True)
+def engagement_show_cmd(box_name: str):
+    """PROTOTYPE. Print engagement front matter for a box."""
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+    row = conn.execute(
+        "SELECT * FROM engagement_meta WHERE box_id = ?", (box.id,)
+    ).fetchone()
+    if row is None:
+        console.print(f"[dim]No engagement front matter for {box_name}. Use trinity engagement-set.[/dim]")
+        return
+    for key in row.keys():
+        if key == "box_id":
+            continue
+        console.print(f"{key}: {row[key] or '—'}")
+
+
 @cli.command("report")
 @click.option("--box", "box_name", required=True, help="Box name.")
-@click.option("--mode", default=None, type=click.Choice(["educational", "professional"]),
+@click.option("--mode", default=None, type=click.Choice(["educational", "professional", "notebook"]),
               help="Override the box's stored mode for this report only.")
 @click.option("--output", "output_path", default=None, type=click.Path(), help="Write to a file instead of stdout.")
 def report_cmd(box_name: str, mode: str | None, output_path: str | None):
@@ -292,10 +343,7 @@ def report_cmd(box_name: str, mode: str | None, output_path: str | None):
     effective_mode = mode or box.mode
 
     data = gather_report_data(conn, box.id)
-    if effective_mode == "professional":
-        content = generate_professional_report(data)
-    else:
-        content = generate_educational_report(data)
+    content = render_report(data, effective_mode)
 
     if output_path:
         from pathlib import Path
@@ -332,6 +380,48 @@ def watch_cmd(box_name: str, watch_dir: str):
     run_dashboard(box_name, Path(watch_dir).resolve())
 
 
+@cli.command("shoulder")
+@click.option("--box", "box_name", required=True, help="Box name (must already exist).")
+@click.option("--shell", "shell_bin", default=None,
+              help="Shell to record (default: $SHELL, falling back to /bin/bash).")
+def shoulder_cmd(box_name: str, shell_bin: str | None):
+    """Shoulder Mode (docs/SHOULDER_MODE.md): records this ENTIRE
+    terminal session (every byte in and out, script(1)-equivalent) to
+    a local log file, then scans it for shell/root milestone signals
+    when you exit. Meant to run in the SAME pane you're doing the real
+    recon/exploitation work in — Trinity is genuinely watching this
+    one, not narrating from an adjacent tile like `watch` does. Type
+    `exit` (or Ctrl-D) to end the recorded session and see what was
+    detected."""
+    import os as _os
+
+    from trinity.boxes import get_box_or_fail
+    from trinity.shoulder import apply_milestones, record_session, scan_for_milestones, session_log_path
+
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+    touch_active_box(conn, box.id)
+
+    shell = shell_bin or _os.environ.get("SHELL", "/bin/bash")
+    log_path = session_log_path(box_name)
+
+    console.print(f"[bold]Shoulder Mode on.[/bold] Recording this session to {log_path}")
+    console.print("[dim]Type `exit` or Ctrl-D when you're done — Trinity will scan for milestones then.[/dim]\n")
+
+    record_session(shell, log_path)
+
+    console.print("\n[bold]Shoulder Mode off.[/bold] Scanning session for milestones...")
+    text = log_path.read_text(errors="replace")
+    hits = scan_for_milestones(text)
+    applied = apply_milestones(conn, box.id, hits)
+
+    if not applied:
+        console.print("[dim]Nothing new detected this session.[/dim]")
+        return
+    for hit in applied:
+        console.print(f"[green]Detected: {hit.name}[/green] (shell_level -> {hit.shell_level})")
+
+
 @cli.command("setup")
 def setup_cmd():
     """Re-run the intro/onboarding walkthrough on demand (intro text +
@@ -353,14 +443,24 @@ def box_status_cmd(box_name: str, status: str):
     box = get_box_or_fail(conn, box_name)
     set_status(conn, box.id, status)
     log_event(conn, box.id, "milestone", f"box marked {status}")
+    # PROTOTYPE (1.6): rooted without a prior `trinity shell` still
+    # counts as a root milestone so unlock cards can appear.
+    if status == "rooted" and box.shell_level is None:
+        from trinity.boxes import set_shell_level
+        set_shell_level(conn, box.id, "root")
 
     label = {"rooted": "Rooted! 🎉", "abandoned": "Marked abandoned.", "active": "Marked active."}[status]
     console.print(f"[green]{label}[/green] ({box_name})")
     if status == "rooted":
+        from trinity.unlocks import peek_card
         console.print(
             "[dim]Nice work. Generate a report with:[/dim]\n"
             f"  [bold]trinity report --box \"{box_name}\"[/bold]"
         )
+        if peek_card(conn, box.id):
+            console.print(
+                f"[dim]Optional (skip by default): `trinity unlock --box \"{box_name}\"`[/dim]"
+            )
 
 
 @cli.command("theme")
@@ -409,6 +509,11 @@ def share_export_cmd(box_name: str, output_path: str, enable: bool):
 
     count = write_share_bundle(conn, box.id, Path(output_path))
     console.print(f"[green]Wrote {count} shareable item(s) to {output_path}.[/green]")
+    notebook_path = Path(output_path).with_suffix(".md")
+    from trinity.report.data import gather_report_data
+    from trinity.report.render import render_report
+    notebook_path.write_text(render_report(gather_report_data(conn, box.id), "notebook"))
+    console.print(f"[dim]Also wrote a local lab-notebook tear-out: {notebook_path}[/dim]")
     console.print(
         "[dim]Nothing was sent anywhere — review the file, then contribute it "
         "upstream yourself if you'd like to help grow the shared knowledge base.[/dim]"
@@ -438,6 +543,12 @@ def next_cmd(box_name: str):
 
     console.rule("[bold green]Recommended next[/bold green]")
     console.print(f"[bold]{rec.top.command}[/bold]\n")
+    # PROTOTYPE (difficulty-aware): quiet, only for Hard. Easy stays
+    # silent so we don't imply they should already be done.
+    if box.difficulty == "hard":
+        console.print(
+            "[dim]Listed as Hard — taking a long time here is normal, not a verdict.[/dim]\n"
+        )
 
     if rec.wordlist_missing:
         console.print(f"[yellow]{NO_WORDLIST_GUIDANCE}[/yellow]\n")
@@ -480,6 +591,32 @@ def next_cmd(box_name: str):
         for s, installed in zip(rec.also_worth_trying, rec.also_worth_trying_installed):
             marker = "" if installed else "  [dim](tool not installed)[/dim]"
             console.print(f"  [dim]{s.command}[/dim]{marker}")
+
+    from trinity.unlocks import peek_card
+    if peek_card(conn, box.id):
+        console.print(
+            f"\n[dim]A curiosity card is available (optional, skip by default): "
+            f"`trinity unlock --box \"{box_name}\"`[/dim]"
+        )
+
+    from trinity.frustration import checkpoint_text
+    from trinity.graduation import autorecon_nudge
+    from trinity.rabbit_hole import detect_rabbit_hole, log_nudge, recent_nudge_count
+
+    signal = detect_rabbit_hole(conn, box.id)
+    if signal:
+        prior = recent_nudge_count(conn, box.id)
+        extra = checkpoint_text(prior)
+        log_nudge(conn, box.id, signal)
+        console.print(f"\n[yellow]{signal.message}[/yellow]")
+        if signal.alternative_command:
+            console.print(f"[dim]Untouched lead: {signal.alternative_command}[/dim]")
+        if extra:
+            console.print(f"[yellow]{extra}[/yellow]")
+
+    nudge = autorecon_nudge(conn)
+    if nudge and box.mode != "professional":
+        console.print(f"\n[dim]{nudge}[/dim]")
 
 
 @cli.command("did")
@@ -528,7 +665,8 @@ def skip_cmd(box_name: str):
     set_accepted(conn, rec.suggestion_id)
     log_event(conn, box.id, "note", f"skipped: {rec.top.command}", phase=rec.top.phase, ref_id=rec.suggestion_id)
     console.print(f"[yellow]Skipped:[/yellow] {rec.top.command}")
-    console.print("[dim]That's normal — parked it. Moving on.[/dim]")
+    from trinity.deadends import dead_end_line
+    console.print(f"[dim]{dead_end_line(rec.top.command)}[/dim]")
 
     next_rec = get_recommendation(conn, box.id)
     if next_rec:
@@ -593,7 +731,11 @@ def hint_cmd(box_name: str):
 def error_cmd(error_text: str, box_name: str | None):
     """Diagnose an error/failure. Checks the local cache first — free
     and instant if this cause has been seen before, on any box, ever.
-    Only asks you to bring in AI help on a genuine cache miss."""
+    On a genuine cache miss, tries the Agent Harness
+    (docs/AGENT_HARNESS.md) automatically: if an agent CLI is
+    detected, asks it directly and queues the answer for review
+    (`trinity intake approve/reject`) rather than trusting it outright.
+    Falls back to the manual copy-paste flow if no agent is found."""
     conn = connect()
     match = find_error_match(conn, error_text)
 
@@ -602,6 +744,26 @@ def error_cmd(error_text: str, box_name: str | None):
         console.print(f"[bold]Cause:[/bold] {match.cause}")
         console.print(f"[bold]Fix:[/bold] {match.fix}")
     else:
+        from trinity.agent_harness import ask_agent
+        from trinity.intake import submit_candidate
+
+        answer, agent_name = ask_agent(build_error_escalation_prompt(error_text))
+        if answer:
+            candidate_id = submit_candidate(
+                conn, "error_pattern",
+                {"error_text": error_text, "cause": "See AI draft below (unreviewed).", "fix": answer},
+                "agent_harness",
+            )
+            console.print(f"[yellow]Not in the local cache yet — asked {agent_name} for you.[/yellow]\n")
+            console.print(f"[dim]{'-' * 60}[/dim]")
+            console.print(f"[bold]AI DRAFT — UNVERIFIED[/bold] (candidate #{candidate_id}, pending review)\n")
+            console.print(answer)
+            console.print(f"[dim]{'-' * 60}[/dim]\n")
+            console.print(
+                "[dim]Not cached yet — review and approve it first:[/dim]\n"
+                f"  [bold]trinity intake approve {candidate_id}[/bold]"
+            )
+            return
         console.print("[yellow]Not in the local cache yet.[/yellow] Bring this to your AI assistant:\n")
         console.print(f"[dim]{'-' * 60}[/dim]")
         console.print(build_error_escalation_prompt(error_text))
@@ -627,6 +789,292 @@ def cache_error_cmd(error_text: str, cause: str, fix: str):
     conn = connect()
     save_error_fix(conn, error_text, cause, fix)
     console.print("[green]Cached.[/green] `trinity error \"...\"` will catch similar errors from now on.")
+
+
+@cli.command("shell")
+@click.option("--box", "box_name", required=True, help="Box name.")
+@click.option("--as", "as_level", required=True, type=click.Choice(["user", "root"]),
+              help="What you landed: a user shell or root.")
+def shell_cmd(box_name: str, as_level: str):
+    """PROTOTYPE (1.6). Tell Trinity you got a shell. Never inferred
+    from history. A user shell switches the coach toward privesc; a
+    root shell also marks the box rooted. Power-user verb — the wizard
+    does not teach this (Hole F)."""
+    from trinity.milestones import record_shell
+    from trinity.unlocks import peek_card
+
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+    inserted = record_shell(conn, box.id, as_level)
+    console.print(f"[green]Recorded a {as_level} shell on {box_name}.[/green]")
+    if inserted:
+        console.print("[dim]Privilege-escalation checks are now in the deck:[/dim]")
+        for command in inserted:
+            console.print(f"  [dim]{command}[/dim]")
+        console.print(f"[dim]Ask for the next one with `trinity next --box \"{box_name}\"`[/dim]")
+    if peek_card(conn, box.id):
+        console.print(
+            f"[dim]Optional (skip by default): `trinity unlock --box \"{box_name}\"`[/dim]"
+        )
+
+
+@cli.command("unlock")
+@click.option("--box", "box_name", required=True, help="Box name.")
+@click.option("--take", "action", flag_value="take", default=True,
+              help="Show the next available card (default).")
+@click.option("--decline", "action", flag_value="decline",
+              help="Skip the next card. Declining is the intended default habit.")
+def unlock_cmd(box_name: str, action: str):
+    """PROTOTYPE (2.1). Optional curiosity card after a milestone.
+    Generic pedagogy only — no box spoilers. Power-user verb."""
+    from trinity.unlocks import decline_card, peek_card, take_card
+
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+    card = peek_card(conn, box.id)
+    if card is None:
+        console.print("[dim]Nothing unlocked — land a shell first, or you already handled the cards.[/dim]")
+        return
+
+    if action == "decline":
+        decline_card(conn, box.id, card.id)
+        console.print("[dim]Skipped. You can keep driving.[/dim]")
+        return
+
+    taken = take_card(conn, box.id, card.id)
+    if taken is None:
+        console.print("[dim]Nothing unlocked.[/dim]")
+        return
+    console.print(f"[bold]{taken.title}[/bold]\n")
+    console.print(taken.body)
+    console.print(f"\n[dim]source: {taken.source}[/dim]")
+
+
+@cli.command("loot")
+@click.argument("action", type=click.Choice(["add", "list"]))
+@click.option("--box", "box_name", required=True, help="Box name.")
+@click.option("--kind", type=click.Choice(["credential", "hash", "token", "flag", "other"]),
+              help="Required for add.")
+@click.option("--value", default=None, help="The secret/flag/hash itself. Required for add.")
+@click.option("--note", default=None, help="Optional context (where you found it).")
+def loot_cmd(action: str, box_name: str, kind: str | None, value: str | None, note: str | None):
+    """PROTOTYPE. Record or list evidence found on a box. Power-user
+    verb — not taught by the wizard. Flows into the timeline and both
+    report templates."""
+    from trinity.loot import add_loot, list_loot
+
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+
+    if action == "list":
+        items = list_loot(conn, box.id)
+        if not items:
+            console.print(f"[dim]No loot recorded for {box_name}.[/dim]")
+            return
+        for item in items:
+            extra = f"  ({item.note})" if item.note else ""
+            console.print(f"[bold]{item.kind}[/bold]  {item.value}{extra}")
+        return
+
+    if not kind or not value:
+        raise click.ClickException("loot add requires --kind and --value")
+    item = add_loot(conn, box.id, kind, value, note=note)
+    console.print(f"[green]Recorded {item.kind} on {box_name}.[/green]")
+
+
+@cli.command("methods")
+@click.option("--box", "box_name", default=None, help="Use this project's name as the index key.")
+@click.option("--name", "index_name", default=None, help="Retired box name to look up (e.g. Lame).")
+def methods_cmd(box_name: str | None, index_name: str | None):
+    """PROTOTYPE — Methods Index read-side. Shows distinct public
+    method *shapes* for a retired box, each with author + URL.
+    Not a walkthrough. Not shown at session start. No fetch pipeline."""
+    from trinity.methods import format_index, lookup
+
+    conn = connect()
+    name = index_name
+    platform = None
+    if box_name:
+        box = get_box_or_fail(conn, box_name)
+        name = name or box.name
+        platform = box.platform
+    if not name:
+        raise click.ClickException("Pass --name Lame or --box <project>.")
+    index = lookup(name, platform=platform) or lookup(name)
+    if index is None:
+        console.print(
+            f"[dim]No methods index for {name!r}. This is only populated "
+            f"for some retired boxes, by hand. Not a live search.[/dim]"
+        )
+        return
+    console.print(format_index(index), highlight=False)
+
+
+@cli.command("stats")
+def stats_cmd():
+    """PROTOTYPE. Local progress. Hidden until you've rooted one box."""
+    from trinity.stats import compute_stats
+
+    conn = connect()
+    stats = compute_stats(conn)
+    if not stats.ready:
+        console.print(
+            "[dim]Root a box first. Stats are for after the win — they "
+            "don't teach scanning.[/dim]"
+        )
+        return
+    console.print(f"[bold]Rooted[/bold] {stats.rooted}   active {stats.active}   abandoned {stats.abandoned}")
+    console.print(f"Current streak: {stats.streak}")
+    if stats.techniques:
+        console.print("\n[bold]Techniques that have landed[/bold]")
+        for title in stats.techniques[:10]:
+            console.print(f"  • {title}")
+
+
+@cli.command("hash")
+@click.argument("value")
+def hash_cmd(value: str):
+    """PROTOTYPE. Guess a hash/token shape locally. No network."""
+    from trinity.hashes import classify_hash
+
+    guess = classify_hash(value)
+    console.print(f"[bold]{guess.label}[/bold]  ({guess.confidence})")
+    console.print(guess.next_step)
+
+
+@cli.command("gtfobins")
+@click.argument("binary", required=False)
+def gtfobins_cmd(binary: str | None):
+    """PROTOTYPE. Tiny local GTFOBins-style lookup. Not a scrape."""
+    from trinity.gtfobins import known_binaries, lookup
+
+    if not binary:
+        console.print("[bold]Known here:[/bold] " + ", ".join(known_binaries()))
+        console.print("[dim]Full catalogue: https://gtfobins.github.io/ — Trinity only ships a starter subset.[/dim]")
+        return
+    hit = lookup(binary)
+    if hit is None:
+        console.print(
+            f"[dim]No local note for {binary!r}. Try the full catalogue: "
+            f"https://gtfobins.github.io/gtfobins/{binary.strip().lower()}/[/dim]"
+        )
+        return
+    console.print(f"[bold]{hit.binary}[/bold]\n{hit.summary}\n[dim]{hit.source_url}[/dim]")
+
+
+@cli.command("read")
+@click.argument("path", type=click.Path(exists=True))
+@click.option("--box", "box_name", required=True)
+def read_cmd(path: str, box_name: str):
+    """PROTOTYPE. One-shot parse + TA sentences. Watch remains the default."""
+    from pathlib import Path
+
+    conn = connect()
+    box = get_or_create_box(conn, box_name)
+    touch_active_box(conn, box.id)
+    result = process_scan_file(conn, box.id, Path(path))
+    if result is None:
+        console.print("[yellow]Not a recognized scan format.[/yellow]")
+        return
+    console.print(f"[bold]{result.tool}[/bold] — {len(result.findings)} finding(s)")
+    for fr in result.findings:
+        f = fr.finding
+        label = f"{f.host}:{f.port}" if f.port else (f.path or f.host or "?")
+        if fr.matches:
+            top = fr.matches[0]
+            console.print(f"  {label} — {top.title} ({top.severity})")
+            console.print(f"  [dim]{top.summary}[/dim]")
+        else:
+            console.print(f"  {label} — [dim]no local match yet. That's a lead, not a dead end.[/dim]")
+    if result.suggestions:
+        console.print("\n[bold]What I'd do next[/bold]")
+        for command in result.suggestions:
+            console.print(f"  {command}")
+
+
+@cli.command("payloads")
+@click.argument("topic", required=False)
+def payloads_cmd(topic: str | None):
+    """PROTOTYPE. Tiny PayloadsAllTheThings topic index — titles + URLs only."""
+    from trinity.payloads import list_topics, lookup
+
+    if not topic:
+        for item in list_topics():
+            console.print(f"[bold]{item.id}[/bold]  {item.title}")
+        return
+    hit = lookup(topic)
+    if hit is None:
+        console.print(f"[dim]No local topic {topic!r}. Full catalogue is upstream, not in Trinity.[/dim]")
+        return
+    console.print(f"[bold]{hit.title}[/bold]\n[dim]{hit.source_url}[/dim]")
+
+
+@cli.command("journal")
+def journal_cmd():
+    """PROTOTYPE. Local technique journal / achievements. No leaderboard."""
+    from trinity.achievements import TAXONOMY_VERSION, evaluate
+
+    conn = connect()
+    rows = evaluate(conn)
+    console.print(f"[dim]taxonomy v{TAXONOMY_VERSION} — local only[/dim]")
+    for row in rows:
+        mark = "[green]✓[/green]" if row.unlocked else "[dim]·[/dim]"
+        console.print(f"  {mark} {row.title}")
+
+
+@cli.group("intake")
+def intake_group():
+    """Update Framework review queue: knowledge Trinity's own install
+    generated (Agent Harness answers, live-drafted Methods Index
+    entries) that hasn't been vetted yet. Nothing here is live until
+    reviewed -- see docs/UPDATE_FRAMEWORK.md."""
+
+
+@intake_group.command("list")
+def intake_list_cmd():
+    """List pending intake candidates awaiting review."""
+    from trinity.intake import list_pending
+
+    conn = connect()
+    pending = list_pending(conn)
+    if not pending:
+        console.print("[dim]Nothing pending review.[/dim]")
+        return
+    for c in pending:
+        console.print(f"[bold]#{c.id}[/bold] ({c.kind}, from {c.source})")
+        console.print(f"  [dim]{c.payload}[/dim]")
+
+
+@intake_group.command("approve")
+@click.argument("candidate_id", type=int)
+@click.option("--note", default=None, help="Optional reviewer note.")
+def intake_approve_cmd(candidate_id: int, note: str | None):
+    """Approve a pending candidate: copies it into its real
+    destination table (command_explanations/error_patterns/
+    kb_entries), same write path as the normal cache flow."""
+    from trinity.intake import approve_candidate
+
+    conn = connect()
+    try:
+        approve_candidate(conn, candidate_id, note=note)
+    except ValueError as exc:
+        raise click.ClickException(str(exc))
+    console.print(f"[green]Approved #{candidate_id}.[/green] Now live in the real cache.")
+
+
+@intake_group.command("reject")
+@click.argument("candidate_id", type=int)
+@click.option("--note", default=None, help="Optional reviewer note (e.g. why it was wrong).")
+def intake_reject_cmd(candidate_id: int, note: str | None):
+    """Reject a pending candidate. Kept for audit, never merged."""
+    from trinity.intake import reject_candidate
+
+    conn = connect()
+    try:
+        reject_candidate(conn, candidate_id, note=note)
+    except ValueError as exc:
+        raise click.ClickException(str(exc))
+    console.print(f"[yellow]Rejected #{candidate_id}.[/yellow]")
 
 
 if __name__ == "__main__":

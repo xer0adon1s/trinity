@@ -27,10 +27,12 @@ from trinity.vpn import check_vpn
 console = Console()
 
 INTRO_TEXT = (
-    "Trinity is a local-first recon copilot for CTF/HTB/TryHackMe-style practice.\n"
-    "It watches your scan output, matches it against a local knowledge base, and\n"
-    "explains things in plain English -- almost all of it for free, without ever\n"
-    "calling an AI, because it's not guessing: it's looking things up.\n\n"
+    "Trinity is a local-first recon copilot for CTF/HTB/TryHackMe-style practice,\n"
+    "built to be paired with an agentic OS -- it watches your scan output, matches\n"
+    "it against a local knowledge base, and explains things in plain English.\n"
+    "It looks things up locally first, for free -- and when it genuinely doesn't\n"
+    "know something, it can ask your own agent CLI once, review the answer, and\n"
+    "remember it forever, so the same gap never costs anything twice.\n\n"
     "You run the real recon tools yourself, in your own terminal. Trinity's job\n"
     "is to sit alongside you and help you make sense of what comes back.\n\n"
     "You don't need to know how any of this works yet -- let's just get your\n"
@@ -129,8 +131,15 @@ def prompt_new_project(conn: sqlite3.Connection) -> Box:
         "or [bold]professional[/bold] (skip the teaching, just the facts)",
         choices=["educational", "professional"], default="educational",
     )
+    # PROTOTYPE (difficulty-aware): optional, Enter skips. Public
+    # platform rating — no API. See FEATURES_BACKLOG.md.
+    raw_diff = Prompt.ask(
+        "Listed difficulty (easy / medium / hard)",
+        default="skip",
+    ).strip().lower()
+    difficulty = raw_diff if raw_diff in ("easy", "medium", "hard") else None
 
-    box = create_box(conn, name, target=target, platform=platform, mode=mode)
+    box = create_box(conn, name, target=target, platform=platform, mode=mode, difficulty=difficulty)
     touch_active_box(conn, box.id)
     console.print(f"\n[green]Created project '{box.name}'[/green] (mode: {box.mode}).")
 

@@ -30,6 +30,13 @@ def test_htb_and_thm_need_vpn():
     assert get_platform("thm").needs_vpn is True
 
 
+def test_htb_beginner_track_is_data_not_a_writeup():
+    track = get_platform("htb").beginner_track
+    assert track is not None
+    assert "scan" in track["skills"]
+    assert "Starting Point" in track["name"]
+
+
 def test_portswigger_and_overthewire_do_not_need_vpn():
     assert get_platform("portswigger").needs_vpn is False
     assert get_platform("overthewire").needs_vpn is False

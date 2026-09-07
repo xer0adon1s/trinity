@@ -22,6 +22,24 @@ if you've never touched the Python code:
   command Trinity doesn't yet have a cached explanation for. Pick the
   right category file (or start a new one for a new category) and add
   an entry — see any existing file for the shape.
+- **New error pattern** (`src/trinity/errors_seed.py`): a common
+  beginner failure + its cause/fix, same shape as the ELI5 entries.
+- **New tool registry entry** (`src/trinity/tools.py`): a recon tool
+  Trinity's suggestion engine references, with real per-platform
+  install commands (apt/pacman/brew).
+- **New WHY phrase** (`src/trinity/phrasebook.py`): a more
+  human-sounding sentence for a `(phase, service)` pair the coach
+  currently only has mechanical phrasing for.
+- **Methods Index entry** (`src/trinity/methods_index/*.yaml`, once
+  built): a paraphrased, cited technique for a retired box — see
+  `docs/METHODS_INDEX.md`'s attribution rules before contributing one;
+  `source_url` and `author` are required, no exceptions.
+
+Anything Trinity's own install learns via the Agent Harness
+(`docs/AGENT_HARNESS.md`) and the operator opts into sharing gets
+routed through the Update Framework's review pipeline
+(`docs/UPDATE_FRAMEWORK.md`) rather than a direct PR — see that doc for
+the intended (still-designing) contribution shape.
 
 ## Contributing code
 

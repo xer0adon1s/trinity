@@ -13,10 +13,14 @@ class Box(BaseModel):
     platform: str | None = None
     status: str = "active"
     mode: str = "educational"
+    shell_level: str | None = None  # PROTOTYPE (1.6): None / 'user' / 'root'
+    difficulty: str | None = None   # PROTOTYPE: None / 'easy' / 'medium' / 'hard'
 
 
 VALID_MODES = {"educational", "professional"}
 VALID_STATUSES = {"active", "rooted", "abandoned"}
+VALID_SHELL_LEVELS = {"user", "root"}
+VALID_DIFFICULTIES = {"easy", "medium", "hard"}
 
 
 def create_box(
@@ -25,13 +29,16 @@ def create_box(
     target: str | None = None,
     platform: str | None = None,
     mode: str = "educational",
+    difficulty: str | None = None,
 ) -> Box:
     if mode not in VALID_MODES:
         raise ValueError(f"mode must be one of {VALID_MODES}, got {mode!r}")
+    if difficulty is not None and difficulty not in VALID_DIFFICULTIES:
+        raise ValueError(f"difficulty must be one of {VALID_DIFFICULTIES}, got {difficulty!r}")
 
     cursor = conn.execute(
-        "INSERT INTO boxes (name, target, platform, mode) VALUES (?, ?, ?, ?)",
-        (name, target, platform, mode),
+        "INSERT INTO boxes (name, target, platform, mode, difficulty) VALUES (?, ?, ?, ?, ?)",
+        (name, target, platform, mode, difficulty),
     )
     conn.commit()
     assert cursor.lastrowid is not None
@@ -124,3 +131,25 @@ def set_status(conn: sqlite3.Connection, box_id: int, status: str) -> None:
         from trinity.state import ACTIVE_BOX_ID, get_state, clear_state
         if get_state(conn, ACTIVE_BOX_ID) == str(box_id):
             clear_state(conn, ACTIVE_BOX_ID)
+
+
+def set_shell_level(conn: sqlite3.Connection, box_id: int, level: str) -> None:
+    """PROTOTYPE (1.6). Operator-declared foothold. Never inferred."""
+    if level not in VALID_SHELL_LEVELS:
+        raise ValueError(f"shell_level must be one of {VALID_SHELL_LEVELS}, got {level!r}")
+    conn.execute(
+        "UPDATE boxes SET shell_level = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (level, box_id),
+    )
+    conn.commit()
+
+
+def set_difficulty(conn: sqlite3.Connection, box_id: int, difficulty: str) -> None:
+    """PROTOTYPE. Public platform rating the operator typed in."""
+    if difficulty not in VALID_DIFFICULTIES:
+        raise ValueError(f"difficulty must be one of {VALID_DIFFICULTIES}, got {difficulty!r}")
+    conn.execute(
+        "UPDATE boxes SET difficulty = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (difficulty, box_id),
+    )
+    conn.commit()

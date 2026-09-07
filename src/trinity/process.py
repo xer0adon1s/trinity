@@ -18,7 +18,9 @@ from trinity.parsers.enum4linux_ng import parse_enum4linux_ng_json
 from trinity.parsers.ffuf import parse_ffuf_json
 from trinity.parsers.gobuster import parse_gobuster_text
 from trinity.parsers.nikto import parse_nikto_json
+from trinity.notify import notify_critical
 from trinity.parsers.nmap import Finding, parse_nmap_xml
+from trinity.parsers.rustscan import parse_rustscan_text
 from trinity.parsers.whatweb import parse_whatweb_json
 from trinity.suggest.engine import suggest_next_commands
 from trinity.timeline import log_event
@@ -105,10 +107,23 @@ def detect_and_parse(path: Path) -> tuple[str, list[Finding]] | None:
         if suffix in (".txt", ".out") and "gobuster" in name:
             return "gobuster", parse_gobuster_text(path)
 
+        if suffix in (".txt", ".out"):
+            rustscan_hits = parse_rustscan_text(path)
+            if rustscan_hits and ("rustscan" in name or _mostly_rustscan_lines(path)):
+                return "rustscan", rustscan_hits
+
     except (json.JSONDecodeError, ValueError, OSError, IndexError):
         return None
 
     return None
+
+
+def _mostly_rustscan_lines(path: Path) -> bool:
+    lines = [ln.strip() for ln in path.read_text(errors="ignore").splitlines() if ln.strip()]
+    if not lines:
+        return False
+    tagged = sum(1 for ln in lines if ln.lower().startswith("open "))
+    return tagged >= max(1, len(lines) // 2)
 
 
 def process_scan_file(conn: sqlite3.Connection, box_id: int, path: Path) -> ProcessResult | None:
@@ -158,6 +173,8 @@ def process_scan_file(conn: sqlite3.Connection, box_id: int, path: Path) -> Proc
                 conn, box_id, "match", f"{label} matched: {top.title}",
                 phase="recon", detail=top.summary, severity=top.severity, ref_id=finding_id,
             )
+            if top.severity == "critical":
+                notify_critical("Trinity — critical match", top.title)
         else:
             label = f"{finding.host}:{finding.port}" if finding.port else (finding.path or finding.host or "?")
             log_event(

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import time
 from pathlib import Path
 
 from rich.text import Text
@@ -72,7 +73,9 @@ class TrinityDashboard(App):
         ("d", "mark_did", "Did it"),
         ("s", "mark_skip", "Skip"),
         ("h", "show_hint", "Hint"),
+        ("c", "copy_rec", "Copy rec"),
     ]
+    SILENCE_SECONDS = 15 * 60
 
     def __init__(self, box_name: str, watch_dir: Path):
         super().__init__()
@@ -87,6 +90,8 @@ class TrinityDashboard(App):
         # writing the file in two syscalls) doesn't insert the same
         # findings/timeline events twice. Keyed by absolute path string.
         self._last_processed_hash: dict[str, str] = {}
+        self._last_activity = time.monotonic()
+        self._silence_warned = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -99,6 +104,7 @@ class TrinityDashboard(App):
     def on_mount(self) -> None:
         self._refresh_status()
         self.run_worker(self._watch_loop(), exclusive=True)
+        self.set_interval(30, self._check_silence)
 
     def _refresh_status(self) -> None:
         status = self.query_one("#status", Static)
@@ -160,6 +166,8 @@ class TrinityDashboard(App):
         if result is None:
             return  # not a recognized scan format — silently ignored
 
+        self._last_activity = time.monotonic()
+        self._silence_warned = False
         self._render_result(path, result)
 
         # Optional auto-accept (docs/CLAUDE_CURSOR_DEBATE.md, Part E:
@@ -240,6 +248,30 @@ class TrinityDashboard(App):
             return
         hint = get_hint(self.conn, self.box.id, rec.suggestion_id, rec.top.phase, rec.top.nudge, rec.top.rationale, rec.top.command)
         self._append_feed(f"[bold yellow]Hint ({hint.level}/3):[/bold yellow] {hint.text}")
+
+    def action_copy_rec(self) -> None:
+        """PROTOTYPE (4.4): copy the current recommendation. Beginners live in paste."""
+        rec = get_recommendation(self.conn, self.box.id)
+        if rec is None:
+            self._append_feed("[dim]Nothing to copy.[/dim]")
+            return
+        self.copy_to_clipboard(rec.top.command)
+        self._append_feed(f"[dim]Copied:[/dim] {rec.top.command}")
+
+    def _check_silence(self) -> None:
+        """PROTOTYPE (2.4): if watch is up and no file has landed, remind
+        them of the still-current command. Never auto-runs anything."""
+        if self._silence_warned:
+            return
+        if time.monotonic() - self._last_activity < self.SILENCE_SECONDS:
+            return
+        rec = get_recommendation(self.conn, self.box.id)
+        command = rec.top.command if rec else "the nmap line from the wizard"
+        self._append_feed(
+            f"[yellow]Still waiting on a scan file. The next useful thing is still: "
+            f"{command}. Stuck on the command? hint. Command failed? paste into error.[/yellow]"
+        )
+        self._silence_warned = True
 
 
 def get_box_by_name_or_raise(conn, name: str) -> Box:

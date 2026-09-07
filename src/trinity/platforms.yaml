@@ -29,6 +29,9 @@ platforms:
       Only the specific machine IP assigned to you over the HTB VPN is
       in scope -- never scan the wider VPN subnet.
     needs_vpn: true
+    beginner_track:
+      name: HTB Starting Point
+      skills: [scan, enum, simple_exploit, privesc]
     vpn_help: >
       Download your VPN config from the HTB Access page, then run:
         sudo openvpn <yourfile>.ovpn

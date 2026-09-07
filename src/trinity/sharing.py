@@ -11,9 +11,19 @@ means opt-in at every step, not just at a one-time toggle.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
+
+_IPV4 = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b")
+
+
+def scrub_identifying(text: str) -> str:
+    """Replace baked IPv4s so a share bundle cannot leak a lab target.
+    Debate 2.13 claimed $TARGET would do this 'for free'; it does not
+    unless we scrub here — suggestion commands are not in the bundle."""
+    return _IPV4.sub("$TARGET", text)
 
 from trinity.state import get_state, set_state
 
@@ -72,7 +82,10 @@ def build_share_bundle(conn: sqlite3.Connection, box_id: int) -> ShareBundle:
         ).fetchall()
         for row in explanations:
             bundle.explanation_candidates.append(
-                {"command": row["command"], "explanation": row["explanation"]}
+                {
+                    "command": scrub_identifying(row["command"]),
+                    "explanation": scrub_identifying(row["explanation"]),
+                }
             )
 
     diagnosed_errors = {

@@ -109,6 +109,36 @@ def test_professional_report_includes_methodology_timeline(conn):
     assert "recon" in report
 
 
+def test_professional_report_is_a_deliverable_not_a_skeleton(conn):
+    box = create_box(conn, "ProDeliverable", target="10.10.10.3")
+    conn.execute(
+        "INSERT INTO engagement_meta (box_id, client_name, classification, report_version) "
+        "VALUES (?, ?, ?, ?)",
+        (box.id, "Acme Corp", "TLP:AMBER", "1.0-draft"),
+    )
+    conn.commit()
+    _seed_timeline(conn, box.id)
+    data = gather_report_data(conn, box.id)
+    report = generate_professional_report(data)
+    assert "Document Control" in report
+    assert "TLP:AMBER" in report
+    assert "Executive Summary" in report
+    assert "Scope, Limitations" in report
+    assert "F-01" in report
+    assert "T1190" in report  # vsftpd backdoor heuristic
+    assert "Upgrade or replace" in report  # remediation draft, not blank fill-in
+    assert "Tools Observed" in report
+    assert "authorized work only" in report.lower()
+
+
+def test_educational_report_does_not_grow_attck_or_document_control(conn):
+    box = create_box(conn, "EduStayLight")
+    _seed_timeline(conn, box.id)
+    report = generate_educational_report(gather_report_data(conn, box.id))
+    assert "ATT&CK" not in report
+    assert "Document Control" not in report
+
+
 def test_gather_report_data_raises_for_missing_box(conn):
     import pytest
     with pytest.raises(ValueError):

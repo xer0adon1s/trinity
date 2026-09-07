@@ -1,0 +1,33 @@
+# Hand-authored Methods Index example (docs/METHODS_INDEX.md step 1).
+# Retired HTB machine. Trinity-authored paraphrases only. Citations
+# required. This is NOT a writeup and is not shown at session start.
+box_name: Lame
+platform: htb
+methods:
+  - category: foothold
+    technique: Samba username map script RCE (CVE-2007-2447)
+    summary: >
+      One public path uses a misconfigured Samba "username map script"
+      to run commands during an unauthenticated SMB session, rather
+      than treating port 445 as a dead end after a share list.
+    source_url: https://0xdf.gitlab.io/2018/08/18/htb-lame.html
+    author: "0xdf"
+    retrieved_at: "2026-09-06"
+  - category: foothold
+    technique: vsftpd 2.3.4 backdoor (CVE-2011-2523)
+    summary: >
+      Another public path treats the exact vsftpd version banner as
+      the lead and uses the known backdoor trigger instead of
+      continuing generic FTP anonymous-login checks.
+    source_url: https://0xdf.gitlab.io/2018/08/18/htb-lame.html
+    author: "0xdf"
+    retrieved_at: "2026-09-06"
+  - category: foothold
+    technique: distcc daemon command execution (CVE-2004-2687)
+    summary: >
+      A third public path starts from the distcc service nmap already
+      fingerprinted, rather than from Samba or FTP — same box, a
+      different first move.
+    source_url: https://0xdf.gitlab.io/2018/08/18/htb-lame.html
+    author: "0xdf"
+    retrieved_at: "2026-09-06"

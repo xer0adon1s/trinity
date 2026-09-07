@@ -37,6 +37,7 @@ class Platform:
     scope_hint: str
     needs_vpn: bool
     vpn_help: str
+    beginner_track: dict | None = None  # PROTOTYPE (2.6): skills band, not a writeup
 
 
 def _load_yaml(path: Path) -> dict:
@@ -69,6 +70,7 @@ def load_registry() -> dict[str, Platform]:
             scope_hint=data.get("scope_hint", "").strip(),
             needs_vpn=bool(data.get("needs_vpn", False)),
             vpn_help=data.get("vpn_help", "").strip(),
+            beginner_track=data.get("beginner_track"),
         )
     return registry
 

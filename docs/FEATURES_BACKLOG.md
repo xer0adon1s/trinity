@@ -7,6 +7,135 @@ entry to its own design doc (like docs/RABBIT_HOLE_DETECTION.md,
 docs/INSTRUCTOR_MODE.md, docs/METHODS_INDEX.md) when it's actually
 being scheduled for build.
 
+Vetoed or "maybe later, but this would change what Trinity is"
+items — LLM chat, auto-install, launchers, Metasploit RPC, live
+writeup scrape, `trinity lab` / hyprctl, shell-history sensors,
+and the rest of the debate DO NOT list — are written up for
+decision in **[docs/OPEN_DECISIONS.md](./OPEN_DECISIONS.md)**.
+Park opinions and implement/never calls there, not here. NOTE: two
+of those rails (LLM/chat pane, shell-history sensors) were partially
+REVERSED in the 2026-09 pivot — see `docs/AGENT_HARNESS.md` and
+`docs/SHOULDER_MODE.md`, and `OPEN_DECISIONS.md`'s updated entries for
+those two items specifically.
+
+## 2026-09 Cursor prototype triage — decisions record
+
+Cursor drafted roughly 19 features unprompted-beyond-"keep drafting"
+across several overnight passes (see `docs/CURSOR_HANDOFF_CONTINUE.md`
+for the full log). Claude + Alexander triaged all of them together;
+recorded here so the decisions survive between sessions and nobody
+re-litigates them from scratch. "NOW" means build this pass; "LATER"
+means shelve the code (already written, don't delete) until its
+sequencing dependency lands; "CUT" means don't build/ship at all.
+
+- **shell/milestone** — NOW, with two fixes: (1) reconcile the
+  privesc-promotion override against INSTRUCTOR_MODE.md's phase-order
+  rule (update the doc, don't leave a silent contradiction), (2) fold
+  auto-detection into Shoulder Mode once that lands — manual `trinity
+  shell --as` stays as the fallback for operators not running it.
+- **unlock cards** — NOW, once per milestone (not stapled onto every
+  subsequent `next`/`hint`/`box-status` call — cut the redundant
+  mentions Cursor added in three places).
+- **loot tracker** — NOW, including the professional-report section
+  (Alexander confirmed real, needed functionality).
+- **stats** — LATER (docket). Correctly hides until first root, but
+  doesn't help anyone finish box 1; not worth CLI surface yet.
+- **hash classifier** — NOW. Small, local, real value.
+- **GTFOBins** — NOW, but scope changed: ingest the FULL public
+  GTFOBins dataset (MIT-licensed, git-clonable) via the Update
+  Framework rather than hand-writing entries one at a time, then wrap
+  it in a thin Trinity-voice layer starting with whichever binaries
+  the coach actually surfaces most (sudo/find/vim/etc.), backfilling
+  the rest over time. Also: proactively surfaced by the coach when a
+  `sudo -l`/SUID finding names a covered binary — not just a passive
+  lookup command. Depends on `docs/UPDATE_FRAMEWORK.md` landing first.
+- **Methods Index** — NOW, redesigned (see `docs/METHODS_INDEX.md`'s
+  updated status section): gated behind Rabbit Hole Detection's stuck
+  signal as an escape hatch, not freely browsable; entries can be
+  drafted live by the Agent Harness during a stuck session, with
+  AI-assisted ranking driving the existing escalating hint ladder
+  toward whichever method fits what's already been found. Additive
+  only — never removes/overrides existing untried leads.
+- **payloads index** — CUT. Redundant with explain/GTFOBins, nobody
+  asked for it, five hardcoded links don't earn a CLI verb.
+- **journal/achievements** — CUT. Local-only is fine in principle, but
+  this is the exact "gamify before the first win" trap 5.9 warned
+  about, worse than `stats` because it's framed as unlockable
+  achievements.
+- **`trinity read`** — CUT outright, not shelved. Directly undoes
+  Hole D's fix (steering people toward `watch`, away from one-shot
+  parse commands). Don't rebuild this later without revisiting Hole D
+  first.
+- **rabbit-hole detection** — NOW, rebuilt with real function per
+  Alexander's explicit call ("it's supposed to be more of a guidance
+  tool... is there any way we can make it more functional?"): trigger
+  on a real signal (5+ commands with no new finding, hint ladder
+  maxed), point at a specific untouched lead, and — once genuinely
+  stalled — offer the Methods Index escape hatch. Not a message
+  stapled onto every `next` call.
+- **desktop notifications** — NOW. Low risk, real value for catching a
+  critical finding in a scrolling feed.
+- **AutoRecon teaching** — NOW, elevated to a primary teaching pillar
+  (see the updated section below), not a minor graduation nudge.
+- **dead-end permission messages** — NOW. Cheap, only fires on
+  `skip`, no downside.
+- **difficulty-aware guidance** — CUT the wizard question specifically
+  (violates "as few questions as honestly possible"); the quiet
+  Hard-box reassurance message itself can stay IF difficulty is
+  sourced some other way later (platform metadata, not a mandatory
+  wizard prompt).
+- **report format seam** (`report/render.py`) — NOW. Pure internal
+  cleanup, zero user-facing risk, ships regardless of what happens to
+  report content features.
+- **notebook report format** — NOW as an explicit, opt-in report mode.
+  CUT the auto-write into `share-export` (an existing command silently
+  gained an unrequested side effect — that's the actual bug, not the
+  format itself).
+- **professional-mode growth** (`report/attack.py`,
+  `report/remediation.py`, engagement-set extras) — LATER (docket).
+  Alexander authorized this despite 1.10's freeze, but per his
+  follow-up call, educational-loop focus wins for now — ship as its
+  own separable commit when it's actually prioritized, not bundled
+  into the educational-focused work.
+- **rustscan parser** — NOW. Pure additive parser, zero behavior
+  change to anything existing.
+- **error-pattern seeds (+10)** — NOW, pending Claude's read-through
+  per Alexander's "review and ship if you'd have done it the same way"
+  instruction.
+- **phrasebook growth** — NOW as pure content growth (a few more WHY
+  lines). The BROADER phrasebook conversation turned into the Agent
+  Harness pivot — see `docs/AGENT_HARNESS.md`, not a phrasebook change
+  at all anymore.
+- **watch 15-min silence + clipboard copy** — NOW, both. Contained
+  inside the dashboard, no new CLI verbs, real quality-of-life value.
+  Note: the 15-min silence idea also feeds directly into Shoulder
+  Mode's "are you stuck?" check-in — see `docs/SHOULDER_MODE.md`.
+- **beginner-track data field** (`platforms.yaml`) — the inert data
+  field is fine to keep; do NOT build coach-capping behavior around it
+  without a dedicated design conversation (spoiler-risk, same category
+  as Methods Index).
+
+**The structural fix that applies regardless of the above:** `trinity
+next`'s output was stacking up to eight advisory lines (difficulty
+note, wordlist warning, tool warning, did/skip hint, also-worth-trying,
+unlock teaser, rabbit-hole nudge, frustration checkpoint, AutoRecon
+nudge) — exactly the "Duolingo guilt"/overwhelm failure mode DESIGN.md
+exists to prevent, self-inflicted by good individual features with no
+traffic control. Fix before shipping any of the above: cap `next` to
+its core recommendation plus at most ONE rotating advisory line.
+
+## Wizard: hacker name
+
+New, small, fun addition to the onboarding wizard (not part of the
+Cursor prototype batch — Alexander's own idea): ask for a "hacker
+name" during setup, and have Trinity refer to the operator by it for
+the rest of that install's usage (WHY text, milestone messages, wizard
+copy). Purely cosmetic, zero schema risk beyond a new `local_state` key
+or a column on `boxes`/a new settings table — small enough to bundle
+into whatever session next touches `wizard.py`.
+
+---
+
 ## Rabbit-hole detection
 
 Promoted to its own full design doc: see
@@ -17,30 +146,34 @@ mission — real community research (HTB/THM forum threads) confirms
 this is one of the most common, most demoralizing struggles for
 beginners.
 
-## AutoRecon — teach it, support it, but Trinity itself never runs it
+## AutoRecon — a primary teaching goal, not a minor nudge
 
-Raised alongside rabbit-hole detection: AutoRecon (github.com/
-Tib3rius/AutoRecon) already exists and does exactly what Trinity
-deliberately does NOT do — auto-launches the full battery of follow-up
-scans the instant a service is found. Alexander's framing: "we're
-trying to invite the calculator, not teach long division" — i.e. once
-someone understands WHY you run gobuster after finding HTTP, is there
-value in making them keep hand-typing that reasoning forever, or
-should Trinity teach them a real tool that automates the pattern once
-they've earned the understanding?
+Status raised from "nice-to-have graduation nudge" to a stated
+priority. Alexander, after this exact conversation: "I HAD NO IDEA
+THIS AUTO RECON EXISTED AND IVE BEEN DOING BOXES FOR A YEAR OR MORE. I
+REALLY WANT TO MAKE USING THIS TOOL FUNDAMENTAL FOR MY STUDENTS."
+AutoRecon (github.com/Tib3rius/AutoRecon) already exists and does
+exactly what Trinity deliberately does NOT do — auto-launches the full
+battery of follow-up scans the instant a service is found. Alexander's
+framing: "we're trying to invite the calculator, not teach long
+division" — i.e. once someone understands WHY you run gobuster after
+finding HTTP, Trinity should actively teach them a real, well-known
+tool that automates that pattern, rather than leaving it as trivia
+they might never stumble onto.
 
-Recommended resolution (not yet built, worth discussing before
-committing to it): keep this fully compatible with the "I do / we do"
-philosophy by treating AutoRecon as an available TOOL Trinity can
-teach about and parse output FROM — never a tool Trinity invokes on
-the operator's behalf. Concretely, this would mean three
-independently-buildable pieces:
+Kept fully compatible with the "I do / we do" philosophy by treating
+AutoRecon as an available TOOL Trinity teaches about and parses output
+FROM — never a tool Trinity invokes on the operator's behalf. Three
+independently-buildable pieces, now prioritized as real, near-term
+work rather than backlog:
 
-1. **Teach it as a topic**, same mechanism as the existing ELI5 cache
-   — explain what AutoRecon is, when reaching for it makes sense
-   ("once you've manually run this pattern a few times and understand
-   why, AutoRecon does the same reasoning automatically, faster"), and
-   how to read its output.
+1. **Teach it properly, not as a one-line mention.** A real ELI5
+   explain-cache entry set (same mechanism as the existing 86-entry
+   library): what AutoRecon is, why it exists, when reaching for it
+   makes sense, and how to read its output — written so someone can
+   go "as much or as little under the hood" as they want, matching
+   Alexander's explicit framing. This should read as an on-ramp into
+   a tool that will genuinely make them faster, not a footnote.
 2. **Parse its output**, as one more parser alongside nmap/gobuster/
    etc in `parsers/` and `process.py` — AutoRecon's `results/`
    directory has service-broken-out files Trinity could read the same
@@ -48,19 +181,21 @@ independently-buildable pieces:
    runs `autorecon <target>` themselves in their own terminal pane —
    Trinity reacting to output it didn't generate is identical in kind
    to how it already reacts to nmap/gobuster output.
-3. **Possibly surface it as a graduation nudge** — after an operator
-   has manually run the same enumeration pattern (e.g. HTTP found ->
-   gobuster suggested and run) across several boxes, Trinity could
-   mention "you've done this manual pattern N times now — AutoRecon
-   automates exactly this, worth trying once you're comfortable with
-   why it works" — framed as an option, never a replacement.
+3. **Graduation nudge, tightened.** The original one-line "you've done
+   this manual pattern N times, try AutoRecon" nudge exists as a
+   prototype (`graduation.py`) but was flagged during triage as
+   over-firing (repeats on every `next` call once the threshold is
+   crossed, stacking with several other advisory messages). Fix: fire
+   once per box lifetime, not on every subsequent call, and consider
+   surfacing it more prominently in the wizard's own intro/teaching
+   material given the new priority, rather than only as a quiet aside.
 
 This preserves the calculator metaphor correctly: Trinity still never
-does the "long division" (running tools) FOR the operator; it just
-becomes willing to also teach about a bigger calculator once the
-operator understands the arithmetic underneath it. Needs a real design
-pass before building, similar to Instructor Mode/Methods Index,
-particularly around scoping #3 so it doesn't feel like nagging.
+does the "long division" (running tools) FOR the operator; it becomes
+an enthusiastic teacher of a bigger calculator once the operator
+understands the arithmetic underneath it — directly serving DESIGN.md's
+"get people genuinely excited about hacking" mission, not just its
+teaching mission.
 
 ## Achievements / gamification system
 
@@ -177,6 +312,14 @@ in comparable tools like Obsidian4OSCP wanting Pandoc integration)
 could be added later without Trinity's core needing to know about
 each one. Not urgent, but worth designing the seam now rather than
 retrofitting it once two hardcoded generators have grown into several.
+
+## Omarchy / `trinity lab` tile spawning
+
+Raised in Trinity_suggestions.md 2.10; Claude pushed back; Cursor
+agreed this stays out of the main sequencing. Parked here on
+purpose rather than given a design doc. Full argument and a
+"printed recipe only, no hyprctl" cousin: see
+docs/OPEN_DECISIONS.md (`trinity lab` / hyprctl).
 
 ## Social/multiplayer features (leaderboards, shared sessions)
 

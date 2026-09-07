@@ -24,6 +24,11 @@ CREATE TABLE IF NOT EXISTS boxes (
                                        -- runs at the end. Both modes log to
                                        -- the same timeline; mode is a lens
                                        -- over one dataset, not a fork of it.
+    shell_level TEXT,                 -- PROTOTYPE (1.6): NULL / 'user' / 'root'
+                                       -- operator-declared foothold. Never
+                                       -- inferred from shell history.
+    difficulty TEXT,                  -- PROTOTYPE: NULL / 'easy' / 'medium' / 'hard'
+                                       -- operator-supplied, public platform rating.
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -41,7 +46,10 @@ CREATE TABLE IF NOT EXISTS engagement_meta (
     tester_name TEXT,
     start_date TEXT,
     end_date TEXT,
-    notes TEXT
+    notes TEXT,
+    classification TEXT,              -- PROTOTYPE pro-mode: e.g. TLP:CLEAR
+    report_version TEXT,              -- PROTOTYPE pro-mode: 0.1-draft
+    distribution TEXT                 -- PROTOTYPE pro-mode: who may receive this
 );
 
 -- Every parsed finding from every scan, tied to a box.
@@ -240,6 +248,69 @@ CREATE TRIGGER IF NOT EXISTS error_patterns_au AFTER UPDATE ON error_patterns BE
 END;
 
 CREATE INDEX IF NOT EXISTS idx_hint_state_box ON hint_state(box_id);
+
+-- PROTOTYPE (loot tracker): creds/hashes/tokens/flags the operator
+-- found. Timeline also gets an event_type='loot' row so reports can
+-- narrate it chronologically. See trinity.loot and FEATURES_BACKLOG.md.
+CREATE TABLE IF NOT EXISTS loot (
+    id INTEGER PRIMARY KEY,
+    box_id INTEGER NOT NULL REFERENCES boxes(id),
+    kind TEXT NOT NULL,               -- 'credential', 'hash', 'token', 'flag', 'other'
+    value TEXT NOT NULL,
+    note TEXT,
+    discovered_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_loot_box ON loot(box_id);
+
+-- PROTOTYPE (curiosity unlocks, 2.1): per-box take/decline state for
+-- local pedagogy cards. Card bodies live in unlocks.py, not here.
+CREATE TABLE IF NOT EXISTS unlock_state (
+    box_id INTEGER NOT NULL REFERENCES boxes(id),
+    card_id TEXT NOT NULL,
+    status TEXT NOT NULL,             -- 'taken' / 'declined'
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (box_id, card_id)
+);
+
+-- Update Framework (docs/UPDATE_FRAMEWORK.md): staging area for any
+-- knowledge Trinity's own install generates (Agent Harness answers,
+-- live-drafted Methods Index entries, etc.) that has NOT been vetted
+-- by anyone but this one operator's one session. Nothing here is ever
+-- read by trinity next/explain/error/the coach -- only approved
+-- records that have been copied into their real destination table
+-- (command_explanations/error_patterns/kb_entries/methods_index/*.yaml)
+-- are live. This is a staging area in front of already-existing write
+-- paths, not a new trust boundary of its own. See
+-- docs/UPDATE_FRAMEWORK.md, "Part 2: the intake/review pipeline".
+CREATE TABLE IF NOT EXISTS intake_candidates (
+    id INTEGER PRIMARY KEY,
+    kind TEXT NOT NULL,                -- 'explanation' | 'error_pattern' |
+                                        -- 'kb_entry' | 'method'
+    payload TEXT NOT NULL,             -- JSON blob shaped like the target
+                                        -- table's row (command/explanation,
+                                        -- error_text/cause/fix, etc.)
+    source TEXT NOT NULL,              -- 'agent_harness' | 'methods_live_draft'
+    box_id INTEGER REFERENCES boxes(id),  -- NULL if not session-scoped
+    status TEXT NOT NULL DEFAULT 'pending',  -- 'pending' | 'approved' | 'rejected'
+    reviewer_note TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_intake_status ON intake_candidates(status);
+
+-- Update Framework: last-synced timestamps per external data source
+-- (GTFOBins, ExploitDB, PayloadsAllTheThings, ...), so the silent
+-- auto-sync on launch can rate-limit itself instead of re-pulling on
+-- every single command invocation. Its own small table rather than
+-- overloading local_state's single-key/value shape with a growing
+-- family of sync-timestamp keys. See docs/UPDATE_FRAMEWORK.md, "Part 1".
+CREATE TABLE IF NOT EXISTS sync_state (
+    source TEXT PRIMARY KEY,           -- 'gtfobins' | 'exploitdb' | ...
+    last_synced_at TEXT,
+    last_status TEXT,                  -- 'ok' | 'failed' | 'skipped'
+    detail TEXT                        -- e.g. an error message on failure
+);
 """
 
 
@@ -255,6 +326,18 @@ _SUGGESTIONS_ADDITIVE_COLUMNS = [
     ("finding_id", "INTEGER REFERENCES findings(id)"),
 ]
 
+# PROTOTYPE columns on boxes. Same CREATE TABLE IF NOT EXISTS trap.
+_BOXES_ADDITIVE_COLUMNS = [
+    ("shell_level", "TEXT"),
+    ("difficulty", "TEXT"),
+]
+
+_ENGAGEMENT_ADDITIVE_COLUMNS = [
+    ("classification", "TEXT"),
+    ("report_version", "TEXT"),
+    ("distribution", "TEXT"),
+]
+
 
 def _ensure_additive_columns(conn: sqlite3.Connection) -> None:
     """Adds any columns newer than a table's original schema to an
@@ -266,6 +349,20 @@ def _ensure_additive_columns(conn: sqlite3.Connection) -> None:
     for column, ddl in _SUGGESTIONS_ADDITIVE_COLUMNS:
         if column not in existing:
             conn.execute(f"ALTER TABLE suggestions ADD COLUMN {column} {ddl}")
+
+    box_cols = {row["name"] for row in conn.execute("PRAGMA table_info(boxes)").fetchall()}
+    for column, ddl in _BOXES_ADDITIVE_COLUMNS:
+        if column not in box_cols:
+            conn.execute(f"ALTER TABLE boxes ADD COLUMN {column} {ddl}")
+
+    eng_tables = {
+        row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    }
+    if "engagement_meta" in eng_tables:
+        eng_cols = {row["name"] for row in conn.execute("PRAGMA table_info(engagement_meta)").fetchall()}
+        for column, ddl in _ENGAGEMENT_ADDITIVE_COLUMNS:
+            if column not in eng_cols:
+                conn.execute(f"ALTER TABLE engagement_meta ADD COLUMN {column} {ddl}")
     conn.commit()
 
 

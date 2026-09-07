@@ -89,6 +89,71 @@ ENTRIES: list[tuple[str, str, str]] = [
         "quotes match the shell you're actually running the payload in "
         "(bash vs sh vs a web app's backend shell can quote differently).",
     ),
+    (
+        "Could not resolve host",
+        "The hostname in the URL/command doesn't resolve — typo, no DNS "
+        "on the lab VPN, or you used a name that only exists on the box.",
+        "Use the target IP (or $TARGET) instead of a hostname, or check "
+        "/etc/hosts if the writeup/box page gave you a name to add.",
+    ),
+    (
+        "No such file or directory",
+        "A path in the command doesn't exist on THIS machine — very often "
+        "a Kali wordlist path pasted onto Arch/Fedora, or a file you "
+        "haven't downloaded yet.",
+        "ls the path. If it's a wordlist, run the suggestion again after "
+        "Trinity's resolver rewrites it, or point -w at a file you actually have.",
+    ),
+    (
+        "401 Unauthorized",
+        "The path exists and wants credentials. That's a lead, not a wall.",
+        "Note the realm/login form. Try default creds for the software "
+        "banner, or come back once you have a username from elsewhere.",
+    ),
+    (
+        "Segmentation fault",
+        "A local exploit or PoC crashed. Common with old kernel exploits "
+        "or the wrong architecture.",
+        "Check uname -a vs what the exploit claims. Prefer a "
+        "misconfiguration path (sudo -l, SUID, cron) over a crashy exploit.",
+    ),
+    (
+        "bind: cannot assign requested address",
+        "Your reverse-shell listener/LHOST is set to an IP this machine "
+        "doesn't have — usually a leftover HTB IP from last session.",
+        "ip a on tun0/wg0 and use THAT address as LHOST, not the target's.",
+    ),
+    (
+        "Host key verification failed",
+        "SSH has a saved fingerprint for this IP that doesn't match — "
+        "common when lab IPs get reused.",
+        "ssh-keygen -R <ip> and reconnect. Confirm you're on the right VPN first.",
+    ),
+    (
+        "Directory not empty",
+        "A tool (or you) tried to rmdir/mv over a folder that still has files.",
+        "ls it. You probably already have loot in there — don't blow it away.",
+    ),
+    (
+        "TOO MANY REDIRECTS",
+        "The web app is bouncing you in a loop — often a missing cookie, "
+        "wrong Host header, or HTTP vs HTTPS mix.",
+        "curl -vI the first URL and follow Set-Cookie / Location by hand once.",
+    ),
+    (
+        "invalid ELF header",
+        "You tried to run a binary built for a different architecture, "
+        "or the download was actually an HTML error page.",
+        "file the binary. If it says HTML, you downloaded a login page. "
+        "If it says ARM/MIPS and you're on x86_64, get the right build.",
+    ),
+    (
+        "Password: Authentication failed",
+        "The service rejected the password. Could be wrong user, wrong "
+        "pass, or a lockout policy.",
+        "Confirm the username source. Don't spray blindly — one careful "
+        "retry beats a lockout on an easy box.",
+    ),
 ]
 
 

@@ -36,6 +36,10 @@ def test_connect_adds_missing_suggestion_columns(tmp_path):
     conn = connect(path, seed_brain=False)
     names = {row["name"] for row in conn.execute("PRAGMA table_info(suggestions)")}
     assert {"nudge", "required_tool", "finding_id"} <= names
+    box_cols = {row["name"] for row in conn.execute("PRAGMA table_info(boxes)")}
+    assert {"shell_level", "difficulty"} <= box_cols
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert {"loot", "unlock_state"} <= tables
     conn.execute(
         "INSERT INTO boxes (name) VALUES ('LegacyBox')"
     )

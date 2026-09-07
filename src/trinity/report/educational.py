@@ -16,6 +16,7 @@ _EVENT_ICONS = {
     "explanation": "📖",
     "note": "📝",
     "milestone": "🏁",
+    "loot": "🗝️",
 }
 
 _SEVERITY_LABEL = {
@@ -43,20 +44,21 @@ def generate_educational_report(data: ReportData) -> str:
         lines.append(f"**Target:** `{box.target}`" + (f"  ·  **Platform:** {box.platform}" if box.platform else ""))
         lines.append("")
 
-    if not data.events:
+    if not data.events and not data.loot:
         lines.append("Nothing's been logged for this box yet — run a scan and parse it "
                       "with Trinity to start building the walkthrough.")
         return "\n".join(lines)
 
-    lines.append("## What happened, step by step")
-    lines.append("")
-    lines.append(
-        "Everything below happened in the order it actually occurred while "
-        "working this box — including things that didn't pan out. Seeing the "
-        "dead ends is part of learning how real recon works: you don't know "
-        "what matters until you check it."
-    )
-    lines.append("")
+    if data.events:
+        lines.append("## What happened, step by step")
+        lines.append("")
+        lines.append(
+            "Everything below happened in the order it actually occurred while "
+            "working this box — including things that didn't pan out. Seeing the "
+            "dead ends is part of learning how real recon works: you don't know "
+            "what matters until you check it."
+        )
+        lines.append("")
 
     current_phase = None
     for event in data.events:
@@ -92,6 +94,19 @@ def generate_educational_report(data: ReportData) -> str:
         for sev, evs in notable:
             for event in evs:
                 lines.append(f"- **[{sev.upper()}]** {event.summary}")
+        lines.append("")
+
+    if data.loot:
+        lines.append("## What you pocketed")
+        lines.append("")
+        lines.append(
+            "Things you recorded as you went — flags, creds, hashes. "
+            "The live path still matters more than this list."
+        )
+        lines.append("")
+        for item in data.loot:
+            extra = f" — {item.note}" if item.note else ""
+            lines.append(f"- **{item.kind}:** `{item.value}`{extra}")
         lines.append("")
 
     lines.append("---")

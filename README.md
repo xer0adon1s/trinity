@@ -1,13 +1,19 @@
 # Trinity
 
 A local-first lab partner for CTF/HTB/TryHackMe-style offensive
-security practice — watches your recon output, matches it against a
-local knowledge base and a live offline exploit database before ever
-spending an AI token, and recommends the next move like a TA looking
-over your shoulder. Free and open source.
+security practice, **built to be paired with an agentic operating
+system** (Omarchy recommended) — watches your recon output, matches it
+against a local knowledge base and a live offline exploit database
+before ever reaching for AI, and recommends the next move like a TA
+looking over your shoulder. When it genuinely doesn't know something,
+it asks YOUR agent CLI once, reviews the answer, and remembers it
+forever — the local cache keeps growing so the same question is never
+paid for twice. Free and open source.
 
 See [DESIGN.md](./DESIGN.md) for the full architecture, philosophy, and
-roadmap.
+roadmap — including why this project exists (teach, get people excited
+about hacking, and prepare the next generation for a world where
+agent-vs-agent is the norm).
 
 **Practice labs and authorized work only.** Trinity is a teaching tool,
 not a substitute for a human pentest report.

@@ -23,6 +23,13 @@ _PHRASES: dict[tuple[str, str], str] = {
     ("enum", "enum4linux"): "Windows file shares love to talk if you just ask nicely — no login required, most of the time.",
     ("enum", "ftp"): "FTP servers sometimes just let anyone in. Costs nothing to check before assuming you need real credentials.",
     ("recon", "searchsploit"): "You already know the exact software and version. That's specific enough to check against a real exploit database, not guess.",
+    ("enum", "smbclient"): "A named share is not a trophy. Listing it is the actual move.",
+    ("enum", "curl"): "You found a path. Open it with headers on. Status codes and cookies matter more than the HTML pretty-print.",
+    ("foothold", "ftp"): "Anonymous already worked — don't 'try anonymous' again. List and get the files.",
+    ("privesc", "sudo"): "You have a shell. The first question is what this account is already allowed to run as someone else.",
+    ("privesc", "find"): "SUID binaries are programs that run as their owner. Unusual ones are a lead; common ones are noise.",
+    ("privesc", "crontab"): "If a scheduled job runs as root and you can write the script, you don't need a kernel exploit.",
+    ("privesc", "id"): "Know the username and groups before you hunt. 'disk' or 'docker' membership is often the whole path.",
 }
 
 

@@ -27,6 +27,23 @@ def test_recommendation_after_parsing_a_scan(conn):
     assert isinstance(rec.also_worth_trying, list)
 
 
+def test_user_shell_promotes_privesc_over_earlier_phase(conn):
+    from trinity.milestones import record_shell
+
+    box = create_box(conn, "ShellPromoteBox")
+    _insert_suggestion(conn, box.id, "enum", "gobuster dir -u http://$TARGET")
+    rec = get_recommendation(conn, box.id)
+    assert rec is not None
+    assert rec.top.command.startswith("gobuster")
+
+    record_shell(conn, box.id, "user")
+    rec = get_recommendation(conn, box.id)
+    assert rec is not None
+    assert rec.top.phase == "privesc"
+    leftover = [s.command for s in rec.also_worth_trying]
+    assert any(c.startswith("gobuster") for c in leftover)
+
+
 def test_recommendation_prefers_earlier_phase():
     # All suggestions from the fixture scan are 'recon'/'enum' phase --
     # confirm the top recommendation is never a later-phase item when

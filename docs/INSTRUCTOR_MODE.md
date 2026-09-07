@@ -56,6 +56,18 @@ first. Instructor Mode adds a ranking step on top:
    phases are recommended before later ones, even if a later-phase
    suggestion technically exists (e.g. don't lead with a privesc
    command suggestion if enum on an open port hasn't happened yet).
+   **Exception, added post-2026-09 pivot:** once the operator has
+   declared (or Shoulder Mode has detected — see
+   `docs/SHOULDER_MODE.md`) a user or root shell milestone, `privesc`/
+   `post` suggestions are promoted AHEAD of earlier-phase leftovers.
+   Rationale: phase order exists to stop Trinity leading with privesc
+   before there's any foothold at all — once a real foothold exists,
+   sticking to "enum always wins" would keep recommending gobuster to
+   someone who already has a shell, which serves no one. Leftover
+   enum/recon suggestions are NOT hidden — they stay in
+   `also_worth_trying` — this is a re-ordering of the deck, not a
+   deletion of options. See `coach.py::get_recommendation()`'s
+   shell_level check for the implementation.
 2. Severity, per-suggestion (critical/high findings surface before
    low/info ones, within the same phase) — ranked by looking up the
    specific finding each suggestion is tied to, not one severity

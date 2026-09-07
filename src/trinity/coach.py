@@ -29,6 +29,7 @@ import sqlite3
 
 from pydantic import BaseModel
 
+from trinity.boxes import get_box
 from trinity.phrasebook import phrase_for
 from trinity.suggest.engine import Suggestion
 from trinity.tools import build_install_guidance, is_tool_installed
@@ -137,6 +138,19 @@ def get_recommendation(conn: sqlite3.Connection, box_id: int) -> Recommendation 
     # suggestion id (more recent) sorts before an older one within the
     # same phase/severity bucket.
     ranked_rows.sort(key=lambda rr: (_PHASE_ORDER.get(rr.suggestion.phase, 99), rr.severity_rank, -rr.created_order))
+
+    # PROTOTYPE (1.6): an explicit user/root shell is a foothold
+    # milestone. Phase-order-always-wins would keep recommending
+    # gobuster after they already have a shell. Promote privesc/post
+    # to the front of the deck; leftover enum stays in also_worth_trying.
+    # Claude: this fights INSTRUCTOR_MODE.md's raw phase rule on
+    # purpose — say if you want it reverted.
+    box = get_box(conn, box_id)
+    if box and box.shell_level in ("user", "root"):
+        promoted = [rr for rr in ranked_rows if rr.suggestion.phase in ("privesc", "post")]
+        if promoted:
+            leftover = [rr for rr in ranked_rows if rr not in promoted]
+            ranked_rows = promoted + leftover
 
     top_row = ranked_rows[0]
     rest = [rr.suggestion for rr in ranked_rows[1:]]

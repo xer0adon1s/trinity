@@ -1,13 +1,41 @@
 # Trinity — Design Document
 
 Trinity is a local-first recon copilot for CTF/HTB/THM-style offensive
-security practice. It watches your recon tool output, matches findings
-against a local knowledge base, suggests next commands, and explains
-anything in plain English — almost all of it for free, without ever
-calling an AI model, because it's not guessing: it's looking things up.
+security practice, **designed to be used alongside an agentic
+operating system** (Omarchy/Hyprland is the reference environment,
+paired with whatever coding-agent CLI the operator already runs —
+Hermes, Claude Code, Codex, or similar). It watches your recon tool
+output, matches findings against a local knowledge base, suggests next
+commands, and explains anything in plain English — the deterministic
+80% of that work for free and instantly, with the operator's own agent
+CLI as the ONLY path Trinity ever uses to fill a genuine knowledge gap
+(never a hosted API key of its own, never a chat pane — see
+`docs/AGENT_HARNESS.md`).
+
+Trinity exists for three reasons, in this order:
+
+1. **Teach.** Let someone crack their first box, with their own hands,
+   and build real instincts about how machines get compromised.
+2. **Get people genuinely excited about hacking.** Most tools in this
+   space read like an RFC had a baby with a compliance checklist.
+   Trinity's job is to make the first box feel like a win worth
+   chasing another one for — Alexander watched a year of box-cracking
+   experience go by without ever hearing about AutoRecon; that gap is
+   exactly the kind of thing Trinity should close, with enthusiasm,
+   not just accuracy.
+3. **Propel the next generation of security professionals into a
+   world where agent-vs-agent is the default, not the exception.**
+   The next real adversaries will use AI tooling against their
+   targets. Someone who learns offensive security fundamentals
+   side-by-side with an AI agent from day one — instead of bolting AI
+   on after years of manual habits — is better prepared for that
+   world than someone who never touches agentic tooling until it's
+   forced on them. Trinity is a deliberate on-ramp into agent-assisted
+   security work, not a tool that pretends agents don't exist.
 
 Free, open source, MIT licensed. No accounts, no licensing, no paid tier.
-Just another tool in a budding cybersecurity person's toolbelt.
+Just another tool in a budding cybersecurity person's toolbelt — one
+built for the era they're actually entering.
 
 ## Core philosophy: drive the car before you build the car
 
@@ -34,12 +62,18 @@ free, instantly, so AI only gets involved for the genuinely novel 20%.
 
 ## Core architecture principles
 
-**Local-first, AI as last resort.** Every finding gets checked against a
-local SQLite knowledge base (with full-text search) and a live, offline
-ExploitDB lookup (via `searchsploit`) before anything is ever considered
-for AI escalation. When escalation genuinely is needed, Trinity builds a
-tight, specific question — never a full scan dump — to keep the token
-cost as small as the question actually is.
+**Local-first, agent-assisted, never a chat pane.** Every finding gets
+checked against a local SQLite knowledge base (with full-text search)
+and a live, offline ExploitDB lookup (via `searchsploit`) before
+anything is ever considered for escalation. When a genuine knowledge
+gap remains, Trinity hands a tight, specific question to the
+operator's own agent CLI (see `docs/AGENT_HARNESS.md`) — never a
+hosted API call of its own, never an in-app chat box. The answer gets
+reviewed once, then cached permanently, so the same gap is never paid
+for twice. This is a deliberate escalation path, not a fallback we're
+ashamed of: an agent-assisted tool used by an agent-fluent generation
+should use its agent well, just never as a crutch that replaces local
+lookups Trinity can already do for free.
 
 **Mode is a lens, not a fork.** Trinity has two output modes —
 `educational` (a narrated walkthrough, written to teach) and
@@ -76,14 +110,25 @@ This maps directly onto a tiling window manager (Omarchy/Hyprland is
 the reference environment, though nothing about Trinity is
 Omarchy-specific): one tile is the student's real terminal, the
 adjacent tile is Trinity's live-updating dashboard, both visible at
-once. Watch-mode (see Roadmap) is the technical feature that makes this
-work — a filesystem watcher on the working directory that notices a new
-scan file the moment it's saved and reacts automatically, with no
-command needed to tell Trinity to look.
+once. Watch-mode (see Roadmap) reacts to new scan files the moment
+they're saved. **Full terminal-session visibility** (see
+`docs/SHOULDER_MODE.md`) goes further: in the dual-pane setup, Trinity
+records the student's own working pane the same way `script` does,
+so it can genuinely watch privesc attempts, shell landings, and
+foothold progress happen — "looking over your shoulder," not just
+reacting to files dropped in a directory. This is an intentional,
+explicit reversal of an earlier, more cautious design decision (see
+`docs/OPEN_DECISIONS.md`'s "Shell-history sensors" entry) — Alexander
+decided the hand-holding value of Trinity genuinely seeing what's
+happening outweighs the more conservative posture we started with.
+The recording only ever happens in the pane the operator explicitly
+started `trinity watch`/`shoulder` against; Trinity never reaches into
+unrelated terminals or reads persistent shell history files.
 
 This shapes every future feature decision: anything that would replace
 the student doing the actual work (auto-running exploits, auto-solving
-a box) is explicitly out of scope. Trinity teaches and assists; it does
+a box) is explicitly out of scope. Trinity teaches and assists — up to
+and including watching closely and reacting in real time — but it does
 not do the box *for* you.
 
 ## Platform-agnostic by design
@@ -174,7 +219,7 @@ the community to extend Trinity faster than any single maintainer could.
   (apt/pacman/brew) if not — the operator installs it themselves, then
   the exact same recommendation reappears automatically on the next
   `trinity next`, no state lost.
-- **175 unit tests**, all passing.
+- **227 unit tests**, all passing.
 
 ## Roadmap
 
@@ -189,36 +234,65 @@ and instant over time, the same way the ELI5 cache already did for
 "what does this command do." Professional mode gets the same
 recommendations with the teaching narration stripped.
 
-**Next, with its own design doc:**
-- **[Methods Index](./docs/METHODS_INDEX.md)** — a crowdsourced,
-  citation-based index of the *different* enumeration/foothold/privesc
-  methods used across public writeups for a given (retired) box, so
-  learners see the range of valid approaches instead of fixating on
-  one. Built from short, Trinity-authored paraphrases with mandatory
-  author + source-URL attribution — never scraped/stored writeup text.
+**Next, three foundational design docs — build in this order, each
+gates the next:**
 
-**After that, roughly in priority order:**
+- **[Update Framework](./docs/UPDATE_FRAMEWORK.md)** — the plumbing
+  underneath everything else below: silent, automatic sync of every
+  external data source (GTFOBins, ExploitDB, PayloadsAllTheThings,
+  platform metadata, and Trinity's own reviewed self-generated
+  knowledge) on every launch, plus the intake/review pipeline that
+  gates anything before it's trusted. Build first — GTFOBins
+  ingestion, the Agent Harness's knowledge growth, and Methods Index's
+  live-drafted entries all plug into this rather than each inventing
+  their own sync logic.
+- **[Agent Harness](./docs/AGENT_HARNESS.md)** — the core mechanism
+  that makes Trinity's local knowledge base *grow*: when a genuine gap
+  exists, Trinity hands a tight question to the operator's own agent
+  CLI (Hermes/Omarchy's default agent first, any detected agent CLI
+  otherwise, manual copy-paste as the fallback with no agent present),
+  reviews the answer through the Update Framework's intake queue, and
+  caches it permanently. This is also the mechanism behind Methods
+  Index's live-drafted method entries and GTFOBins' proactive coach
+  integration.
+- **[Shoulder Mode](./docs/SHOULDER_MODE.md)** — full terminal-session
+  visibility into the operator's own working pane (not just file
+  watching), so Trinity can genuinely notice shell landings, privesc
+  attempts, and foothold progress instead of asking the operator to
+  self-report every milestone.
+
+**Then, revised in light of the above:**
+- **[Methods Index](./docs/METHODS_INDEX.md)** — a citation-based
+  index of the *different* enumeration/foothold/privesc methods used
+  across public writeups for a given (retired) box. Originally
+  freely-browsable; now gated behind Rabbit Hole Detection's
+  stuck-signal as an escape hatch (protects the first-attempt
+  experience), and entries can be drafted live by the Agent Harness
+  during a stuck moment (with citation/review safeguards) rather than
+  only pre-authored offline.
 - **[Rabbit Hole Detection](./docs/RABBIT_HOLE_DETECTION.md)** —
   recognizing (and teaching how to recognize) unproductive rabbit
-  holes, one of the biggest real skills and pitfalls named in actual
-  HTB/THM community discussion. Read-only pattern analysis over the
-  existing timeline, surfaced as a gentle nudge from `trinity next`.
+  holes. Rebuilt to actually DO something on trigger (point at a
+  specific untouched lead, offer the Methods Index escape hatch) —
+  not just print a reassuring message.
+
+**After that, roughly in priority order:**
+- GTFOBins full local dataset (ingested via the Update Framework, thin
+  Trinity-voice wrapper layer, proactively surfaced by the coach when
+  a `sudo -l`/SUID finding names a covered binary) — see
+  `docs/OPEN_DECISIONS.md` for the sequencing note.
 - `trinity stats` — progress/streak tracking read straight off the
   existing timeline data (boxes rooted, techniques hit, current streak)
-  — directly serves the "keep learners from feeling overwhelmed or
-  burning out" goal.
-- HTB/THM (and other platforms', where available) API integration to
-  auto-pull box metadata instead of typing `--box`/`--platform` by hand.
-- Deeper KB coverage: GTFOBins and PayloadsAllTheThings ingestion for
-  privesc/technique matching beyond what `searchsploit` covers well.
+  — held until a real prioritization pass; hidden until the operator's
+  first rooted box either way, so it never reads as a scoreboard for
+  a game not yet won.
 - Real packaging (PyPI) so installation is `pip install` instead of a
   git clone + `uv run`.
 
 See **[docs/FEATURES_BACKLOG.md](./docs/FEATURES_BACKLOG.md)** for
-further discussed-but-unscheduled ideas (achievements/gamification,
-AutoRecon teaching integration, loot/evidence tracking, frustration
-checkpoints, and more) — recorded there so they aren't lost between
-sessions, promoted to their own design doc once actually scheduled.
+further discussed-but-unscheduled ideas — recorded there so they
+aren't lost between sessions, promoted to their own design doc once
+actually scheduled.
 
 ## Explicitly out of scope
 
@@ -231,3 +305,9 @@ sessions, promoted to their own design doc once actually scheduled.
 - Scraping/storing full third-party writeup text, or indexing anything
   paywalled/subscription-gated — see Methods Index above for the
   citation-based alternative that's actually planned.
+
+The *why* behind each rail, the constrained cousins that might
+still be discussable, and blank decision/notes fields for later
+review live in
+**[docs/OPEN_DECISIONS.md](./docs/OPEN_DECISIONS.md)**. That file
+is a working memo, not a change to this list.

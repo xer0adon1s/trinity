@@ -11,6 +11,18 @@ def test_create_box_defaults_to_educational_mode(conn):
     box = create_box(conn, "TestBox")
     assert box.mode == "educational"
     assert box.status == "active"
+    assert box.shell_level is None
+    assert box.difficulty is None
+
+
+def test_create_box_stores_difficulty(conn):
+    box = create_box(conn, "HardBox", difficulty="hard")
+    assert box.difficulty == "hard"
+
+
+def test_create_box_rejects_invalid_difficulty(conn):
+    with pytest.raises(ValueError):
+        create_box(conn, "InsaneBox", difficulty="insane")
 
 
 def test_create_box_rejects_invalid_mode(conn):

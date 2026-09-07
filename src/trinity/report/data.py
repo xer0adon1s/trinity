@@ -12,6 +12,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from trinity.boxes import Box, get_box
+from trinity.loot import LootItem, list_loot
 from trinity.timeline import get_timeline
 
 SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4, None: 5}
@@ -30,6 +31,7 @@ class ReportData(BaseModel):
     box: Box
     events: list[TimelineEvent]
     engagement: dict | None = None
+    loot: list[LootItem] = []
     generated_at: str
 
     @property
@@ -79,5 +81,6 @@ def gather_report_data(conn: sqlite3.Connection, box_id: int) -> ReportData:
         box=box,
         events=events,
         engagement=engagement,
+        loot=list_loot(conn, box_id),
         generated_at=datetime.now().isoformat(timespec="seconds"),
     )
