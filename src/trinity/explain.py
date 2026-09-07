@@ -7,6 +7,24 @@ from __future__ import annotations
 import re
 import sqlite3
 
+# Real suggested commands substitute an actual target (an IP address,
+# or the literal string $TARGET when no host is known yet -- see
+# suggest/engine.py's _effective_host/_curl_command) in place of a
+# placeholder. The entire pre-authored ELI5 library (explain_seed/*.py,
+# 86+ entries) is keyed using the literal template token `<target>`
+# instead. Before this fix, NO real suggested command could ever hit
+# the seed cache: `nmap -sC -sV 10.10.10.3` (real) never matched
+# `nmap -sC -sV <target>` (seed key) under plain string equality --
+# confirmed live, not a hypothetical, while reviewing the AD engine's
+# explain-seed entries (which have the exact same problem as every
+# other seed file, not something AD-specific). `<userlist>`/`<realm>`-
+# style seed placeholders are intentionally NOT touched here -- those
+# vary per-operator/per-box and can't be safely guessed at, unlike a
+# target host, which the suggest engine reliably substitutes in one of
+# exactly two recognizable shapes.
+_IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+_TARGET_VAR_RE = re.compile(r"\$TARGET\b")
+
 
 def normalize(command: str) -> str:
     """Collapse whitespace so trivially-different invocations of the same
@@ -14,12 +32,38 @@ def normalize(command: str) -> str:
     return re.sub(r"\s+", " ", command.strip())
 
 
+def _templated(command: str) -> str:
+    """Replace a real target (IPv4 literal, or the $TARGET placeholder
+    used when no host is known yet) with the seed library's `<target>`
+    template token, so a real suggested command can hit a pre-authored
+    seed entry. Does not touch anything else (usernames, wordlists,
+    domain names) -- those are genuinely per-operator and would be
+    unsafe to guess-normalize."""
+    templated = _TARGET_VAR_RE.sub("<target>", command)
+    templated = _IPV4_RE.sub("<target>", templated)
+    return templated
+
+
 def get_explanation(conn: sqlite3.Connection, command: str) -> str | None:
     """Return the cached ELI5 explanation for a command, or None if it's
-    never been explained before."""
+    never been explained before. Tries the exact normalized command
+    first, then falls back to the target-templated form so a real
+    command like `nmap -sC -sV 10.10.10.3` can still hit the seed
+    library's `nmap -sC -sV <target>` entry."""
+    normalized = normalize(command)
     row = conn.execute(
         "SELECT explanation FROM command_explanations WHERE command = ?",
-        (normalize(command),),
+        (normalized,),
+    ).fetchone()
+    if row:
+        return row["explanation"]
+
+    templated = normalize(_templated(normalized))
+    if templated == normalized:
+        return None
+    row = conn.execute(
+        "SELECT explanation FROM command_explanations WHERE command = ?",
+        (templated,),
     ).fetchone()
     return row["explanation"] if row else None
 
