@@ -13,18 +13,21 @@ import sqlite3
 SEED_ENTRIES = [
     {
         "source": "user_curated",
-        "title": "Anonymous LDAP bind on an Active Directory DC",
+        "title": "LDAP open on a domain controller — worth checking for anonymous bind",
         "summary": (
-            "The DC answered an unauthenticated LDAP query (RootDSE "
-            "namingContexts or a user dump with -x and no bind DN). "
-            "That is a misconfiguration, not a CVE — searchsploit will "
-            "not have a matching exploit. Dump users/groups/computers "
+            "An open LDAP port on a DC does NOT by itself mean anonymous "
+            "bind works — that has to actually be tested. When it does "
+            "work, an unauthenticated query (RootDSE namingContexts, or "
+            "a user dump with -x and no bind DN) is a misconfiguration, "
+            "not a CVE, so searchsploit won't have a matching exploit. "
+            "If the check below succeeds, dump users/groups/computers "
             "next and feed the names into AS-REP roasting."
         ),
         "detail": (
-            "Try: `ldapsearch -x -H ldap://<target> -s base namingcontexts` "
-            "then `ldapsearch -x -H ldap://<target> -b '<DC=...>' "
-            "'(objectClass=user)' sAMAccountName`."
+            "Check with: `ldapsearch -x -H ldap://<target> -s base namingcontexts` "
+            "— if that returns real naming contexts (not an error), THEN try "
+            "`ldapsearch -x -H ldap://<target> -b '<DC=...>' "
+            "'(objectClass=user)' sAMAccountName` to dump users."
         ),
         "match_service": "ldap",
         "match_version": None,
@@ -33,23 +36,29 @@ SEED_ENTRIES = [
     },
     {
         "source": "user_curated",
-        "title": "AS-REP roasting (Kerberos pre-auth disabled)",
+        "title": "Kerberos open — worth checking for AS-REP roastable accounts",
         "summary": (
-            "An account with 'Do not require Kerberos preauthentication' "
-            "set will hand out an AS-REP encrypted to its password "
-            "without proving you know that password first. Offline-crack "
-            "the $krb5asrep$ blob. This is a per-account misconfig, not "
-            "a product CVE."
+            "An open Kerberos port does NOT by itself mean any account "
+            "has 'Do not require Kerberos preauthentication' set — most "
+            "domains have zero such accounts. This is worth checking, "
+            "not something already confirmed. IF a roastable account "
+            "exists, GetNPUsers.py will hand back a $krb5asrep$ blob "
+            "encrypted to that account's password with no credentials "
+            "needed first — a per-account misconfig, not a product CVE, "
+            "so there's nothing for searchsploit to find either way."
         ),
         "detail": (
-            "Try: `GetNPUsers.py <realm>/ -usersfile <users.txt> -no-pass "
-            "-dc-ip <target>`. Crack with hashcat -m 18200. No hash is "
+            "Check with: `GetNPUsers.py <realm>/ -usersfile <users.txt> -no-pass "
+            "-dc-ip <target>`. An empty/error result means no roastable "
+            "accounts exist on this domain — that's a normal, common "
+            "outcome, not a sign the check failed. If it DOES return a "
+            "hash, crack offline with hashcat -m 18200. No hash is "
             "stored by Trinity; run the cracker yourself."
         ),
         "match_service": "kerberos-sec",
         "match_version": None,
         "tags": "ad,kerberos,asrep,misconfiguration",
-        "severity": "high",
+        "severity": "medium",
     },
 ]
 

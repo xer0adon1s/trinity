@@ -153,11 +153,34 @@ def parse_nmap_cmd(xml_path: str, box_name: str, target: str | None, platform: s
         console.print("[yellow]No open ports found in that scan.[/yellow]")
         return
 
+    # Synthetic, non-port-based findings (e.g. the AD engine's
+    # domain-controller detection, which summarizes MULTIPLE ports into
+    # one derived fact rather than describing a single port) have no
+    # real port/service to put in the normal "host:port service"
+    # header -- rendering them through that template produces a
+    # nonsense-looking line like "10.10.10.161:None ?" that reads as a
+    # parser bug to anyone watching the terminal, even though the
+    # AD-aware suggestions underneath are correct. Give them their own
+    # header instead. Purely cosmetic -- does not touch matching,
+    # scoring, or suggestion logic.
+    _SYNTHETIC_FINDING_LABELS = {
+        "ad_domain_controller": "Active Directory domain controller detected",
+        "ldap_anon": "Anonymous LDAP bind result",
+        "asrep_hash": "AS-REP roastable account found",
+        "kerberoastable_account": "Kerberoastable service account found",
+    }
+
     for fr in result.findings:
         f = fr.finding
-        header = f"[bold cyan]{f.host}:{f.port}[/bold cyan] {f.service or '?'}"
-        if f.product:
-            header += f" ({f.product} {f.version or ''})"
+        synthetic_label = _SYNTHETIC_FINDING_LABELS.get(f.kind)
+        if synthetic_label:
+            header = f"[bold cyan]{synthetic_label}[/bold cyan]"
+            if f.detail:
+                header += f" — {f.detail}"
+        else:
+            header = f"[bold cyan]{f.host}:{f.port}[/bold cyan] {f.service or '?'}"
+            if f.product:
+                header += f" ({f.product} {f.version or ''})"
         console.rule(header)
 
         if not fr.matches:

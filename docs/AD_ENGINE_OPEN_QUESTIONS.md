@@ -43,3 +43,29 @@ were implemented. Doc reviews.
   suggestion instead of ldapsearch. Real operators often reach for
   netexec first; this pass kept ldapsearch so the first two AD steps
   stay in one tool family and don't require a new tools.py entry.
+
+## Explain cache still misses real AD commands (found 2026-09-07, Doc review)
+
+The systemic `<target>`-vs-real-substitution bug affecting the WHOLE
+explain-seed library (not AD-specific) was fixed in `explain.py` --
+see the "explain: match real target substitutions against templated
+seed keys" commit on main. That fix handles target-host substitution
+only (IPv4 literal or `$TARGET`).
+
+It does NOT fix AD's `GetNPUsers.py`/`ldapsearch` seed entries, which
+have additional real-vs-template mismatches beyond the target:
+`<domain>` vs a real realm (`htb.local`), `<userlist>` vs a real
+filename (`users.txt`), and the real suggested command includes a
+`-dc-ip <target>` flag the seed key doesn't have at all. Confirmed
+live: `trinity explain "GetNPUsers.py htb.local/ -usersfile users.txt
+-no-pass -dc-ip 10.10.10.161"` still falls through to the AI-escalation
+prompt even after the general fix.
+
+This needs either (a) making `suggest_for_port`'s AD rules emit the
+EXACT same command shape as the seed key (drop `-dc-ip` from the
+suggestion, or add it to the seed key -- whichever is more correct
+Impacket usage), or (b) a more general per-placeholder templating
+scheme in explain.py (risky -- domain/userlist names are genuinely
+per-operator, per earlier design note against guess-normalizing them).
+Logged, not fixed -- needs a decision on which approach, not a quick
+mechanical patch.
