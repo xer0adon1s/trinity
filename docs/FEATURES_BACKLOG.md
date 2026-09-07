@@ -115,14 +115,37 @@ sequencing dependency lands; "CUT" means don't build/ship at all.
   without a dedicated design conversation (spoiler-risk, same category
   as Methods Index).
 
-**The structural fix that applies regardless of the above:** `trinity
+**The structural fix that applies regardless of the above:** RESOLVED
+— `src/trinity/advisories.py`, not a flat character cap. `trinity
 next`'s output was stacking up to eight advisory lines (difficulty
 note, wordlist warning, tool warning, did/skip hint, also-worth-trying,
 unlock teaser, rabbit-hole nudge, frustration checkpoint, AutoRecon
 nudge) — exactly the "Duolingo guilt"/overwhelm failure mode DESIGN.md
 exists to prevent, self-inflicted by good individual features with no
-traffic control. Fix before shipping any of the above: cap `next` to
-its core recommendation plus at most ONE rotating advisory line.
+traffic control. Alexander explicitly rejected a flat line/character
+cap as a band-aid that truncates the pileup without deciding which
+advisory matters most. Built instead: `src/trinity/advisories.py`, a
+priority-ranked registry of "advisory providers" (rabbit-hole,
+unlock-card teaser, difficulty note, AutoRecon nudge) — `next` asks
+every provider for its opinion and shows only the single highest-
+priority one that has something to say, composed into the WHY
+narration as one flowing sentence (reusing phrasebook.py's data-driven
+phrase pattern) rather than a stacked bulleted list. Everything else
+is silently deferred to a future `next` call, never lost, never shown
+alongside the winner. Zero AI — arbitration between known, pre-written
+sentences isn't an ambiguity problem, so this stays fully local/
+instant/free.
+
+**Known follow-up bug found during live verification (not fixed, not
+in scope for the advisory work):** the suggestion engine can emit a
+duplicate `enum4linux-ng -A $TARGET` suggestion when two separate SMB
+findings (e.g. ports 139 and 445 both being SMB) each independently
+trigger the same suggestion rule. Confirmed live via
+`process_scan_file` against the lame-style fixture -- two distinct
+`finding_id`s (3 and 4) produced byte-identical suggestion text. Needs
+a content-level dedup (same command text, not just same finding) in
+`suggest/engine.py`'s persistence step, separate task from the
+advisory-arbitration work above.
 
 ## Wizard: hacker name
 

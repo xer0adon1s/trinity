@@ -28,3 +28,11 @@ def clear_state(conn: sqlite3.Connection, key: str) -> None:
 # Well-known keys
 SETUP_DONE = "setup_done"        # "1" once the intro wizard has run
 ACTIVE_BOX_ID = "active_box_id"  # id of the box currently being worked
+HACKER_NAME = "hacker_name"      # operator's chosen handle, asked once at setup
+HACKER_NAME_ENABLED = "hacker_name_enabled"  # "1"/"0" -- separate from
+    # whether a name is stored, so disabling-then-re-enabling recalls
+    # the old name instead of re-asking from scratch (see `trinity
+    # nickname` CLI group / wizard.py's get_hacker_name()).
+NOTIFY_ENABLED = "notify_enabled"  # "1"/"0" -- desktop notify-send on
+    # critical matches. Off by default, opt-in at setup or via
+    # `trinity notify on/off/test`. See notify.py.

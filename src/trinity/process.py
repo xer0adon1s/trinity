@@ -179,7 +179,7 @@ def process_scan_file(conn: sqlite3.Connection, box_id: int, path: Path) -> Proc
                 phase="recon", detail=top.summary, severity=top.severity, ref_id=finding_id,
             )
             if top.severity == "critical":
-                notify_critical("Trinity — critical match", top.title)
+                notify_critical(conn, "Trinity — critical match", top.title)
         else:
             label = f"{finding.host}:{finding.port}" if finding.port else (finding.path or finding.host or "?")
             log_event(

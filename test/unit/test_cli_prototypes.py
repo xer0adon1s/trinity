@@ -30,7 +30,24 @@ def test_shell_then_next_recommends_privesc(tmp_path, monkeypatch):
     nxt = runner.invoke(cli, ["next", "--box", "ProtoBox"])
     assert nxt.exit_code == 0, nxt.output
     assert any(token in nxt.output for token in ("cat /etc/crontab", "sudo -l", "linpeas", "find /"))
-    assert "trinity unlock" in nxt.output
+    # The unlock-card teaser is now arbitrated (advisories.py) rather
+    # than always printed: a real curiosity card genuinely IS
+    # available here, so `trinity unlock` should surface UNLESS a
+    # higher-priority advisory (e.g. a rabbit-hole stuck-signal) won
+    # the single advisory slot instead -- confirm one of those two
+    # explanations holds, not the old "always printed" assumption.
+    from trinity.advisories import pick_advisory
+    from trinity.boxes import get_box_by_name
+
+    box = get_box_by_name(conn, "ProtoBox")
+    advisory = pick_advisory(conn, box)
+    if advisory and advisory.kind == "unlock":
+        assert "trinity unlock" in nxt.output
+    else:
+        # A different (higher-priority) advisory won the slot instead
+        # -- the unlock card is still genuinely available, just
+        # deferred to a future `next` call rather than shown now.
+        assert advisory is not None
 
 
 def test_unlock_take_and_decline(tmp_path, monkeypatch):
@@ -69,4 +86,11 @@ def test_hard_box_next_mentions_difficulty(tmp_path, monkeypatch):
     conn.commit()
     result = runner.invoke(cli, ["next", "--box", "HardCli"])
     assert result.exit_code == 0, result.output
-    assert "Listed as Hard" in result.output
+    # Composed into the WHY narration as one flowing sentence now
+    # (advisories.py), not a separate standalone line -- see
+    # docs/FEATURES_BACKLOG.md's "structural fix" note. Normalize
+    # whitespace first: Rich wraps long lines at the terminal width,
+    # which can split the sentence across a line break mid-phrase.
+    normalized = " ".join(result.output.split())
+    assert "listed as Hard" in normalized
+    assert "taking a long time here is normal" in normalized

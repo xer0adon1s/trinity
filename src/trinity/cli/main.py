@@ -432,6 +432,119 @@ def setup_cmd():
     run_intro(conn)
 
 
+@cli.group("nickname")
+def nickname_group():
+    """Manage the optional hacker-name Trinity greets you with. Off by
+    default until you opt in (at `trinity setup` or here)."""
+
+
+@nickname_group.command("show")
+def nickname_show_cmd():
+    """Show whether the hacker name is on, and what it's currently set to."""
+    from trinity.state import HACKER_NAME, HACKER_NAME_ENABLED, get_state
+    from trinity.wizard import get_hacker_name
+
+    conn = connect()
+    stored_name = get_state(conn, HACKER_NAME)
+    active_name = get_hacker_name(conn)
+    if active_name:
+        console.print(f"[green]On.[/green] Trinity calls you [bold]{active_name}[/bold].")
+    elif stored_name:
+        console.print(f"[dim]Off.[/dim] A name is saved ({stored_name!r}) but not active — `trinity nickname on` to re-enable.")
+    else:
+        console.print("[dim]Off. No name set yet — `trinity nickname set <name>` to pick one.[/dim]")
+
+
+@nickname_group.command("on")
+def nickname_on_cmd():
+    """Turn the hacker-name greeting on. If a name was set before
+    (even if later turned off), reuses it — no need to retype it."""
+    from trinity.state import HACKER_NAME, get_state
+    from trinity.wizard import set_hacker_name_enabled
+
+    conn = connect()
+    set_hacker_name_enabled(conn, True)
+    name = get_state(conn, HACKER_NAME)
+    if name:
+        console.print(f"[green]On.[/green] Trinity will call you [bold]{name}[/bold] again.")
+    else:
+        console.print("[green]On[/green] — but no name is set yet. Run `trinity nickname set <name>`.")
+
+
+@nickname_group.command("off")
+def nickname_off_cmd():
+    """Turn the hacker-name greeting off. The name itself is kept (not
+    erased), so turning it back on later remembers it."""
+    from trinity.wizard import set_hacker_name_enabled
+
+    conn = connect()
+    set_hacker_name_enabled(conn, False)
+    console.print("[dim]Off. Trinity will use generic greetings. `trinity nickname on` to bring it back.[/dim]")
+
+
+@nickname_group.command("set")
+@click.argument("name")
+def nickname_set_cmd(name: str):
+    """Set (and enable) a hacker name in one step."""
+    from trinity.wizard import set_hacker_name
+
+    conn = connect()
+    set_hacker_name(conn, name)
+    console.print(f"[green]Got it, {name}.[/green]")
+
+
+@cli.group("notify")
+def notify_group():
+    """Manage the optional desktop notification on critical matches.
+    Off by default until you opt in (at `trinity setup` or here)."""
+
+
+@notify_group.command("show")
+def notify_show_cmd():
+    """Show whether desktop notifications are currently on."""
+    from trinity.notify import is_notify_enabled
+
+    conn = connect()
+    if is_notify_enabled(conn):
+        console.print("[green]On.[/green] You'll get a desktop notification on critical matches.")
+    else:
+        console.print("[dim]Off.[/dim] `trinity notify on` to enable.")
+
+
+@notify_group.command("on")
+def notify_on_cmd():
+    """Turn desktop notifications on."""
+    from trinity.state import NOTIFY_ENABLED, set_state
+
+    conn = connect()
+    set_state(conn, NOTIFY_ENABLED, "1")
+    console.print("[green]On.[/green] You'll get a desktop notification on critical matches.")
+
+
+@notify_group.command("off")
+def notify_off_cmd():
+    """Turn desktop notifications off."""
+    from trinity.state import NOTIFY_ENABLED, set_state
+
+    conn = connect()
+    set_state(conn, NOTIFY_ENABLED, "0")
+    console.print("[dim]Off.[/dim] `trinity notify on` to re-enable.")
+
+
+@notify_group.command("test")
+def notify_test_cmd():
+    """Fire one test notification right now, regardless of the on/off
+    toggle -- useful for confirming notify-send actually works on this
+    machine before relying on it."""
+    from trinity.notify import send_test_notification
+
+    sent = send_test_notification()
+    if sent:
+        console.print("[green]Sent.[/green] Check your desktop notification area.")
+    else:
+        console.print("[yellow]Couldn't send it.[/yellow] Is `notify-send` installed?")
+
+
 @cli.command("box-status")
 @click.argument("box_name")
 @click.argument("status", type=click.Choice(["active", "rooted", "abandoned"]))
@@ -529,7 +642,18 @@ def next_cmd(box_name: str):
     underneath as secondary options (annotated installed/not-installed
     once Hole C makes more than one live at once). In professional
     mode, the WHY narration is skipped -- just the command and
-    secondary options."""
+    secondary options.
+
+    Advisory content (difficulty note, curiosity-card teaser,
+    rabbit-hole nudge, AutoRecon graduation nudge) is arbitrated by
+    advisories.py rather than each feature printing directly: only the
+    single highest-priority advisory with something to say is shown,
+    composed into one flowing sentence rather than stacked as separate
+    lines. See docs/FEATURES_BACKLOG.md's "structural fix" note --
+    this replaces an earlier flat-line-count-cap plan with real
+    arbitration instead of truncation."""
+    from trinity.advisories import pick_advisory
+
     conn = connect()
     box = get_box_or_fail(conn, box_name)
 
@@ -543,12 +667,6 @@ def next_cmd(box_name: str):
 
     console.rule("[bold green]Recommended next[/bold green]")
     console.print(f"[bold]{rec.top.command}[/bold]\n")
-    # PROTOTYPE (difficulty-aware): quiet, only for Hard. Easy stays
-    # silent so we don't imply they should already be done.
-    if box.difficulty == "hard":
-        console.print(
-            "[dim]Listed as Hard — taking a long time here is normal, not a verdict.[/dim]\n"
-        )
 
     if rec.wordlist_missing:
         console.print(f"[yellow]{NO_WORDLIST_GUIDANCE}[/yellow]\n")
@@ -566,13 +684,26 @@ def next_cmd(box_name: str):
             "[dim]Once that's installed, just run this same command again -- "
             f"I'll pick up right where we left off: `trinity next --box \"{box_name}\"`[/dim]\n"
         )
+        if box.mode != "professional":
+            advisory = pick_advisory(conn, box)
+            if advisory:
+                console.print(f"[dim]{advisory.sentence.capitalize()}.[/dim]\n")
     elif box.mode == "professional":
         # Professional mode: mode is a lens, not a fork -- same
         # ranking, same data, but the teaching narration is stripped
         # to keep this a fast reference rather than a lesson.
         console.print(f"[dim](run `trinity explain \"{rec.top.command}\"` for a command breakdown)[/dim]")
     else:
-        console.print(f"[dim]{rec.why}[/dim]\n")
+        why = rec.why
+        advisory = pick_advisory(conn, box)
+        if advisory:
+            # Compose into ONE flowing paragraph rather than a
+            # separate stacked line -- the actual point of the
+            # arbitration system: one professorial thought, not a
+            # bulleted pileup. Lower-case join since the advisory
+            # sentence is written as a clause, not a new sentence.
+            why = f"{why} And one more thing worth knowing: {advisory.sentence}."
+        console.print(f"[dim]{why}[/dim]\n")
         quoted_command = f'"{rec.top.command}"'
         quoted_box = f'"{box_name}"'
         console.print(
@@ -591,32 +722,6 @@ def next_cmd(box_name: str):
         for s, installed in zip(rec.also_worth_trying, rec.also_worth_trying_installed):
             marker = "" if installed else "  [dim](tool not installed)[/dim]"
             console.print(f"  [dim]{s.command}[/dim]{marker}")
-
-    from trinity.unlocks import peek_card
-    if peek_card(conn, box.id):
-        console.print(
-            f"\n[dim]A curiosity card is available (optional, skip by default): "
-            f"`trinity unlock --box \"{box_name}\"`[/dim]"
-        )
-
-    from trinity.frustration import checkpoint_text
-    from trinity.graduation import autorecon_nudge
-    from trinity.rabbit_hole import detect_rabbit_hole, log_nudge, recent_nudge_count
-
-    signal = detect_rabbit_hole(conn, box.id)
-    if signal:
-        prior = recent_nudge_count(conn, box.id)
-        extra = checkpoint_text(prior)
-        log_nudge(conn, box.id, signal)
-        console.print(f"\n[yellow]{signal.message}[/yellow]")
-        if signal.alternative_command:
-            console.print(f"[dim]Untouched lead: {signal.alternative_command}[/dim]")
-        if extra:
-            console.print(f"[yellow]{extra}[/yellow]")
-
-    nudge = autorecon_nudge(conn)
-    if nudge and box.mode != "professional":
-        console.print(f"\n[dim]{nudge}[/dim]")
 
 
 @cli.command("did")

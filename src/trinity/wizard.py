@@ -21,7 +21,15 @@ from rich.prompt import Confirm, IntPrompt, Prompt
 
 from trinity.boxes import Box, create_box, get_box, touch_active_box
 from trinity.platform_registry import get_platform, list_platform_ids
-from trinity.state import ACTIVE_BOX_ID, SETUP_DONE, get_state, set_state
+from trinity.state import (
+    ACTIVE_BOX_ID,
+    HACKER_NAME,
+    HACKER_NAME_ENABLED,
+    NOTIFY_ENABLED,
+    SETUP_DONE,
+    get_state,
+    set_state,
+)
 from trinity.vpn import check_vpn
 
 console = Console()
@@ -46,12 +54,97 @@ THEME_TIP = (
 
 
 def run_intro(conn: sqlite3.Connection) -> None:
-    """First-run intro: what Trinity is, plus the theme tip. Shown once,
-    re-runnable on demand via `trinity setup`."""
+    """First-run intro: what Trinity is, the theme tip, and an explicit
+    opt-in ask for a hacker name -- purely cosmetic, off by default
+    until the operator says yes, and always re-toggleable later via
+    `trinity nickname on/off/set` without needing to re-run setup."""
     console.print(Panel(INTRO_TEXT, title="Welcome to Trinity", border_style="cyan"))
     console.print()
     console.print(Panel(THEME_TIP, border_style="dim"))
+    console.print()
+
+    existing_name = get_state(conn, HACKER_NAME)
+    already_enabled = get_state(conn, HACKER_NAME_ENABLED) == "1"
+
+    if already_enabled and existing_name:
+        keep = Confirm.ask(
+            f"One fun optional thing -- Trinity currently calls you "
+            f"'{existing_name}'. Keep that?", default=True,
+        )
+        if not keep:
+            new_name = Prompt.ask("New hacker name (Enter to turn this off)", default="", show_default=False).strip()
+            if new_name:
+                set_state(conn, HACKER_NAME, new_name)
+                console.print(f"[green]Got it, {new_name}.[/green]")
+            else:
+                set_state(conn, HACKER_NAME_ENABLED, "0")
+                console.print("[dim]Okay, turned off. Re-enable any time with `trinity nickname on`.[/dim]")
+    else:
+        want_name = Confirm.ask(
+            "One fun optional thing -- want Trinity to call you by a hacker "
+            "name instead of generic greetings?", default=False,
+        )
+        if want_name:
+            name = Prompt.ask(
+                f"Pick a hacker name" + (f" (was '{existing_name}')" if existing_name else ""),
+                default=existing_name or "", show_default=bool(existing_name),
+            ).strip()
+            if name:
+                set_state(conn, HACKER_NAME, name)
+                set_state(conn, HACKER_NAME_ENABLED, "1")
+                console.print(f"[green]Got it, {name}.[/green]")
+            else:
+                set_state(conn, HACKER_NAME_ENABLED, "0")
+
+    console.print()
+    if get_state(conn, NOTIFY_ENABLED) is None:
+        # Only asked once, ever -- re-running setup doesn't re-nag if
+        # the operator already made a call (on or off), same as the
+        # hacker-name toggle. `trinity notify on/off` remains the way
+        # to change it later without re-running the whole intro.
+        from trinity.notify import send_test_notification
+
+        want_notify = Confirm.ask(
+            "Another optional thing -- want a desktop notification when "
+            "Trinity finds something critical? (needs notify-send)", default=False,
+        )
+        set_state(conn, NOTIFY_ENABLED, "1" if want_notify else "0")
+        if want_notify:
+            sent = send_test_notification()
+            if sent:
+                console.print("[green]On.[/green] Sent a test notification.")
+            else:
+                console.print(
+                    "[yellow]On, but couldn't send a test notification[/yellow] "
+                    "(is notify-send installed?). It'll keep trying quietly."
+                )
+        else:
+            console.print("[dim]Off. Turn on any time with `trinity notify on`.[/dim]")
+
     set_state(conn, SETUP_DONE, "1")
+
+
+def get_hacker_name(conn: sqlite3.Connection) -> str | None:
+    """The operator's chosen handle, if they opted in AND set one.
+    Respects the on/off toggle (`trinity nickname on/off`) separately
+    from whether a name is stored, so disabling never requires
+    re-typing the name to re-enable later."""
+    if get_state(conn, HACKER_NAME_ENABLED) != "1":
+        return None
+    return get_state(conn, HACKER_NAME)
+
+
+def set_hacker_name(conn: sqlite3.Connection, name: str) -> None:
+    """Sets a name and enables it in one step -- used by `trinity
+    nickname set <name>`."""
+    set_state(conn, HACKER_NAME, name)
+    set_state(conn, HACKER_NAME_ENABLED, "1")
+
+
+def set_hacker_name_enabled(conn: sqlite3.Connection, enabled: bool) -> None:
+    """Toggles the feature on/off without touching the stored name --
+    used by `trinity nickname on`/`trinity nickname off`."""
+    set_state(conn, HACKER_NAME_ENABLED, "1" if enabled else "0")
 
 
 def run_vpn_check(platform_id: str | None) -> None:
@@ -169,6 +262,9 @@ def prompt_resume_or_new(conn: sqlite3.Connection) -> Box | None:
     options.append("Run setup again")
 
     console.print()
+    hacker_name = get_hacker_name(conn)
+    greeting = f"Welcome back, {hacker_name}." if hacker_name else "Welcome back."
+    console.print(f"[bold]{greeting}[/bold]")
     for i, opt in enumerate(options, start=1):
         console.print(f"  [bold]{i}[/bold]. {opt}")
     choice = IntPrompt.ask("\nWhat would you like to do?", choices=[str(i) for i in range(1, len(options) + 1)], default=1)
@@ -214,6 +310,10 @@ def show_handoff(conn: sqlite3.Connection, box: Box) -> None:
     rec = get_recommendation(conn, box.id)
     console.print()
 
+    hacker_name = get_hacker_name(conn)
+    handoff_title = f"Your first move, {hacker_name}" if hacker_name else "Your first move"
+    recommended_title = f"Recommended next, {hacker_name}" if hacker_name else "Recommended next"
+
     target_hint = f" {box.target}" if box.target else " <target>"
     nmap_cmd = f"nmap -sC -sV -oX scan.xml{target_hint}"
 
@@ -223,7 +323,7 @@ def show_handoff(conn: sqlite3.Connection, box: Box) -> None:
             f"  [bold]{nmap_cmd}[/bold]\n\n"
             "[dim]Save it in the directory Trinity is watching (your current "
             "directory, unless you tell it otherwise).[/dim]",
-            title="Your first move", border_style="cyan",
+            title=handoff_title, border_style="cyan",
         ))
         if Confirm.ask("\nStart watch-mode in THIS pane now?", default=True):
             from trinity.tui.dashboard import run_dashboard
@@ -237,7 +337,7 @@ def show_handoff(conn: sqlite3.Connection, box: Box) -> None:
 
     console.print(Panel(
         f"[bold]{rec.top.command}[/bold]\n\n[dim]{rec.why}[/dim]",
-        title="Recommended next", border_style="green",
+        title=recommended_title, border_style="green",
     ))
     console.print(
         f"[dim](run `trinity next --box \"{box.name}\"` any time to see this again, "
