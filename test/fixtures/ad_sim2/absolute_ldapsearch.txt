@@ -1,0 +1,21 @@
+# extended LDIF
+#
+# LDAPv3
+# base <> (default) with scope baseObject
+# filter: (objectclass=*)
+# requesting: namingcontexts
+#
+# Shape from 0xdf HTB Absolute: anon ldapsearch -x -s base namingcontexts
+# succeeds; subtree query with -b DC=... fails without a bind.
+# https://0xdf.gitlab.io/2023/05/27/htb-absolute.html
+
+dn:
+namingcontexts: DC=absolute,DC=htb
+namingcontexts: CN=Configuration,DC=absolute,DC=htb
+namingcontexts: CN=Schema,CN=Configuration,DC=absolute,DC=htb
+namingcontexts: DC=DomainDnsZones,DC=absolute,DC=htb
+namingcontexts: DC=ForestDnsZones,DC=absolute,DC=htb
+
+# search result
+search: 2
+result: 0 Success

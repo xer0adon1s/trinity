@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- HTB Cascade 10.10.10.182 — 0xdf 2020-07-25 (reused from round-1). No 464 in 0xdf all-TCP. Domain: cascade.local banner (no trailing 0.). Anonymous ldapsearch dumps real users. -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.182" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.182" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="53">
+<state state="open" reason="syn-ack"/>
+<service name="domain" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="88">
+<state state="open" reason="syn-ack"/>
+<service name="kerberos-sec" method="probed" conf="10" product="Microsoft Windows Kerberos"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Microsoft Windows netbios-ssn"/>
+</port>
+<port protocol="tcp" portid="389">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: cascade.local, Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="636">
+<state state="open" reason="syn-ack"/>
+<service name="tcpwrapped" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="3268">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: cascade.local, Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="3269">
+<state state="open" reason="syn-ack"/>
+<service name="tcpwrapped" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="5985">
+<state state="open" reason="syn-ack"/>
+<service name="wsman" method="probed" conf="10"/>
+</port>
+</ports>
+</host>
+</nmaprun>

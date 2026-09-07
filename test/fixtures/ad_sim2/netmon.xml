@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- HTB Netmon 10.10.10.152 — 0xdf 2019-06-29 + hackingarticles (reused from round-1). Windows with FTP/HTTP/SMB/RPC. NOT a DC: no 88/389/53. Negative control — also the box where the Anonymous-FTP-vs-AD-LDAP-KB false positive was originally found and fixed (match_service FTS gate). -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.152" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.152" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="21">
+<state state="open" reason="syn-ack"/>
+<service name="ftp" method="probed" conf="10" product="Microsoft ftpd"/>
+<script id="ftp-anon" output="Anonymous FTP login allowed (FTP code 230)"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Indy httpd" version="18.1.37.13946" extrainfo="Paessler PRTG bandwidth monitor"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Microsoft Windows netbios-ssn"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10" product="Microsoft Windows Server 2008 R2 - 2012 microsoft-ds"/>
+</port>
+</ports>
+</host>
+</nmaprun>

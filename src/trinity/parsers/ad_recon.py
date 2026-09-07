@@ -204,10 +204,28 @@ def parse_ldapsearch(text: str, raw_ref: str | Path | None = None) -> list[Findi
     return findings
 
 
+# Impacket's own negative-result phrasing, printed once per checked
+# user when NO account is roastable (verified against real GetNPUsers.py
+# output, e.g. HTB Mantis's own run: "[-] User james doesn't have
+# UF_DONT_REQUIRE_PREAUTH set"). Found live during a fresh AD
+# simulation pass: Mantis's real fixture -- a genuine, common "ran the
+# check, found nothing" result, not a hypothetical -- had zero
+# $krb5asrep$/Getting-TGT markers, so the dispatcher below silently
+# discarded it as "not recognized" instead of acknowledging a
+# completed, negative AS-REP check.
+_GETNPUSERS_NEGATIVE_RE = re.compile(
+    r"doesn't have UF_DONT_REQUIRE_PREAUTH set", re.IGNORECASE
+)
+
+
 def parse_getnpusers(text: str, raw_ref: str | Path | None = None) -> list[Finding]:
     """Parse Impacket GetNPUsers.py stdout. Records the roastable
     account name only — the $krb5asrep$ blob is matched then dropped,
     same 'don't pile up secrets' instinct as not auto-looting hashes.
+    A run that checked accounts and found none roastable still
+    produces a Finding (kind='asrep_check_negative') so the operator
+    sees the check completed rather than the file being silently
+    dropped as unrecognized.
     """
     ref = str(raw_ref) if raw_ref else None
     accounts: list[str] = []
@@ -219,6 +237,17 @@ def parse_getnpusers(text: str, raw_ref: str | Path | None = None) -> list[Findi
         acct = match.group(1)
         if acct not in accounts:
             accounts.append(acct)
+
+    if not accounts and _GETNPUSERS_NEGATIVE_RE.search(text):
+        checked = len(_GETNPUSERS_NEGATIVE_RE.findall(text))
+        return [
+            Finding(
+                source_tool="GetNPUsers.py",
+                kind="asrep_check_negative",
+                detail=f"checked {checked} account(s), none roastable",
+                raw_ref=ref,
+            )
+        ]
 
     return [
         Finding(
@@ -262,7 +291,11 @@ def parse_ad_recon_file(path: str | Path) -> list[Finding]:
     except OSError:
         return []
 
-    if "$krb5asrep$" in text or "Getting TGT for" in text:
+    if (
+        "$krb5asrep$" in text
+        or "Getting TGT for" in text
+        or _GETNPUSERS_NEGATIVE_RE.search(text)
+    ):
         return parse_getnpusers(text, path)
     if "$krb5tgs$" in text or "ServicePrincipalName" in text:
         return parse_getuserspns(text, path)

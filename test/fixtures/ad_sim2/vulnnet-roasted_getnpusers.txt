@@ -1,0 +1,8 @@
+Impacket v0.9.22 - Copyright 2020 SecureAuth Corporation
+
+[-] User Administrator doesn't have UF_DONT_REQUIRE_PREAUTH set
+[-] User Guest doesn't have UF_DONT_REQUIRE_PREAUTH set
+[-] User enterprise-core-vn doesn't have UF_DONT_REQUIRE_PREAUTH set
+$krb5asrep$23$t-skid@VULNNET-RST.LOCAL:11111111111111111111111111111111$2222222222222222222222222222222222222222
+[-] User j-goldenhand doesn't have UF_DONT_REQUIRE_PREAUTH set
+[-] User j-leet doesn't have UF_DONT_REQUIRE_PREAUTH set

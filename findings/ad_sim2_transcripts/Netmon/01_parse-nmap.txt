@@ -1,0 +1,73 @@
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-ad-sim2/test/fixtures/ad_sim2/netmon.xml --box Netmon --target 10.10.10.152 --platform htb
+exit=0
+----- stdout -----
+──────────────────── 10.10.10.152:21 ftp (Microsoft ftpd ) ─────────────────────
+  Anonymous FTP login  [MEDIUM]  (score 0.9, user_curated)
+  FTP server allows the 'anonymous' user with any/blank password. Always worth 
+checking before anything else on port 21.
+  Try: `ftp <target>` then username `anonymous`, any password.
+
+─────────────── 10.10.10.152:80 http (Indy httpd 18.1.37.13946) ────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.9, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+─────────────── 10.10.10.152:135 msrpc (Microsoft Windows RPC ) ────────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+──────── 10.10.10.152:139 netbios-ssn (Microsoft Windows netbios-ssn ) ─────────
+  No local match — this would be a candidate for AI escalation.
+─ 10.10.10.152:445 microsoft-ds (Microsoft Windows Server 2008 R2 - 2012 micr… ─
+  SMB null session / anonymous enumeration  [MEDIUM]  (score 0.9, user_curated)
+  SMB (port 445/139) often allows unauthenticated enumeration of shares, users, 
+and groups — a very common early foothold path.
+  Try: `smbclient -L //<target>/ -N`, `enum4linux -a <target>`, or `crackmapexec
+smb <target> --shares -u '' -p ''`.
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
+  (run `trinity explain "ftp $TARGET  # login as anonymous, then: ls -la && get 
+any interesting files"` to break this down)
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+
+----- stderr -----
+

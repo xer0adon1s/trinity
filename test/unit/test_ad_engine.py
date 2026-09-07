@@ -132,6 +132,29 @@ def test_getnpusers_records_account_not_hash():
     assert "aaaaaaaa" not in (findings[0].detail or "")
 
 
+def test_getnpusers_negative_result_still_produces_a_finding():
+    """Found live during the AD sim round-2 corpus (HTB Mantis's real
+    GetNPUsers.py output): when no account is roastable, Impacket
+    prints only its own "doesn't have UF_DONT_REQUIRE_PREAUTH set"
+    line per checked user, with zero $krb5asrep$/Getting-TGT markers.
+    Before this fix, that genuine, common outcome was silently
+    dropped as unrecognized rather than acknowledged as a completed,
+    negative check.
+    """
+    text = (FIXTURES / "ad_getnpusers_negative.txt").read_text()
+    findings = parse_getnpusers(text)
+    assert len(findings) == 1
+    assert findings[0].kind == "asrep_check_negative"
+    assert "3 account" in (findings[0].detail or "")
+    assert "none roastable" in (findings[0].detail or "")
+
+
+def test_dispatcher_recognizes_getnpusers_negative_result():
+    findings = parse_ad_recon_file(FIXTURES / "ad_getnpusers_negative.txt")
+    assert len(findings) == 1
+    assert findings[0].kind == "asrep_check_negative"
+
+
 def test_getuserspns_records_account_not_hash():
     text = (FIXTURES / "ad_getuserspns.txt").read_text()
     findings = parse_getuserspns(text)

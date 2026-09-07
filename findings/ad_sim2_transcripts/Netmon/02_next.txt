@@ -1,0 +1,25 @@
+$ trinity next --box Netmon
+exit=0
+----- stdout -----
+─────────────────────────────── Recommended next ───────────────────────────────
+enum4linux-ng -A $TARGET
+
+'enum4linux-ng' isn't installed. Depending on your system:
+  Debian/Ubuntu:  sudo apt install enum4linux-ng
+  Otherwise:      https://github.com/cddmp/enum4linux-ng (pip install or clone +
+run directly)
+
+Once that's installed, just run this same command again -- I'll pick up right 
+where we left off: `trinity next --box "Netmon"`
+
+(done? `trinity did --box "Netmon"`  ·  skipping this one? `trinity skip --box 
+"Netmon"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+----- stderr -----
+

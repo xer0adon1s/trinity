@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- THM RazorBlack 10.10.149.120 — classroom.anir0y.in writeup. DC ports + NFS. Domain: raz0rblack.thm banner (no trailing 0.). Genuinely credential-less AS-REP roast: GetNPUsers.py 'raz0rblack.thm/' -usersfile user.lst -no-pass -dc-ip <target> (usernames sourced from an anonymously-mounted NFS share, not creds) hit twilliams. -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.149.120" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.149.120" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="53">
+<state state="open" reason="syn-ack"/>
+<service name="domain" method="probed" conf="10" product="Simple DNS Plus"/>
+</port>
+<port protocol="tcp" portid="88">
+<state state="open" reason="syn-ack"/>
+<service name="kerberos-sec" method="probed" conf="10" product="Microsoft Windows Kerberos"/>
+</port>
+<port protocol="tcp" portid="111">
+<state state="open" reason="syn-ack"/>
+<service name="rpcbind" method="probed" conf="10" product="2-4" extrainfo="RPC #100000"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Microsoft Windows netbios-ssn"/>
+</port>
+<port protocol="tcp" portid="389">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: raz0rblack.thm, Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="464">
+<state state="open" reason="syn-ack"/>
+<service name="kpasswd5" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="593">
+<state state="open" reason="syn-ack"/>
+<service name="ncacn_http" method="probed" conf="10" product="Microsoft Windows RPC over HTTP 1.0"/>
+</port>
+<port protocol="tcp" portid="636">
+<state state="open" reason="syn-ack"/>
+<service name="tcpwrapped" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="2049">
+<state state="open" reason="syn-ack"/>
+<service name="mountd" method="probed" conf="10" product="1-3" extrainfo="RPC #100005"/>
+</port>
+<port protocol="tcp" portid="3268">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP"/>
+</port>
+<port protocol="tcp" portid="3269">
+<state state="open" reason="syn-ack"/>
+<service name="tcpwrapped" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="3389">
+<state state="open" reason="syn-ack"/>
+<service name="ms-wbt-server" method="probed" conf="10" product="Microsoft Terminal Services"/>
+</port>
+</ports>
+</host>
+</nmaprun>

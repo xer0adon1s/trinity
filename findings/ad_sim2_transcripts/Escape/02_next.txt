@@ -1,0 +1,27 @@
+$ trinity next --box Escape
+exit=0
+----- stdout -----
+─────────────────────────────── Recommended next ───────────────────────────────
+ldapsearch -x -H ldap://$TARGET -s base namingcontexts
+
+'ldapsearch' doesn't have install instructions in Trinity's tool registry yet --
+try your system's package manager, or search for "ldapsearch install" for the 
+official instructions.
+
+Once that's installed, just run this same command again -- I'll pick up right 
+where we left off: `trinity next --box "Escape"`
+
+Most of the recent timeline is still in `recon` while other leads sit untouched.
+the classic trap is deciding one port *must* be the answer. parking it for a bit
+is allowed..
+
+(done? `trinity did --box "Escape"`  ·  skipping this one? `trinity skip --box 
+"Escape"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  enum4linux-ng -A $TARGET  (tool not installed)
+  GetNPUsers.py sequel.htb/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+----- stderr -----
+

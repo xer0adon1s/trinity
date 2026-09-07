@@ -1,0 +1,12 @@
+$ trinity explain enum4linux-ng -A $TARGET --box Legacy
+exit=0
+----- stdout -----
+From local cache (no tokens spent):
+
+enum4linux-ng is a rewritten, more actively maintained version of enum4linux. -A
+runs all the standard enumeration checks (shares, users, groups, OS info, 
+password policy) in one pass. Its output is structured enough to parse 
+programmatically, unlike the original tool's plain text.
+
+----- stderr -----
+

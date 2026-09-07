@@ -1,0 +1,190 @@
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-ad-sim2/test/fixtures/ad_sim2/blackfield.xml --box Blackfield --target 10.10.10.192 --platform htb
+exit=0
+----- stdout -----
+──────────────────────────── 10.10.10.192:53 domain ────────────────────────────
+  No local match — this would be a candidate for AI escalation.
+────────── 10.10.10.192:88 kerberos-sec (Microsoft Windows Kerberos ) ──────────
+  Microsoft Windows - Kerberos Security Feature Bypass (MS16-014)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 39442), CVE-2016-0049;MS16-014. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/local/39442.txt
+
+  Microsoft Windows Kerberos - 'Pass The Ticket' Replay Security Bypass  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 34462). Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/34462.txt
+
+  Microsoft Windows Kerberos - Privilege Escalation (MS14-068)  [HIGH]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 35474), CVE-2014-6324;OSVDB-114751;MS14-068. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/35474.py
+
+  Microsoft Windows Kerberos - Security Feature Bypass (MS16-101)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40409), CVE-2016-3237;MS16-101. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/local/40409.txt
+
+  Kerberos open — worth checking for AS-REP roastable accounts  [MEDIUM]  (score
+0.9, user_curated)
+  An open Kerberos port does NOT by itself mean any account has 'Do not require 
+Kerberos preauthentication' set — most domains have zero such accounts. This is 
+worth checking, not something already confirmed. IF a roastable account exists, 
+GetNPUsers.py will hand back a $krb5asrep$ blob encrypted to that account's 
+password with no credentials needed first — a per-account misconfig, not a 
+product CVE, so there's nothing for searchsploit to find either way.
+  Check with: `GetNPUsers.py <realm>/ -usersfile <users.txt> -no-pass -dc-ip 
+<target>`. An empty/error result means no roastable accounts exist on this 
+domain — that's a normal, common outcome, not a sign the check failed. If it 
+DOES return a hash, crack offline with hashcat -m 18200. No hash is stored by 
+Trinity; run the cracker yourself.
+
+─────────────── 10.10.10.192:135 msrpc (Microsoft Windows RPC ) ────────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+─────── 10.10.10.192:389 ldap (Microsoft Windows Active Directory LDAP ) ───────
+  Microsoft Active Directory LDAP Server - 'Username' Enumeration  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 32586), CVE-2008-5112;OSVDB-50000. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/32586.py
+
+  LDAP open on a domain controller — worth checking for anonymous bind  [MEDIUM]
+(score 0.9, user_curated)
+  An open LDAP port on a DC does NOT by itself mean anonymous bind works — that 
+has to actually be tested. When it does work, an unauthenticated query (RootDSE 
+namingContexts, or a user dump with -x and no bind DN) is a misconfiguration, 
+not a CVE, so searchsploit won't have a matching exploit. If the check below 
+succeeds, dump users/groups/computers next and feed the names into AS-REP 
+roasting.
+  Check with: `ldapsearch -x -H ldap://<target> -s base namingcontexts` — if 
+that returns real naming contexts (not an error), THEN try `ldapsearch -x -H 
+ldap://<target> -b '<DC=...>' '(objectClass=user)' sAMAccountName` to dump 
+users.
+
+  SUID binaries are the first privesc check on Linux  [HIGH]  (score 0.6, 
+user_curated)
+  Once you have a foothold, listing SUID binaries is priority one — many are 
+exploitable via GTFOBins-documented techniques to escalate straight to root.
+  Try: `find / -perm -4000 -type f 2>/dev/null`, then check each binary found 
+against gtfobins.github.io.
+
+──────────────────────── 10.10.10.192:445 microsoft-ds ─────────────────────────
+  SMB null session / anonymous enumeration  [MEDIUM]  (score 0.9, user_curated)
+  SMB (port 445/139) often allows unauthenticated enumeration of shares, users, 
+and groups — a very common early foothold path.
+  Try: `smbclient -L //<target>/ -N`, `enum4linux -a <target>`, or `crackmapexec
+smb <target> --shares -u '' -p ''`.
+
+────── 10.10.10.192:593 ncacn_http (Microsoft Windows RPC over HTTP 1.0 ) ──────
+  No local match — this would be a candidate for AI escalation.
+────── 10.10.10.192:3268 ldap (Microsoft Windows Active Directory LDAP ) ───────
+  Microsoft Active Directory LDAP Server - 'Username' Enumeration  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 32586), CVE-2008-5112;OSVDB-50000. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/32586.py
+
+  LDAP open on a domain controller — worth checking for anonymous bind  [MEDIUM]
+(score 0.9, user_curated)
+  An open LDAP port on a DC does NOT by itself mean anonymous bind works — that 
+has to actually be tested. When it does work, an unauthenticated query (RootDSE 
+namingContexts, or a user dump with -x and no bind DN) is a misconfiguration, 
+not a CVE, so searchsploit won't have a matching exploit. If the check below 
+succeeds, dump users/groups/computers next and feed the names into AS-REP 
+roasting.
+  Check with: `ldapsearch -x -H ldap://<target> -s base namingcontexts` — if 
+that returns real naming contexts (not an error), THEN try `ldapsearch -x -H 
+ldap://<target> -b '<DC=...>' '(objectClass=user)' sAMAccountName` to dump 
+users.
+
+  SUID binaries are the first privesc check on Linux  [HIGH]  (score 0.6, 
+user_curated)
+  Once you have a foothold, listing SUID binaries is priority one — many are 
+exploitable via GTFOBins-documented techniques to escalate straight to root.
+  Try: `find / -perm -4000 -type f 2>/dev/null`, then check each binary found 
+against gtfobins.github.io.
+
+───────────── 10.10.10.192:5985 http (Microsoft HTTPAPI httpd 2.0) ─────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.9, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+──── Active Directory domain controller detected — domain: BLACKFIELD.local ────
+  LDAP open on a domain controller — worth checking for anonymous bind  [MEDIUM]
+(score 0.6, user_curated)
+  An open LDAP port on a DC does NOT by itself mean anonymous bind works — that 
+has to actually be tested. When it does work, an unauthenticated query (RootDSE 
+namingContexts, or a user dump with -x and no bind DN) is a misconfiguration, 
+not a CVE, so searchsploit won't have a matching exploit. If the check below 
+succeeds, dump users/groups/computers next and feed the names into AS-REP 
+roasting.
+  Check with: `ldapsearch -x -H ldap://<target> -s base namingcontexts` — if 
+that returns real naming contexts (not an error), THEN try `ldapsearch -x -H 
+ldap://<target> -b '<DC=...>' '(objectClass=user)' sAMAccountName` to dump 
+users.
+
+  Kerberos open — worth checking for AS-REP roastable accounts  [MEDIUM]  (score
+0.6, user_curated)
+  An open Kerberos port does NOT by itself mean any account has 'Do not require 
+Kerberos preauthentication' set — most domains have zero such accounts. This is 
+worth checking, not something already confirmed. IF a roastable account exists, 
+GetNPUsers.py will hand back a $krb5asrep$ blob encrypted to that account's 
+password with no credentials needed first — a per-account misconfig, not a 
+product CVE, so there's nothing for searchsploit to find either way.
+  Check with: `GetNPUsers.py <realm>/ -usersfile <users.txt> -no-pass -dc-ip 
+<target>`. An empty/error result means no roastable accounts exist on this 
+domain — that's a normal, common outcome, not a sign the check failed. If it 
+DOES return a hash, crack offline with hashcat -m 18200. No hash is stored by 
+Trinity; run the cracker yourself.
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  GetNPUsers.py BLACKFIELD.local/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  (run `trinity explain "GetNPUsers.py BLACKFIELD.local/ -usersfile users.txt 
+-no-pass -dc-ip $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:5985 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  ldapsearch -x -H ldap://$TARGET -s base namingcontexts
+  (run `trinity explain "ldapsearch -x -H ldap://$TARGET -s base 
+namingcontexts"` to break this down)
+
+----- stderr -----
+

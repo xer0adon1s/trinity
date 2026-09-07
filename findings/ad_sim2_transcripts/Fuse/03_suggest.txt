@@ -1,0 +1,34 @@
+$ trinity suggest --box Fuse
+exit=0
+----- stdout -----
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+GetNPUsers.py fabricorp.local/ -usersfile users.txt -no-pass -dc-ip $TARGET
+Port 88 is Kerberos and the domain is fabricorp.local — check for accounts that 
+don't require pre-authentication (AS-REP roasting) before you have any 
+credentials.
+
+enum4linux-ng -A $TARGET
+Port 139 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+enum4linux-ng -A $TARGET
+Port 445 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 5985 is serving HTTP — directory brute-forcing is the standard next step to
+find hidden admin panels, backups, or API routes before anything else.
+
+ldapsearch -x -H ldap://$TARGET -s base namingcontexts
+This host looks like a domain controller — an anonymous LDAP bind against the 
+RootDSE is the standard first AD enum step and often returns the domain name for
+free.
+
+
+----- stderr -----
+

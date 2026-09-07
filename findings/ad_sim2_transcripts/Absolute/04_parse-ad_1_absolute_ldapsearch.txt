@@ -1,0 +1,68 @@
+$ trinity parse-ad /home/alexander/Work/trinity-wt-ad-sim2/test/fixtures/ad_sim2/absolute_ldapsearch.txt --box Absolute --target 10.10.11.181
+exit=0
+----- stdout -----
+──────── ldap_anon anonymous LDAP bind succeeded; domain: absolute.htb ─────────
+  LDAP open on a domain controller — worth checking for anonymous bind  [MEDIUM]
+(score 0.6, user_curated)
+  An open LDAP port on a DC does NOT by itself mean anonymous bind works — that 
+has to actually be tested. When it does work, an unauthenticated query (RootDSE 
+namingContexts, or a user dump with -x and no bind DN) is a misconfiguration, 
+not a CVE, so searchsploit won't have a matching exploit. If the check below 
+succeeds, dump users/groups/computers next and feed the names into AS-REP 
+roasting.
+  Check with: `ldapsearch -x -H ldap://<target> -s base namingcontexts` — if 
+that returns real naming contexts (not an error), THEN try `ldapsearch -x -H 
+ldap://<target> -b '<DC=...>' '(objectClass=user)' sAMAccountName` to dump 
+users.
+
+  Anonymous FTP login  [MEDIUM]  (score 0.6, user_curated)
+  FTP server allows the 'anonymous' user with any/blank password. Always worth 
+checking before anything else on port 21.
+  Try: `ftp <target>` then username `anonymous`, any password.
+
+  Kerberos open — worth checking for AS-REP roastable accounts  [MEDIUM]  (score
+0.6, user_curated)
+  An open Kerberos port does NOT by itself mean any account has 'Do not require 
+Kerberos preauthentication' set — most domains have zero such accounts. This is 
+worth checking, not something already confirmed. IF a roastable account exists, 
+GetNPUsers.py will hand back a $krb5asrep$ blob encrypted to that account's 
+password with no credentials needed first — a per-account misconfig, not a 
+product CVE, so there's nothing for searchsploit to find either way.
+  Check with: `GetNPUsers.py <realm>/ -usersfile <users.txt> -no-pass -dc-ip 
+<target>`. An empty/error result means no roastable accounts exist on this 
+domain — that's a normal, common outcome, not a sign the check failed. If it 
+DOES return a hash, crack offline with hashcat -m 18200. No hash is stored by 
+Trinity; run the cracker yourself.
+
+  SMB null session / anonymous enumeration  [MEDIUM]  (score 0.6, user_curated)
+  SMB (port 445/139) often allows unauthenticated enumeration of shares, users, 
+and groups — a very common early foothold path.
+  Try: `smbclient -L //<target>/ -N`, `enum4linux -a <target>`, or `crackmapexec
+smb <target> --shares -u '' -p ''`.
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  GetNPUsers.py absolute.htb/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  (run `trinity explain "GetNPUsers.py absolute.htb/ -usersfile users.txt 
+-no-pass -dc-ip $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:5985 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  ldapsearch -x -H ldap://$TARGET -s base namingcontexts
+  (run `trinity explain "ldapsearch -x -H ldap://$TARGET -s base 
+namingcontexts"` to break this down)
+  ldapsearch -x -H ldap://$TARGET -b 'DC=absolute,DC=htb' '(objectClass=user)' 
+sAMAccountName
+  (run `trinity explain "ldapsearch -x -H ldap://$TARGET -b 'DC=absolute,DC=htb'
+'(objectClass=user)' sAMAccountName"` to break this down)
+
+----- stderr -----
+

@@ -1,0 +1,5 @@
+Impacket v0.9.22 - Copyright 2020 SecureAuth Corporation
+
+[-] User james doesn't have UF_DONT_REQUIRE_PREAUTH set
+[-] User administrator doesn't have UF_DONT_REQUIRE_PREAUTH set
+[-] User mantis doesn't have UF_DONT_REQUIRE_PREAUTH set

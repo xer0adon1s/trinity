@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- HTB Mantis 10.10.10.52 — 0xdf 2020-09-03. DC ports; port 88 reads as tcpwrapped (not kerberos-sec) in the real scan — tests port-number-based detection, not string sniffing. Domain: htb.local banner (no trailing 0.). GetNPUsers.py run unauthenticated (no creds) against all enumerated users, genuinely found ZERO roastable accounts — real negative-check result. Real exploit path is MS14-068 Kerberos PAC forgery with creds — out of scope. -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.52" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.52" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="53">
+<state state="open" reason="syn-ack"/>
+<service name="domain" method="probed" conf="10" product="Microsoft DNS 6.1.7601 (1DB15CD4)" extrainfo="Windows Server 2008 R2 SP1"/>
+</port>
+<port protocol="tcp" portid="88">
+<state state="open" reason="syn-ack"/>
+<service name="tcpwrapped" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Microsoft Windows netbios-ssn"/>
+</port>
+<port protocol="tcp" portid="389">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: htb.local, Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10" product="Windows Server 2008 R2 Standard 7601 Service Pack 1 microsoft-ds" extrainfo="workgroup: HTB"/>
+</port>
+<port protocol="tcp" portid="464">
+<state state="open" reason="syn-ack"/>
+<service name="tcpwrapped" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="593">
+<state state="open" reason="syn-ack"/>
+<service name="ncacn_http" method="probed" conf="10" product="Microsoft Windows RPC over HTTP 1.0"/>
+</port>
+<port protocol="tcp" portid="636">
+<state state="open" reason="syn-ack"/>
+<service name="tcpwrapped" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="1337">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft IIS httpd" version="7.5"/>
+</port>
+<port protocol="tcp" portid="1433">
+<state state="open" reason="syn-ack"/>
+<service name="ms-sql-s" method="probed" conf="10" product="Microsoft SQL Server 2014 12.00.2000.00; RTM"/>
+</port>
+<port protocol="tcp" portid="3268">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: htb.local, Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="3269">
+<state state="open" reason="syn-ack"/>
+<service name="tcpwrapped" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="5722">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="8080">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft HTTPAPI httpd" version="2.0" extrainfo="SSDP/UPnP"/>
+</port>
+<port protocol="tcp" portid="9389">
+<state state="open" reason="syn-ack"/>
+<service name="mc-nmf" method="probed" conf="10" product=".NET Message Framing"/>
+</port>
+</ports>
+</host>
+</nmaprun>
