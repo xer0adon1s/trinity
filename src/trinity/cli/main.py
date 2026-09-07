@@ -42,9 +42,30 @@ def cli(ctx: click.Context):
     Run with no arguments to launch the interactive wizard (setup /
     resume a project / start a new one). Every other command below
     still works standalone for anyone who wants to drive directly."""
+    _sync_external_sources()
+
     if ctx.invoked_subcommand is None:
         conn = connect()
         launch_wizard(conn)
+
+
+def _sync_external_sources() -> None:
+    """Update Framework Part 1 (docs/UPDATE_FRAMEWORK.md): silent,
+    automatic, on-launch sync of external data sources. Runs on every
+    invocation of the group callback (i.e. every command), but
+    run_sync_if_due()'s own min-interval check means it's a cheap
+    sync_state SELECT on the vast majority of those, not an actual
+    network hit. Any failure here must never surface to the operator
+    or block a normal command -- caught defensively, same "degrade to
+    local" contract as vpn.py's VPN check."""
+    try:
+        from trinity.gtfobins import sync as sync_gtfobins
+        from trinity.update_sync import run_sync_if_due
+
+        conn = connect()
+        run_sync_if_due(conn, "gtfobins", sync_gtfobins)
+    except Exception:  # noqa: BLE001 -- launch-time sync must never break a command
+        pass
 
 
 @cli.command()
@@ -1032,12 +1053,16 @@ def hash_cmd(value: str):
 @cli.command("gtfobins")
 @click.argument("binary", required=False)
 def gtfobins_cmd(binary: str | None):
-    """PROTOTYPE. Tiny local GTFOBins-style lookup. Not a scrape."""
+    """Local GTFOBins lookup (sudo/suid privesc vectors only), synced
+    in from the full public GTFOBins dataset via the Update Framework
+    (docs/UPDATE_FRAMEWORK.md). Falls back to a small offline seed set
+    if the dataset has never synced yet (no network)."""
     from trinity.gtfobins import known_binaries, lookup
 
     if not binary:
-        console.print("[bold]Known here:[/bold] " + ", ".join(known_binaries()))
-        console.print("[dim]Full catalogue: https://gtfobins.github.io/ — Trinity only ships a starter subset.[/dim]")
+        bins = known_binaries()
+        console.print(f"[bold]Known here ({len(bins)}):[/bold] " + ", ".join(bins))
+        console.print("[dim]Full catalogue (all vectors, not just sudo/suid): https://gtfobins.github.io/[/dim]")
         return
     hit = lookup(binary)
     if hit is None:
@@ -1046,7 +1071,9 @@ def gtfobins_cmd(binary: str | None):
             f"https://gtfobins.github.io/gtfobins/{binary.strip().lower()}/[/dim]"
         )
         return
-    console.print(f"[bold]{hit.binary}[/bold]\n{hit.summary}\n[dim]{hit.source_url}[/dim]")
+    from rich.markup import escape
+
+    console.print(f"[bold]{hit.binary}[/bold]\n{escape(hit.summary)}\n[dim]{hit.source_url}[/dim]")
 
 
 @cli.group("intake")
