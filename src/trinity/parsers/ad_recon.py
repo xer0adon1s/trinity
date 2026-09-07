@@ -37,6 +37,20 @@ _NAMING_CONTEXT_RE = re.compile(
 )
 _SKIP_DN_PREFIXES = ("CN=", "DC=DomainDnsZones", "DC=ForestDnsZones")
 
+# nmap LDAP/SMB banners: "Domain: EGOTISTICAL-BANK.LOCAL0., Site: ..."
+# The trailing `0.` is a NetBIOS-name null pad nmap prints in -sV
+# extrainfo (real DNS name is EGOTISTICAL-BANK.LOCAL). 0xdf's Sauna
+# and Blackfield scans show this verbatim.
+_NMAP_DOMAIN_BANNER_RE = re.compile(
+    r"\bDomain:\s*([A-Za-z0-9._-]+)",
+    re.IGNORECASE,
+)
+_NETBIOS_PADDED_DNS = re.compile(
+    r"^(.+)\.(local|htb|lan|corp|internal|com|net|org)0$",
+    re.IGNORECASE,
+)
+_NOT_A_DOMAIN = frozenset({"WORKGROUP", "LOCALHOST", "WORKGROUP0"})
+
 # Impacket GetNPUsers.py hashcat format (verified against fortra/impacket
 # examples/GetNPUsers.py): $krb5asrep$23$user@DOMAIN:...
 # John format omits the etype integer: $krb5asrep$user@DOMAIN:...
@@ -75,17 +89,38 @@ def _dn_to_dns(dn: str) -> str | None:
     return ".".join(parts)
 
 
+def _sanitize_dns_name(name: str) -> str | None:
+    """Strip nmap NetBIOS padding (`LOCAL0.` → `LOCAL`) and reject
+    workgroup labels. Used for both namingContext DNs and `Domain:`
+    banners."""
+    cleaned = name.strip().strip(".")
+    if not cleaned:
+        return None
+    if cleaned.upper() in _NOT_A_DOMAIN:
+        return None
+    padded = _NETBIOS_PADDED_DNS.match(cleaned)
+    if padded:
+        return f"{padded.group(1)}.{padded.group(2)}"
+    return cleaned
+
+
 def extract_domain_from_text(text: str) -> str | None:
     """Pull a DNS domain out of ldap-rootdse / ldapsearch naming-context
-    lines. Prefer defaultNamingContext (listed first by the regex
-    alternation only if it appears; we scan all matches and prefer a
-    real DC= only name)."""
+    lines, or from nmap's LDAP `Domain:` banner. Prefer a namingContext
+    DN (authoritative); fall back to the banner and strip NetBIOS `0`
+    padding so GetNPUsers.py gets a real realm."""
     found: list[str] = []
     for match in _NAMING_CONTEXT_RE.finditer(text):
-        dns = _dn_to_dns(match.group(1))
+        dns = _sanitize_dns_name(_dn_to_dns(match.group(1)) or "")
         if dns and dns not in found:
             found.append(dns)
-    return found[0] if found else None
+    if found:
+        return found[0]
+    for match in _NMAP_DOMAIN_BANNER_RE.finditer(text):
+        dns = _sanitize_dns_name(match.group(1))
+        if dns:
+            return dns
+    return None
 
 
 def detect_ad_signals(findings: list[Finding]) -> Finding | None:
