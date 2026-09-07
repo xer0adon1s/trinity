@@ -60,7 +60,13 @@ class CoachProfile:
     """A pluggable tool definition. `prompt_pattern` recognizes "the
     operator just entered this tool's session"; `exit_pattern`
     recognizes the session ending. `states` are checked in order —
-    first match wins — so put more specific patterns first."""
+    first match wins — so put more specific patterns first.
+    `nested_profiles` are child tool sessions that can be entered
+    WHILE this profile is active (e.g. Meterpreter spawned from
+    msfconsole's `run`) -- see
+    docs/COACH_METERPRETER_NESTING_DESIGN.md for the full rationale.
+    Empty for every profile that has no nested children (the
+    overwhelmingly common case)."""
 
     tool_id: str
     display_name: str
@@ -68,6 +74,7 @@ class CoachProfile:
     exit_pattern: re.Pattern
     states: list[CoachState]
     announce: str = ""
+    nested_profiles: list["CoachProfile"] = field(default_factory=list)
 
 
 # Stall threshold: how many consecutive lines can pass with zero
@@ -95,6 +102,17 @@ class CoachSession:
     active_state: CoachState | None = None
     stall_counter: int = 0
     stall_level: int = 0  # 0 = no stall yet, 1/2/3 = ladder rung, mirrors hints.py's shape
+    profile_stack: list[CoachProfile] = field(default_factory=list)
+    # Parent profiles waiting underneath the currently active NESTED
+    # child, most-recently-entered last. Empty whenever there's no
+    # nesting in play (the overwhelmingly common case) -- see
+    # docs/COACH_METERPRETER_NESTING_DESIGN.md. Stores only the
+    # profile, deliberately not its prior CoachState/stall counters:
+    # popping back to a parent always resets to a blank active_state,
+    # since resuming an exact prior state (e.g. msfconsole's `fired`,
+    # expecting `sessions`) would produce stale nagging right after
+    # the operator was legitimately inside the very session that
+    # advice was about.
 
     def feed_line(self, line: str) -> str | None:
         if self.active_profile is None:
@@ -124,6 +142,47 @@ class CoachSession:
     def _advance_active_profile(self, line: str) -> str | None:
         profile = self.active_profile
         assert profile is not None
+
+        # --- Nested-profile handling (docs/COACH_METERPRETER_NESTING_DESIGN.md) ---
+        # Three checks, in this order, ahead of the normal single-
+        # profile exit/state logic below (which is otherwise
+        # completely unchanged and still runs for the non-nested case,
+        # i.e. whenever profile_stack is empty and no nested_profiles
+        # match).
+
+        # 1. Own exit while nested: pop back to the parent instead of
+        #    ending the whole coach session. A genuinely empty stack
+        #    (the normal case) still falls through to the existing
+        #    "end everything" behavior further below.
+        if self.profile_stack and profile.exit_pattern.search(line):
+            return self._pop_to_parent()
+
+        # 2. Implicit exit via the PARENT's own prompt reappearing --
+        #    covers a dropped/died nested session (e.g. Metasploit's
+        #    unprompted "Meterpreter session N closed" dropping
+        #    straight back to `msf6 >` with no typed exit command).
+        #    Without this, a dead nested session would permanently
+        #    strand the coach believing it's still inside the child.
+        if self.profile_stack and self.profile_stack[-1].prompt_pattern.search(line):
+            return self._pop_to_parent()
+
+        # 3. Nested entry: this profile declares nested children and
+        #    the line matches one's prompt_pattern -- push the current
+        #    profile and switch active_profile to the child, checking
+        #    immediately for a same-line state match exactly like
+        #    _try_enter_profile does for top-level entry.
+        for child in profile.nested_profiles:
+            if child.prompt_pattern.search(line):
+                self.profile_stack.append(profile)
+                self.active_profile = child
+                self.active_state = None
+                self.stall_counter = 0
+                self.stall_level = 0
+                for state in child.states:
+                    if state.recognize.search(line):
+                        self.active_state = state
+                        break
+                return child.announce or f"Looks like you're in {child.display_name} now."
 
         if profile.exit_pattern.search(line):
             self.active_profile = None
@@ -185,6 +244,19 @@ class CoachSession:
         if self.stall_level == 2:
             return state.stall_stronger_nudge or None
         return state.stall_answer or None
+
+    def _pop_to_parent(self) -> None:
+        """Return to the parent profile after a nested child session
+        ends (typed exit, or the parent's own prompt reappearing
+        unprompted -- see docs/COACH_METERPRETER_NESTING_DESIGN.md).
+        Deliberately resets active_state/stall counters to a blank
+        slate rather than restoring the parent's exact prior state --
+        see CoachSession.profile_stack's docstring for why."""
+        self.active_profile = self.profile_stack.pop()
+        self.active_state = None
+        self.stall_counter = 0
+        self.stall_level = 0
+        return None
 
 
 # --- First-wave profile: raw landed shell ---
@@ -561,6 +633,112 @@ EVIL_WINRM_PROFILE = CoachProfile(
     ),
 )
 
+# --- Third profile: Meterpreter, nested inside msfconsole ---
+#
+# See docs/COACH_METERPRETER_NESTING_DESIGN.md for the full design
+# rationale (the profile-stack mechanism this relies on). Registered
+# ONLY as MSFCONSOLE_PROFILE's nested_profiles below, deliberately
+# NOT added to top-level DEFAULT_PROFILES -- Meterpreter sessions in
+# the workflows this coach covers are only ever spawned from inside
+# msfconsole, so there's no real top-level "entered Meterpreter cold"
+# case, and keeping it out of DEFAULT_PROFILES avoids any chance of a
+# stray "meterpreter >"-shaped string in unrelated output misfiring a
+# top-level profile switch.
+#
+# Real Meterpreter's prompt (`meterpreter > `) has no dynamic content
+# (unlike msfconsole's module-context prompt), so -- per the
+# already-applied engine fix for the "recurring recognize pattern"
+# bug above -- it's now safe to reuse the live prompt directly as the
+# `landed` state's recognize pattern; a same-state re-match no longer
+# starves the stall counter.
+#
+# Same caveat as the existing msfconsole/evil-winrm profiles:
+# msfconsole was not installed on the build host (`which msfconsole`
+# missed), so none of this was checked against a live pty paste.
+# Prompt/message text is taken from widely-documented, stable
+# Metasploit behavior -- treat as a starting point to correct against
+# a real install, same as the other two external-tool profiles.
+
+_METERPRETER_PROMPT = re.compile(r"^meterpreter\s*>\s*", re.MULTILINE)
+# Typed exit, OR Metasploit's own unprompted disconnect message --
+# belt-and-suspenders alongside the engine's generic parent-prompt
+# fallback in _advance_active_profile (check #2), which independently
+# catches a dropped session even if this pattern doesn't match the
+# exact wording of a given Framework version's disconnect message.
+_METERPRETER_EXIT = re.compile(
+    r"meterpreter\s*>\s*(?:exit|background|quit)\b|Meterpreter session \d+ closed",
+    re.IGNORECASE,
+)
+
+_METERPRETER_STATES = [
+    CoachState(
+        name="landed",
+        recognize=_METERPRETER_PROMPT,
+        expected_next=[
+            re.compile(r"^\s*getuid\b", re.IGNORECASE),
+            re.compile(r"^\s*sysinfo\b", re.IGNORECASE),
+        ],
+        stall_nudge=(
+            "You've got a Meterpreter session now -- before doing "
+            "anything else, what's usually worth confirming first "
+            "about who/where you landed?"
+        ),
+        stall_stronger_nudge=(
+            "Meterpreter gives you a lot of post-exploitation modules "
+            "at once, which can be overwhelming -- the standard first "
+            "moves are just confirming your user and the box's basic "
+            "info before going further."
+        ),
+        stall_answer=(
+            "Run `getuid` (confirms your user) and `sysinfo` (OS/arch/"
+            "hostname) to get oriented."
+        ),
+    ),
+    CoachState(
+        name="identified",
+        # Real output-shape signal (getuid's/sysinfo's own printed
+        # header), same "recognize the OUTPUT, not the typed command"
+        # pattern RAW_SHELL_PROFILE's "identified" state and
+        # EVIL_WINRM_PROFILE's "enumerated" state already use.
+        recognize=re.compile(r"Server username:|Computer\s*:.*OS\s*:", re.IGNORECASE),
+        expected_next=[
+            re.compile(r"^\s*ps\b", re.IGNORECASE),
+            re.compile(r"^\s*migrate\b", re.IGNORECASE),
+            re.compile(r"^\s*background\b", re.IGNORECASE),
+        ],
+        stall_nudge=(
+            "You know who/where you are now -- what would be worth "
+            "checking or doing next to stabilize this foothold or "
+            "look around further?"
+        ),
+        stall_stronger_nudge=(
+            "Common next moves from here: check running processes to "
+            "find a more stable one to migrate into, or background "
+            "this session so you can go interact with msfconsole "
+            "again (e.g. to run another module against the same "
+            "host)."
+        ),
+        stall_answer=(
+            "Try `ps` (list processes, useful before `migrate`), or "
+            "`background` to drop back to msfconsole with this "
+            "session still open."
+        ),
+    ),
+]
+
+METERPRETER_PROFILE = CoachProfile(
+    tool_id="meterpreter",
+    display_name="a Meterpreter session",
+    prompt_pattern=_METERPRETER_PROMPT,
+    exit_pattern=_METERPRETER_EXIT,
+    states=_METERPRETER_STATES,
+    announce=(
+        "Looks like that landed a Meterpreter session. I'll narrate "
+        "here if you seem stuck -- I'm only watching, I won't type "
+        "anything for you."
+    ),
+)
+
 MSFCONSOLE_PROFILE = CoachProfile(
     tool_id="msfconsole",
     display_name="msfconsole",
@@ -571,6 +749,7 @@ MSFCONSOLE_PROFILE = CoachProfile(
         "Looks like you're in msfconsole. I'll narrate here if you seem "
         "stuck — I'm only watching, I won't type anything for you."
     ),
+    nested_profiles=[METERPRETER_PROFILE],
 )
 
 
