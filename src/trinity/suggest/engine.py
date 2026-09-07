@@ -419,6 +419,21 @@ def _suggest_for_vuln(
 _DOMAIN_IN_DETAIL_RE = re.compile(r"domain:\s*([A-Za-z0-9.-]+)", re.IGNORECASE)
 
 
+def _normalize_extracted_domain(name: str) -> str:
+    """Strip nmap's LDAP version-probe suffix.
+
+    nmap 7.80+ often prints `Domain: cicada.htb0.` (literal zero plus a
+    trailing dot after the real DNS name) in LDAP service extrainfo.
+    Verified against 0xdf Sauna / Cicada / Blackfield / Support banners
+    (`EGOTISTICAL-BANK.LOCAL0.`, `cicada.htb0.`, `BLACKFIELD.local0.`,
+    `support.htb0.`). A real `active.htb` banner is left alone.
+    """
+    cleaned = name.rstrip(".")
+    if cleaned.endswith("0") and "." in cleaned[:-1]:
+        return cleaned[:-1]
+    return cleaned
+
+
 def _domain_from_findings(findings: list[sqlite3.Row]) -> str | None:
     """Domain DNS name already recorded on this box (ad_domain_controller
     or ldap_anon detail). Needed so the Kerberos port rule can build a
@@ -427,7 +442,7 @@ def _domain_from_findings(findings: list[sqlite3.Row]) -> str | None:
         detail = row["detail"] or ""
         match = _DOMAIN_IN_DETAIL_RE.search(detail)
         if match:
-            return match.group(1)
+            return _normalize_extracted_domain(match.group(1))
     return None
 
 
