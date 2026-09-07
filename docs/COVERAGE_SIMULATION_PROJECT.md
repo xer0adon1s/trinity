@@ -166,6 +166,77 @@ For each box:
    }
    ```
 
+## Known high-value gap — check this FIRST, before the general sweep
+
+Doc already confirmed a specific, concrete instance of this pattern
+during the 2026-09-07 6-box run, but did not fix it (ran out of scope
+for that session). Real evidence, verify it yourself before trusting
+this paragraph: `searchsploit nibbleblog`, `searchsploit prtg`, and
+`searchsploit shellshock` all return real, locally-mirrored exploits
+RIGHT NOW — but Trinity found none of them for the Nibbles/Netmon/
+Shocker boxes in that session. Root cause: `match_finding()` in
+`src/trinity/match/engine.py` only ever calls `searchsploit.search()`
+`if finding.product`. A gobuster/ffuf path discovery (`Finding(kind=
+"path", ...)`, e.g. `/nibbleblog/`, `/cgi-bin/`) never populates
+`.product` — it's a URL path, not a service banner — so the exploit
+sitting right there locally never gets queried. This is the SAME
+shape of bug as today's two fixes (real signal already present in the
+Finding, searchsploit already has the answer, nothing routes them
+together), just on `kind="path"` findings instead of `kind="port"`.
+
+Before running the full 150-250 box sweep, spend a focused early pass
+(bucket 1, "fix live" territory) on this specific class:
+1. For any `Finding(kind="path")` whose `path` contains a plausible
+   app/product name (the segment after the last meaningful `/`, e.g.
+   `nibbleblog` from `/nibbleblog/`, `phpmyadmin` from `/phpmyadmin/`),
+   feed that segment to `searchsploit.search()` as an additional query,
+   same pattern as today's `_ms_bulletin_terms` addition — extract,
+   don't guess; a bare path segment used naively WILL produce noise
+   for generic paths like `/admin/` or `/login/`, so only fire this
+   for path segments that look like a specific product/app name, not
+   for `_INTERESTING_PATH_MARKERS`-style generic terms (see
+   `suggest/engine.py`'s existing `_INTERESTING_PATH_MARKERS` list for
+   what generic looks like — do NOT searchsploit-query those).
+2. Verify against the real Nibbles/Netmon boxes (build fixtures per
+   the per-box procedure below) that this concretely surfaces the
+   Nibbleblog file-upload exploit and the PRTG exploits that are
+   already sitting in searchsploit's local mirror.
+3. Shellshock (Shocker box) is a DIFFERENT shape — it is not a
+   product-with-a-version CVE, it's a technique (crafted HTTP header
+   against any CGI script on a vulnerable Bash). A path-name query
+   alone won't surface it cleanly. This one is better suited to
+   `missing_suggest_coverage` (a new suggestion rule: "a `/cgi-bin/`
+   path was found → this is specifically worth testing for Shellshock,
+   here's how" — phase=`foothold`) plus a short `missing_kb_entry`
+   proposal explaining the technique, not a searchsploit-routing fix.
+   Log it in that bucket rather than forcing it into bucket 1.
+
+## Quality control on today's stopword fix — watch for regressions, not just wins
+
+Today's `_FTS_STOPWORDS` fix (see git log,
+"match/engine: fix cross-service KB false-positives...") is
+correct but was tuned against exactly 6 boxes. Confirmed side effect,
+verify it yourself: `_fts_query("Windows Server 2003")` now reduces to
+the single bare token `"2003"` — a year number specific enough to
+survive the length filter but generic enough to risk NEW cross-matches
+against anything else that happens to mention 2003. As you run the
+broader sweep:
+- If you see a NEW cross-service false-positive that traces back to a
+  bare/near-bare token surviving `_FTS_STOPWORDS` (numbers, 3-4 letter
+  fragments), log it in `searchsploit_routing`-adjacent bucket `other`
+  with a clear note, and you MAY extend `_FTS_STOPWORDS` further with
+  the same justification/regression-test discipline as today's fix —
+  but do not blanket-raise the minimum token length or otherwise
+  weaken matching broadly; keep fixes surgical and per-token-justified,
+  same as today.
+- If you see a FALSE NEGATIVE (a real, legitimate KB/searchsploit match
+  that should have fired but got suppressed because its only
+  distinguishing words are in `_FTS_STOPWORDS`), log that too — this is
+  the opposite failure mode and equally worth knowing about. Do not
+  silently remove words from `_FTS_STOPWORDS` to fix this without
+  understanding whether that reopens today's original bug for that
+  specific case first.
+
 ## Failure bucketing (this is the part Doc actually needs)
 
 Every FAIL and PARTIAL must be bucketed as one of:

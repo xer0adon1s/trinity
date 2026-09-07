@@ -136,6 +136,33 @@ free-text script output per the nmap parser's existing pattern) are
 sufficient, use those instead of touching the model at all. Explain
 your choice in your final report either way.
 
+**False-positive discipline, non-negotiable**: the two most recent
+real bugs found in this codebase (2026-09-07, `match/engine.py`'s
+`_FTS_STOPWORDS` and `_ms_bulletin_terms` fixes) were BOTH
+cross-matching false positives — something Trinity confidently told an
+operator that was actually wrong for their box. DC-signature detection
+is a HIGH false-positive-risk feature by nature: a lone Windows box
+with SMB+RPC open (e.g. HTB Blue/Legacy — single-host, NOT a domain
+controller) looks superficially similar to a real DC's port cluster
+unless the detector requires a genuinely strong, multi-signal
+combination. Do not fire `detect_ad_signals()` off a single port
+(e.g. port 445 alone, or even 445+135 alone — Blue has both and is
+NOT a DC). Require either (a) a real domain name actually extracted
+from script output (the strongest possible signal), OR (b) a
+sufficiently large combination of AD-specific ports together (LDAP 389
+or Global Catalog 3268/3269 SPECIFICALLY, not just SMB/RPC/NetBIOS
+which any Windows box has) before considering it a positive detection.
+Write a unit test proving Blue's and Legacy's real port sets (SMB/RPC/
+NetBIOS only, no LDAP/Kerberos/DNS) do NOT trigger AD detection, using
+those two boxes' REAL nmap facts (already in
+`test/fixtures/lame_style_scan.xml`-adjacent territory from earlier
+projects — check `docs/COVERAGE_SIMULATION_PROJECT.md`'s corpus or
+just re-derive Blue/Legacy's real port facts via web search, same as
+that project did) as your negative-control test fixtures BEFORE
+building the positive-detection tests. This should not be an
+afterthought caught later by `docs/AD_SIMULATION_PROJECT.md`'s
+negative-control boxes — build it in from the start.
+
 ### 2. New parser: `src/trinity/parsers/ad_recon.py`
 
 A single new module (same file-per-tool-family pattern as the rest of
