@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.204" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.204" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="5985">
+<state state="open" reason="syn-ack"/>
+<service name="upnp" method="probed" conf="10" product="Microsoft IIS httpd"/>
+</port>
+<port protocol="tcp" portid="8080">
+<state state="open" reason="syn-ack"/>
+<service name="upnp" method="probed" conf="10" product="Microsoft IIS httpd"/>
+<script id="http-auth" output="HTTP/1.1 401 Unauthorized
+Basic realm=Windows Device Portal"/>
+<script id="http-server-header" output="Microsoft-HTTPAPI/2.0"/>
+<script id="http-title" output="Site doesn't have a title."/>
+</port>
+<port protocol="tcp" portid="29817">
+<state state="open" reason="syn-ack"/>
+<service name="unknown" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="29819">
+<state state="open" reason="syn-ack"/>
+<service name="arcserve" method="probed" conf="10" product="ARCserve Discovery"/>
+</port>
+<port protocol="tcp" portid="29820">
+<state state="open" reason="syn-ack"/>
+<service name="unknown" method="probed" conf="10"/>
+</port>
+</ports>
+</host>
+</nmaprun>

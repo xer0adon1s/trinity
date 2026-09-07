@@ -1,0 +1,2 @@
+/blog                  (Status: 301) [Size: 0]
+/user                  (Status: 301) [Size: 0]

@@ -1,0 +1,165 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim-batch3/test/fixtures/coverage_sim/cap.xml --box cap --target 10.10.10.245
+────────────────────── 10.10.10.245:21 ftp (vsftpd 3.0.3) ──────────────────────
+  vsftpd 3.0.3 - Remote Denial of Service  [LOW]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 49719). Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/49719.py
+
+  Anonymous FTP login  [MEDIUM]  (score 0.9, user_curated)
+  FTP server allows the 'anonymous' user with any/blank password. Always worth 
+checking before anything else on port 21.
+  Try: `ftp <target>` then username `anonymous`, any password.
+
+──────────── 10.10.10.245:22 ssh (OpenSSH 8.2p1 Ubuntu 4ubuntu0.1) ─────────────
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+─────────────────────── 10.10.10.245:80 http (gunicorn ) ───────────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.9, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  ftp $TARGET
+  (run `trinity explain "ftp $TARGET"` to break this down)
+  searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.1
+  (run `trinity explain "searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.1"` to break
+this down)
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim-batch3/test/fixtures/coverage_sim/cap_gobuster.txt --box cap
+───────────────────────────────── None:None ? ──────────────────────────────────
+  No local match — this would be a candidate for AI escalation.
+───────────────────────────────── None:None ? ──────────────────────────────────
+  Apple Mac OSX Kernel - NULL Dereference in CoreCaptureResponder Due to 
+Unchecked Return Value  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 39925), CVE-2016-1803. Verified working.
+  PoC: /usr/share/exploitdb/exploits/osx/dos/39925.c
+
+  Chrome V8 - 'TranslatedState::MaterializeCapturedObjectAt' Type Confusion  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 44180). Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/44180.js
+
+  eEye Digital Security IRIS 1.0.1 / SpyNet CaptureNet 3.0.12 - Remote Buffer 
+Overflow  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 20184), CVE-2000-0734;OSVDB-58523. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/20184.txt
+
+  IBM AIX 5.2/5.3 - Capture Command Local Stack Buffer Overflow  [HIGH]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 30399), CVE-2007-3333;OSVDB-36787. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/aix/local/30399.c
+
+  IBM AIX 5.3 SP6 - Capture Terminal Sequence Privilege Escalation  [HIGH]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 4231), CVE-2007-3333. Verified working.
+  PoC: /usr/share/exploitdb/exploits/aix/local/4231.c
+
+───────────────────────────────── None:None ? ──────────────────────────────────
+  20/20 Applications Data Shed 1.0 - 'f-email.asp?itemID' SQL Injection  [HIGH] 
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29077), CVE-2006-6067;OSVDB-32786. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/asp/webapps/29077.txt
+
+  20/20 Applications Data Shed 1.0 - 'listings.asp' Multiple SQL Injections  
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29078), CVE-2006-6067;OSVDB-32787. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/asp/webapps/29078.txt
+
+  2532/Gigs 1.2.2 - Arbitrary Database Backup/Download  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 5465), OSVDB-52116;CVE-2008-6199. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/5465.txt
+
+  7-Technologies IGSS 9 - Data Server/Collector Packet Handling (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 17352), 
+OSVDB-89324;CVE-2013-0657;OSVDB-72354. Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/17352.rb
+
+  7-Technologies IGSS 9 - IGSSdataServer .Rms Rename Buffer Overflow 
+(Metasploit)  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 17374), CVE-2011-1567;OSVDB-72352. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/17374.rb
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  ftp $TARGET
+  (run `trinity explain "ftp $TARGET"` to break this down)
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity next --box cap
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.1
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.1"` for a 
+command breakdown, or `trinity hint --box "cap"` if you want to work it out 
+yourself first)
+(done? `trinity did --box "cap"`  ·  skipping this one? `trinity skip --box 
+"cap"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  ftp $TARGET
+  ftp $TARGET
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+
+[exit 0]
+
+$ trinity suggest --box cap
+ftp $TARGET
+Port 21 is FTP — always worth a quick anonymous login check (username 
+'anonymous', any password) before assuming credentials are needed.
+
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+
+[exit 0]
+
+$ trinity hint --box cap
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

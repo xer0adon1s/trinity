@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.11.143" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.11.143" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="8.0"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.37" extrainfo="centos OpenSSL/1.1.1k mod_fcgid/2.3.9"/>
+<script id="http-title" output="HTTP Server Test Page powered by CentOS"/>
+</port>
+<port protocol="tcp" portid="443">
+<state state="open" reason="syn-ack"/>
+<service name="https" method="probed" conf="10" product="Apache httpd" version="2.4.37" extrainfo="centos OpenSSL/1.1.1k mod_fcgid/2.3.9"/>
+<script id="http-title" output="HTTP Server Test Page powered by CentOS"/>
+</port>
+</ports>
+</host>
+</nmaprun>

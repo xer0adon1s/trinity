@@ -1,0 +1,135 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim-batch3/test/fixtures/coverage_sim/omni.xml --box omni --target 10.10.10.204
+─────────────── 10.10.10.204:135 msrpc (Microsoft Windows RPC ) ────────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+──────────────── 10.10.10.204:5985 upnp (Microsoft IIS httpd ) ─────────────────
+  Microsoft Commercial Internet System 2.0/2.5 / IIS 4.0 / Site Server Commerce 
+Edition 3.0 alpha/3.0 - Denial of Service  [LOW]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19457), CVE-1999-0867;OSVDB-1041. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/19457.txt
+
+  Microsoft Data Access Components (MDAC) 2.1 / Microsoft IIS 3.0/4.0 / 
+Microsoft Index Server 2.0 / Microsoft Site Server Commerce Edition 3.0 i386 
+MDAC - RDS (1)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19424), CVE-1999-1011;OSVDB-272. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/19424.pl
+
+  Microsoft Data Access Components (MDAC) 2.1 / Microsoft IIS 3.0/4.0 / 
+Microsoft Index Server 2.0 / Microsoft Site Server Commerce Edition 3.0 i386 
+MDAC - RDS (2)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19425), CVE-1999-1011;OSVDB-272. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/local/19425.txt
+
+  Microsoft FrontPage 98 Server Extensions for IIS / Microsoft InterDev 1.0 - 
+Filename Obfuscation  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19845), CVE-2000-0260;OSVDB-282. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/19845.pl
+
+  Microsoft FrontPage 98 Server Extensions for IIS / Microsoft InterDev 1.0 - 
+Remote Buffer Overflow  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19846), CVE-2000-0260;OSVDB-282. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/19846.pl
+
+──────────────── 10.10.10.204:8080 upnp (Microsoft IIS httpd ) ─────────────────
+  Microsoft Commercial Internet System 2.0/2.5 / IIS 4.0 / Site Server Commerce 
+Edition 3.0 alpha/3.0 - Denial of Service  [LOW]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19457), CVE-1999-0867;OSVDB-1041. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/19457.txt
+
+  Microsoft Data Access Components (MDAC) 2.1 / Microsoft IIS 3.0/4.0 / 
+Microsoft Index Server 2.0 / Microsoft Site Server Commerce Edition 3.0 i386 
+MDAC - RDS (1)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19424), CVE-1999-1011;OSVDB-272. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/19424.pl
+
+  Microsoft Data Access Components (MDAC) 2.1 / Microsoft IIS 3.0/4.0 / 
+Microsoft Index Server 2.0 / Microsoft Site Server Commerce Edition 3.0 i386 
+MDAC - RDS (2)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19425), CVE-1999-1011;OSVDB-272. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/local/19425.txt
+
+  Microsoft FrontPage 98 Server Extensions for IIS / Microsoft InterDev 1.0 - 
+Filename Obfuscation  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19845), CVE-2000-0260;OSVDB-282. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/19845.pl
+
+  Microsoft FrontPage 98 Server Extensions for IIS / Microsoft InterDev 1.0 - 
+Remote Buffer Overflow  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 19846), CVE-2000-0260;OSVDB-282. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/19846.pl
+
+────────────────────────── 10.10.10.204:29817 unknown ──────────────────────────
+  No local match — this would be a candidate for AI escalation.
+────────────── 10.10.10.204:29819 arcserve (ARCserve Discovery ) ───────────────
+  Computer Associates ARCserve Backup Discovery Service Remote - Denial of 
+Service  [LOW]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 31707), CVE-2008-1979;OSVDB-44562. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/dos/31707.txt
+
+────────────────────────── 10.10.10.204:29820 unknown ──────────────────────────
+  No local match — this would be a candidate for AI escalation.
+
+[exit 0]
+
+$ trinity next --box omni
+Nothing to recommend yet — either nothing's been parsed for this box, or every 
+obvious next step has already been suggested.
+
+[exit 0]
+
+$ trinity suggest --box omni
+No new suggestions — either nothing's been parsed yet, or everything obvious has
+already been suggested.
+
+[exit 0]
+
+$ trinity hint --box omni
+Nothing to hint about yet — nothing's been parsed for this box.
+
+[exit 0]
+

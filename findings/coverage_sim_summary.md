@@ -1,3 +1,79 @@
+# Coverage simulation — checkpoint 3 (batch 3: 10 Linux + 10 Windows)
+
+**Worktree:** `/home/alexander/Work/trinity-wt-coverage-sim-batch3`  
+**Branch:** `coverage-sim-batch3`  
+**Boxes simulated this batch:** **20** (10 Linux + 10 Windows). Corpus total with prior checkpoints: **122**. Do not push or merge — Doc reviews.
+
+Built on `main` after Coach Meterpreter-nesting + AD explain-cache + msfconsole `back` (`b356c8d`). Did **not** re-simulate any of the denylisted 102 names.
+
+Baseline before this batch's live fixes: `.venv/bin/pytest -q` → **421 passed**. After live routing fixes: see Pytest table below.
+
+## Tally (batch 3 only)
+
+| result | count |
+|--------|------:|
+| pass | 2 |
+| partial | 15 |
+| fail | 0 |
+| capability_gap | 3 |
+| **total** | **20** |
+
+### Bucket breakdown (fail + partial + gap)
+
+| bucket | count | what it means in this batch |
+|--------|------:|-----------------------------|
+| missing_kb_entry | 9 | IDOR/PCAP, Lua cmdi, nginx/Tomcat path confusion, wp-config.save, SQLi/SSTI, WP draft CVE, EAR/cmdi, VHD/mRemoteNG, Cisco hashes, Reporting Service |
+| searchsploit_routing | 2 | Love http-title "Voting System" (EDB verified, title parser still deferred); Hawk Drupal generator (same deferred class — H2 product routing fixed live) |
+| missing_suggest_coverage | 4 | Haystack ES-behind-nginx; Pandora SNMP; Driver SCF/MFP; Sniper LFI (confirms prior proposal) |
+| capability_gap | 3 | Omni Windows IoT/Sirep; Fuse AD+PaperCut; Support AD/RBCD |
+| other | 0 | |
+
+**PASS (2):** hawk (anon FTP foothold + H2 Alias RCE after live fix), conceal (post-IPsec anon FTP → IIS, same shape as Access/Devel).
+
+## Platform / difficulty mix (batch 3)
+
+| | HTB | THM | VulnHub | total |
+|--|----:|----:|--------:|------:|
+| Easy | 16 | 0 | 0 | 16 |
+| Medium | 4 | 0 | 0 | 4 |
+| Linux / Windows / AD | 10 / 8 non-AD + 2 AD | | | 20 |
+
+New categories vs checkpoint 2: IDOR/PCAP, Elasticsearch/Kibana, Supervisor/Lua, H2 DB console, NGINX/Tomcat parser differential, ChromeOS WP `.save`, Werkzeug SQLi+SSTI, WP draft CVE-2019-17671, execute-after-redirect, SNMP→Pandora FMS, SMB VHD/mRemoteNG, Voting System (title-visible EDB), SCF/printer, Cisco IOS hashes, Windows LFI, IoT Sirep, custom Reporting Service, IPsec/SNMP→FTP, AD PaperCut, AD UserInfo.exe/RBCD.
+
+## Live fixes shipped this batch
+
+| commit | what |
+|--------|------|
+| (see git log on branch) | Strip nmap `http console` / `process manager` role phrases; extract `X process manager` from detail/extrainfo for searchsploit (Luanne Supervisor); path segments with `_` query leading product component (`pandora_console` → `pandora`). |
+
+**Not changed:** match priority/ordering, default `limit=5`, advisories, wizard, CLI surface, KB seed, new suggest phrasing, **http-title/generator parsers** (Love Voting System left as Doc proposal), English skip-list expansion.
+
+## Pytest
+
+| when | result |
+|------|--------|
+| before batch 3 live fixes | **421 passed** |
+| after H2/Supervisor/underscore routing | **424 passed** |
+
+## STOP AND ASK (batch 3 additions)
+
+1. **http-title "Voting System using PHP" (Love)** — clearest remaining searchsploit_routing hit this batch. `searchsploit voting system` → EDB 49445. Same deferred class as PRTG/Drupal/GitLab titles. **Not implemented.**
+2. **Elasticsearch behind nginx (:9200 JSON)** — inventing `product=elasticsearch` would lie about the nmap fingerprint. Suggest-only?
+3. **SNMP / UDP footholds (Pandora)** — TCP-only fixtures cannot see the real start. Parser/suggest for hostscripts/UDP?
+4. **Conceal fixture uses post-VPN ports** — honest for the Windows FTP/IIS teaching case; understates IPsec/SNMP prerequisite.
+
+## How far this got
+
+Exactly 20 new retired Easy/Medium boxes (10/10 OS split), real CLI under isolated `$HOME`, continuous ledger append (not a parallel corpus). Two mechanical routing fixes shipped with regression tests; everything else logged as proposals.
+
+Full transcripts: `findings/transcripts/<box>.txt`  
+JSONL: `findings/coverage_sim_log.jsonl` (122 lines)  
+Fixtures: `test/fixtures/coverage_sim/`  
+Research: `findings/coverage_sim_batch3_research.md`  
+Cursor report: `findings/coverage_sim_batch3_cursor_report.md`
+
+---
+
 # Coverage simulation — checkpoint 2 (first Doc-review target)
 
 **Worktree:** `/home/alexander/Work/trinity-wt-coverage-sim`  

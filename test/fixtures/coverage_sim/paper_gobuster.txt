@@ -1,0 +1,2 @@
+/wordpress             (Status: 301) [Size: 0]
+/wp-login.php          (Status: 200) [Size: 0]

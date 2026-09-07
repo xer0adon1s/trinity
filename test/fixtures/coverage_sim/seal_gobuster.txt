@@ -1,0 +1,2 @@
+/manager               (Status: 302) [Size: 0]
+/git                   (Status: 301) [Size: 0]

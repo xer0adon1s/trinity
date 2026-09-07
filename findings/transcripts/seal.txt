@@ -1,0 +1,126 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim-batch3/test/fixtures/coverage_sim/seal.xml --box seal --target 10.10.10.250
+──────────── 10.10.10.250:22 ssh (OpenSSH 8.2p1 Ubuntu 4ubuntu0.2) ─────────────
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+──────────────────── 10.10.10.250:443 https (nginx 1.18.0) ─────────────────────
+  No local match — this would be a candidate for AI escalation.
+───────────────────────── 10.10.10.250:8080 http-proxy ─────────────────────────
+  No local match — this would be a candidate for AI escalation.
+─────────────────────────── Suggested next commands ────────────────────────────
+  searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.2
+  (run `trinity explain "searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.2"` to break
+this down)
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u https://$TARGET:443 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  gobuster dir -u http://$TARGET:8080 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:8080 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim-batch3/test/fixtures/coverage_sim/seal_gobuster.txt --box seal
+───────────────────────────────── None:None ? ──────────────────────────────────
+  360 Web Manager 3.0 - 'IDFM' SQL Injection  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 4944), OSVDB-40955;CVE-2008-0430. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/4944.txt
+
+  360 Web Manager 3.0 - 'webpages-form-led-edit.php' SQL Injection  [HIGH]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 34043). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/34043.txt
+
+  3Dmax 6.x backburner Manager 2.2 - Denial of Service  [LOW]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 662), OSVDB-63258. Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/dos/662.pl
+
+  ABC-View Manager 1.42 - '.psp' Local Buffer Overflow  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 3797), OSVDB-35384;CVE-2007-2284. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/local/3797.c
+
+  Absolute Banner Manager - Insecure Cookie Handling  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 6890), OSVDB-55915;CVE-2008-6858. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/6890.txt
+
+───────────────────────────────── None:None ? ──────────────────────────────────
+  No local match — this would be a candidate for AI escalation.
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u https://$TARGET:443 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  gobuster dir -u http://$TARGET:8080 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:8080 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity next --box seal
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.2
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.2"` for a 
+command breakdown, or `trinity hint --box "seal"` if you want to work it out 
+yourself first)
+(done? `trinity did --box "seal"`  ·  skipping this one? `trinity skip --box 
+"seal"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u http://$TARGET:8080 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  gobuster dir -u http://$TARGET:8080 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+
+[exit 0]
+
+$ trinity suggest --box seal
+gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 443 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+gobuster dir -u http://$TARGET:8080 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 8080 is serving HTTP — directory brute-forcing is the standard next step to
+find hidden admin panels, backups, or API routes before anything else.
+
+
+[exit 0]
+
+$ trinity hint --box seal
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

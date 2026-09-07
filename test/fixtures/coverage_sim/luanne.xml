@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.218" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.218" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="8.0" extrainfo="NetBSD 20190418-hpn13v14-lpk"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="nginx" version="1.19.0"/>
+<script id="http-server-header" output="nginx/1.19.0"/>
+<script id="http-title" output="401 Unauthorized"/>
+<script id="http-robots.txt" output="1 disallowed entry
+/weather"/>
+</port>
+<port protocol="tcp" portid="9001">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Medusa httpd" version="1.12" extrainfo="Supervisor process manager"/>
+<script id="http-server-header" output="Medusa/1.12"/>
+<script id="http-title" output="Error response"/>
+</port>
+</ports>
+</host>
+</nmaprun>

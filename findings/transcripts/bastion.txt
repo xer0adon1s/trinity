@@ -1,0 +1,130 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim-batch3/test/fixtures/coverage_sim/bastion.xml --box bastion --target 10.10.10.134
+──────────────── 10.10.10.134:22 ssh (OpenSSH for_Windows_7.9) ─────────────────
+  Debian OpenSSH - (Authenticated) Remote SELinux Privilege Escalation  [HIGH]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 6094), OSVDB-48791;CVE-2008-3234. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/6094.txt
+
+  Dropbear / OpenSSH Server - 'MAX_UNAUTH_CLIENTS' Denial of Service  [LOW]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 1572), OSVDB-23960;CVE-2006-1206. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/1572.pl
+
+  FreeBSD OpenSSH 3.5p1 - Remote Command Execution  [CRITICAL]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 17462). Verified working.
+  PoC: /usr/share/exploitdb/exploits/freebsd/remote/17462.txt
+
+  glibc-2.2 / openssh-2.3.0p1 / glibc 2.1.9x - File Read  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 258), OSVDB-1710;CVE-2001-0170. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/local/258.sh
+
+  Novell Netware 6.5 - OpenSSH Remote Stack Overflow  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 14866), OSVDB-67743. Verified working.
+  PoC: /usr/share/exploitdb/exploits/novell/dos/14866.txt
+
+─────────────── 10.10.10.134:135 msrpc (Microsoft Windows RPC ) ────────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+──────── 10.10.10.134:139 netbios-ssn (Microsoft Windows netbios-ssn ) ─────────
+  No local match — this would be a candidate for AI escalation.
+─ 10.10.10.134:445 microsoft-ds (Windows Server 2016 Standard 14393 microsoft… ─
+  SMB null session / anonymous enumeration  [MEDIUM]  (score 0.9, user_curated)
+  SMB (port 445/139) often allows unauthenticated enumeration of shares, users, 
+and groups — a very common early foothold path.
+  Try: `smbclient -L //<target>/ -N`, `enum4linux -a <target>`, or `crackmapexec
+smb <target> --shares -u '' -p ''`.
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  searchsploit openssh for_Windows_7.9
+  (run `trinity explain "searchsploit openssh for_Windows_7.9"` to break this 
+down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+
+[exit 0]
+
+$ trinity next --box bastion
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh for_Windows_7.9
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh for_Windows_7.9"` for a command 
+breakdown, or `trinity hint --box "bastion"` if you want to work it out yourself
+first)
+(done? `trinity did --box "bastion"`  ·  skipping this one? `trinity skip --box 
+"bastion"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  enum4linux-ng -A $TARGET  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+[exit 0]
+
+$ trinity suggest --box bastion
+enum4linux-ng -A $TARGET
+Port 139 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+enum4linux-ng -A $TARGET
+Port 445 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+
+[exit 0]
+
+$ trinity hint --box bastion
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

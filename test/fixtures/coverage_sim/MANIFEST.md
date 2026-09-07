@@ -119,3 +119,28 @@ Notes:
 - Servmon `:80` is NVMS-1000 in community writeups; nmap does not print that product — not invented.
 - Stopped expanding Apache-httpd Easy web clones after the product-query noise pattern (see summary). This batch added Medium / THM / VulnHub / new categories instead.
 - THM IPs are per-instance DHCP; fixtures use the cited writeup IP.
+
+## Batch 3 (10 Linux + 10 Windows) — coverage-sim-batch3
+
+| box | platform | OS | difficulty | primary vuln | writeup | status |
+|-----|----------|----|------------|--------------|---------|--------|
+| cap | htb | linux | easy | IDOR /download/N PCAP → FTP/SSH; python cap_setuid | https://0xdf.gitlab.io/2021/10/02/htb-cap.html | simulated |
+| haystack | htb | linux | easy | Elasticsearch index creds; Kibana CVE-2018-17246; Logstash | https://0xdf.gitlab.io/2019/11/02/htb-haystack.html | simulated |
+| luanne | htb | linux | easy | /weather Lua city= cmdi; Supervisor Medusa :9001 | https://0xdf.gitlab.io/2021/03/27/htb-luanne.html | simulated |
+| hawk | htb | linux | easy | Anon FTP openssl file → Drupal admin; H2 Alias RCE | https://0xdf.gitlab.io/2018/11/30/htb-hawk.html | simulated |
+| seal | htb | linux | medium | NGINX/Tomcat semicolon path bypass → Tomcat manager | https://0xdf.gitlab.io/2021/11/13/htb-seal.html | simulated |
+| spectra | htb | linux | easy | wp-config.php.save password → WP admin plugin | https://0xdf.gitlab.io/2021/06/26/htb-spectra.html | simulated |
+| goodgames | htb | linux | easy | SQLi login → SSTI on internal-administration vhost | https://0xdf.gitlab.io/2022/02/23/htb-goodgames.html | simulated |
+| paper | htb | linux | easy | WordPress CVE-2019-17671 draft leak → RocketChat bot LFI | https://0xdf.gitlab.io/2022/06/18/htb-paper.html | simulated |
+| previse | htb | linux | easy | execute-after-redirect → file_logs.php cmdi | https://0xdf.gitlab.io/2022/01/08/htb-previse.html | simulated |
+| pandora | htb | linux | easy | SNMP public → SSH; localhost Pandora FMS SQLi/RCE | https://0xdf.gitlab.io/2022/05/21/htb-pandora.html | simulated |
+| bastion | htb | windows | easy | SMB Backups VHD → secretsdump; mRemoteNG confCons.xml | https://0xdf.gitlab.io/2019/09/07/htb-bastion.html | simulated |
+| love | htb | windows | easy | SSRF → Voting System upload RCE (EDB 49445); AlwaysInstallElevated | https://0xdf.gitlab.io/2021/08/07/htb-love.html | simulated |
+| driver | htb | windows | easy | MFP upload SCF → NetNTLMv2; PrintNightmare | https://0xdf.gitlab.io/2022/02/26/htb-driver.html | simulated |
+| heist | htb | windows | easy | Cisco config hashes on IIS → RPC/WinRM | https://0xdf.gitlab.io/2019/11/30/htb-heist.html | simulated |
+| sniper | htb | windows | medium | LFI lang= → RCE; CHM privesc | https://0xdf.gitlab.io/2020/03/28/htb-sniper.html | simulated |
+| omni | htb | windows | easy | Windows IoT SirepRAT unauth RCE; Device Portal | https://0xdf.gitlab.io/2021/01/09/htb-omni.html | simulated |
+| nest | htb | windows | easy | SMB file enum → Reporting Service :4386 | https://0xdf.gitlab.io/2020/06/06/htb-nest.html | simulated |
+| conceal | htb | windows | medium | (post-IPsec) anon FTP → IIS ASPX upload | https://0xdf.gitlab.io/2019/05/18/htb-conceal.html | simulated |
+| fuse | htb | windows | medium | AD PaperCut enum → Capcom.sys | https://0xdf.gitlab.io/2020/10/31/htb-fuse.html | simulated |
+| support | htb | windows | easy | AD SMB UserInfo.exe → LDAP → RBCD | https://0xdf.gitlab.io/2022/12/17/htb-support.html | simulated |
