@@ -240,6 +240,12 @@ def test_nmap_role_words_stripped_from_searchsploit_product_query():
     assert _searchsploit_query_terms(
         "Oracle TNS listener", "11.2.0.2.0"
     ) == ["Oracle TNS", "11.2.0.2.0"]
+    assert _searchsploit_query_terms(
+        "ActiveMQ OpenWire transport", None
+    ) == ["ActiveMQ"]
+    assert _searchsploit_query_terms(
+        "Node.js Express framework", None
+    ) == ["Node.js"]
     # existing strip still works
     assert _searchsploit_query_terms("Samba smbd", "3.0.20-Debian") == [
         "Samba", "3.0.20",
@@ -281,6 +287,25 @@ def test_james_smtpd_product_surfaces_matching_searchsploit_exploit(seeded_conn)
     matches = match_finding(seeded_conn, finding)
     titles = " ".join(m.title.lower() for m in matches)
     assert "james" in titles
+
+
+def test_nodejs_express_product_surfaces_serialize_searchsploit_exploit(seeded_conn):
+    """HTB Celestial: nmap product is 'Node.js Express framework'.
+    The unstripped phrase returns zero; Node.js alone has the
+    node-serialize RCE used on that box."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.85", port=3000,
+        service="http", product="Node.js Express framework",
+    )
+    matches = match_finding(seeded_conn, finding)
+    titles = " ".join(m.title.lower() for m in matches)
+    assert "serialize" in titles or "node" in titles
 
 
 def test_version_specific_kb_entry_does_not_fire_without_matching_version(seeded_conn):

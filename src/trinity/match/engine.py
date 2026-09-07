@@ -373,7 +373,7 @@ _NOISY_PRODUCT_SUFFIXES = re.compile(
 # "Redis key-value store" AND the whole phrase and return zero,
 # while `searchsploit Icecast` / `searchsploit Redis` have hits.
 _NOISY_PRODUCT_PHRASES = re.compile(
-    r"\b(streaming media server|key-value store|remote admin)\b",
+    r"\b(streaming media server|key-value store|remote admin|openwire transport|express framework)\b",
     re.IGNORECASE,
 )
 
