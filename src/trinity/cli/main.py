@@ -561,10 +561,18 @@ def shoulder_cmd(box_name: str, shell_bin: str | None):
     recon/exploitation work in — Trinity is genuinely watching this
     one, not narrating from an adjacent tile like `watch` does. Type
     `exit` (or Ctrl-D) to end the recorded session and see what was
-    detected."""
+    detected.
+
+    Also runs the Coach subsystem (docs/COACH_SUBSYSTEM_DESIGN.md)
+    live alongside recording: if you land a shell (or, later, enter a
+    recognized tool session), Trinity narrates/nudges from the SAME
+    margin it prints milestone detections in — it only ever reads the
+    stream, never types into it.
+    """
     import os as _os
 
     from trinity.boxes import get_box_or_fail
+    from trinity.shell_coach import new_session as new_coach_session
     from trinity.shoulder import apply_milestones, record_session, scan_for_milestones, session_log_path
 
     conn = connect()
@@ -577,7 +585,20 @@ def shoulder_cmd(box_name: str, shell_bin: str | None):
     console.print(f"[bold]Shoulder Mode on.[/bold] Recording this session to {log_path}")
     console.print("[dim]Type `exit` or Ctrl-D when you're done — Trinity will scan for milestones then.[/dim]\n")
 
-    record_session(shell, log_path)
+    coach = new_coach_session()
+    line_buffer = b""
+
+    def on_chunk(data: bytes) -> None:
+        nonlocal line_buffer
+        line_buffer += data
+        while b"\n" in line_buffer:
+            raw_line, line_buffer = line_buffer.split(b"\n", 1)
+            line = raw_line.decode(errors="replace")
+            narration = coach.feed_line(line)
+            if narration:
+                console.print(f"\n[bold magenta][coach][/bold magenta] {narration}\n")
+
+    record_session(shell, log_path, on_chunk=on_chunk)
 
     console.print("\n[bold]Shoulder Mode off.[/bold] Scanning session for milestones...")
     text = log_path.read_text(errors="replace")

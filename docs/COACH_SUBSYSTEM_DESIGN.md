@@ -201,17 +201,28 @@ entry." Concretely:
 
 ## Build order (once approved)
 
-1. **Shared coach engine + ONE profile: raw landed shell.** No
-   external tool's prompt/output format to parse — this profile only
-   needs Shoulder Mode's EXISTING shell/root detection
-   (`scan_for_milestones`'s patterns) as its "session started" signal,
-   then a small, real post-foothold checklist (stabilize the tty,
-   `id`/`whoami`, check `sudo -l`, check SUID, check cron) as its
-   expected-next-steps state machine. This is the cheapest possible
-   proof of the plumbing (live-reacting to the pty stream, the
-   nudge -> stronger nudge -> answer ladder wired to a state machine)
-   since it reuses detection Trinity already has, before tackling a
-   real external tool's own prompt-recognition problem.
+1. **DONE.** Shared coach engine (`src/trinity/shell_coach.py` --
+   deliberately NOT `coach.py`, which already exists as Instructor
+   Mode's suggestion-ranking layer, an unrelated system) + ONE
+   profile: raw landed shell. No external tool's prompt/output format
+   to parse -- this profile reuses Shoulder Mode's EXISTING shell/root
+   detection (`scan_for_milestones`'s own regex, literally shared via
+   the same pattern) as its "session started" signal, then a small,
+   real post-foothold checklist (stabilize the tty, `id`/`whoami`,
+   check `sudo -l`, check SUID, check cron) as its expected-next-steps
+   state machine. Wired live into `shoulder.py`'s `record_session()`
+   via a new optional `on_chunk` callback parameter (the pty capture
+   loop already reads 4096-byte chunks; the callback fires on each
+   one, feeding a line-buffered `CoachSession.feed_line()` -- this IS
+   the "per-chunk callback hook" plumbing point flagged as an open
+   design question above, now resolved: callback on `record_session`,
+   not a competing capture mechanism). `trinity shoulder` prints
+   coach narration inline via a `[coach]` prefix. Proven end-to-end
+   against a REAL spawned pty subprocess (not just unit tests over
+   synthetic strings) -- confirmed shell-landing announcement + a
+   level-1 stall nudge both fire correctly from real captured bytes.
+   9 new unit tests (`test/unit/test_shell_coach.py`), 384/384 passing
+   full suite.
 2. **msfconsole profile.** First real external-tool prompt to
    recognize (`msf6 >` / `msf >`), first real multi-step workflow
    (search/use/set/run/sessions). Proves the engine generalizes past

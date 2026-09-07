@@ -28,6 +28,7 @@ from __future__ import annotations
 import os
 import re
 import sqlite3
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -139,13 +140,21 @@ def session_log_path(box_name: str) -> Path:
     return SESSIONS_DIR / f"{safe_name}_{stamp}.log"
 
 
-def record_session(shell: str, log_path: Path) -> None:
+def record_session(shell: str, log_path: Path, on_chunk: Callable[[bytes], None] | None = None) -> None:
     """Spawns `shell` inside a pty, tee-ing every byte of output to
     both the real terminal and `log_path` -- script(1)-equivalent.
     Blocks until the shell exits. Requires a real interactive
     terminal; not meaningfully unit-testable, kept intentionally thin
     so all the actual logic (scan_for_milestones/apply_milestones)
-    lives in testable pure functions instead."""
+    lives in testable pure functions instead.
+
+    `on_chunk`, if given, is called with each raw chunk of bytes AS IT
+    ARRIVES -- this is the ONLY hook the live Coach subsystem (see
+    coach.py) uses to observe a session while it's running, rather
+    than only after `pty.spawn` returns. It is purely a read-side
+    hook: whatever it returns is ignored, and it must never write
+    back into the pty itself (see coach.py's hard rule).
+    """
     import pty
 
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -154,6 +163,8 @@ def record_session(shell: str, log_path: Path) -> None:
             data = os.read(fd, 4096)
             logfile.write(data)
             logfile.flush()
+            if on_chunk is not None:
+                on_chunk(data)
             return data
 
         pty.spawn([shell], read)
