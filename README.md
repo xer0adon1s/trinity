@@ -34,6 +34,23 @@ From then on: run the real tool in your own terminal, watch this pane
 narrate what it means, and follow `trinity next` (or the dashboard's
 `d`/`s`/`h` keys) for what to do next.
 
+### Optional: put `trinity` on your PATH
+
+`uv run trinity` only works from inside this repo. If you'd rather run
+`trinity` from any directory/pane without `cd`-ing back here first:
+
+```bash
+uv tool install .
+```
+
+This builds a normal, isolated install and drops a `trinity` binary
+onto your PATH (usually `~/.local/bin/trinity`) — the same command,
+same local `~/.trinity/` database, just callable from anywhere. Purely
+a convenience step; nothing about Trinity's behavior changes. If
+you're actively developing Trinity itself rather than just using it,
+use `uv tool install --editable .` instead so the global command
+always reflects your live source tree.
+
 ## Power user / how the engine works
 
 Everything below still works standalone, no wizard required:
