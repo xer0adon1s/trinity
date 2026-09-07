@@ -44,9 +44,33 @@ class Advisory(BaseModel):
     priority: int         # LOWER number wins -- 0 is most urgent
     sentence: str          # one flowing clause/sentence, composable into prose
     alternative_command: str | None = None  # optional "untouched lead" to surface
+    offers_methods_index: bool = False  # one-shot: see _MODIS_EVENT_TYPE below
 
 
 AdvisoryProvider = Callable[[sqlite3.Connection, Box], "Advisory | None"]
+
+# Event type used to gate the Methods Index escape-hatch offer so it
+# fires once per stuck episode, not on every subsequent `next` call
+# while still stuck -- same one-shot-via-timeline-event principle as
+# graduation.py's autorecon_nudge/mark_nudged pair (docs/FEATURES_BACKLOG.md
+# explicitly calls out reusing that pattern here). Kept distinct from
+# rabbit_hole.py's own "nudge" event type so this doesn't double-log or
+# interfere with recent_nudge_count()'s escalating-checkpoint-text math.
+_METHODS_OFFER_EVENT_TYPE = "methods_index_offer"
+
+
+def _methods_offer_already_shown(conn: sqlite3.Connection, box_id: int) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM timeline WHERE box_id = ? AND event_type = ? LIMIT 1",
+        (box_id, _METHODS_OFFER_EVENT_TYPE),
+    ).fetchone()
+    return row is not None
+
+
+def _mark_methods_offered(conn: sqlite3.Connection, box_id: int) -> None:
+    from trinity.timeline import log_event
+
+    log_event(conn, box_id, _METHODS_OFFER_EVENT_TYPE, "Methods Index escape-hatch offered")
 
 
 def _difficulty_advisory(conn: sqlite3.Connection, box: Box) -> Advisory | None:
@@ -58,6 +82,23 @@ def _difficulty_advisory(conn: sqlite3.Connection, box: Box) -> Advisory | None:
             sentence="it's listed as Hard, so taking a long time here is normal, not a verdict",
         )
     return None
+
+
+def _methods_index_offer(box: Box) -> str | None:
+    """Escape-hatch offer text (docs/METHODS_INDEX.md, "How it surfaces
+    to the operator"): pure invitation, never the content itself -- the
+    operator has to run the command to actually see anything. Returns
+    None when this box has no indexed entry, so the rabbit-hole
+    advisory is left completely unchanged for boxes without one."""
+    from trinity.methods import lookup
+
+    index = lookup(box.name, platform=box.platform) or lookup(box.name)
+    if index is None:
+        return None
+    return (
+        "There are a few known shapes people have used to crack machines "
+        f"like this — want to see them? Run `trinity methods --box \"{box.name}\"`"
+    )
 
 
 def _rabbit_hole_advisory(conn: sqlite3.Connection, box: Box) -> Advisory | None:
@@ -78,9 +119,28 @@ def _rabbit_hole_advisory(conn: sqlite3.Connection, box: Box) -> Advisory | None
     sentence = signal.message
     if extra:
         sentence = f"{sentence} {extra}"
+
+    # Methods Index escape-hatch offer (docs/METHODS_INDEX.md step 3):
+    # additive to the stuck-signal sentence, ONLY when this box actually
+    # has an indexed entry, and ONLY once per box -- mirroring
+    # graduation.py's autorecon_nudge/mark_nudged one-shot-via-timeline-
+    # event pattern (see _METHODS_OFFER_EVENT_TYPE above) rather than a
+    # new mechanism. Marked at detection time here (not deferred to
+    # pick_advisory like autorecon's nudge) because rabbit-hole is
+    # always priority 0 and, per the comment above, always wins the
+    # slot when present -- same reasoning already used for log_nudge().
+    offers_methods_index = False
+    if not _methods_offer_already_shown(conn, box.id):
+        offer = _methods_index_offer(box)
+        if offer:
+            sentence = f"{sentence} {offer}"
+            _mark_methods_offered(conn, box.id)
+            offers_methods_index = True
+
     return Advisory(
         kind="rabbit_hole", priority=0,  # most urgent: an active stuck-signal
         sentence=sentence, alternative_command=signal.alternative_command,
+        offers_methods_index=offers_methods_index,
     )
 
 
