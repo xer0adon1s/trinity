@@ -114,6 +114,42 @@ def test_ms_bulletin_in_detail_surfaces_matching_searchsploit_exploit(seeded_con
     assert any("eternalblue" in m.title.lower() or "ms17-010" in m.title.lower() for m in matches)
 
 
+def test_multiple_ms_bulletins_in_detail_are_queried_separately(seeded_conn):
+    """Regression: Legacy's port-445 finding carries BOTH smb-vuln-ms08-067
+    and smb-vuln-ms17-010 in the same detail string. searchsploit ANDs
+    argv terms, so querying them as one call (`ms08-067 ms17-010`)
+    returns nothing even though each bulletin has local exploits.
+    Each extracted bulletin must be its own searchsploit query."""
+    from trinity.kb import searchsploit as searchsploit_module
+
+    if not searchsploit_module.is_available():
+        import pytest
+        pytest.skip("searchsploit not installed in this environment")
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.4", port=445,
+        service="microsoft-ds", product="Windows XP microsoft-ds",
+        detail=(
+            "[smb-vuln-ms08-067] VULNERABLE: Microsoft Windows system "
+            "vulnerable to remote code execution (MS08-067). "
+            "CVE:CVE-2008-4250 | "
+            "[smb-vuln-ms17-010] VULNERABLE: Remote Code Execution "
+            "vulnerability in Microsoft SMBv1 servers (ms17-010). "
+            "Risk factor: HIGH. CVE:CVE-2017-0143"
+        ),
+    )
+    matches = match_finding(seeded_conn, finding)
+    titles = " ".join(m.title.lower() for m in matches)
+    # Default limit=5 is filled by the first bulletin's hits; that's
+    # enough to prove the AND-query bug is gone (ms08-067 used to vanish
+    # entirely). A wider limit confirms the second bulletin is queried
+    # too — we do not change production limit/ordering here.
+    assert "ms08-067" in titles or "netapi" in titles or "conficker" in titles
+    wide = match_finding(seeded_conn, finding, limit=20)
+    wide_titles = " ".join(m.title.lower() for m in wide)
+    assert "ms17-010" in wide_titles or "eternalblue" in wide_titles or "eternalromance" in wide_titles
+
+
 def test_path_product_terms_extracts_product_shaped_last_segment():
     """Last meaningful path segment only, and only when it looks like a
     product/app name — /nibbleblog/ is a CMS, /admin/ is generic noise."""
@@ -129,6 +165,8 @@ def test_path_product_terms_extracts_product_shaped_last_segment():
     assert _path_product_terms("/css/") == []
     assert _path_product_terms("/cgi-bin/") == []
     assert _path_product_terms("/phpmyadmin/") == []
+    assert _path_product_terms("/themes/") == []
+    assert _path_product_terms("/javascript/") == []
     assert _path_product_terms("/ab/") == []  # too short
     assert _path_product_terms("/1234/") == []  # not letter-led
     assert _path_product_terms("/index.php") == []  # punctuation, plus generic stem

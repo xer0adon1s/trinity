@@ -148,9 +148,15 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
     if finding.product:
         search_calls.append(_searchsploit_query_terms(finding.product, finding.version))
     if finding.detail:
-        bulletin_terms = _ms_bulletin_terms(finding.detail)
-        if bulletin_terms:
-            search_calls.append(bulletin_terms)
+        # One searchsploit invocation per bulletin. searchsploit ANDs
+        # its argv terms, so feeding [ms08-067, ms17-010] as a single
+        # query (Legacy: nmap's smb-vuln-* scripts report BOTH on the
+        # same port 445 finding) returns zero hits even though each
+        # term alone has verified local exploits. Same "which queries
+        # get asked" shape as the MS-bulletin extraction itself — do
+        # not AND distinct bulletin IDs together.
+        for bulletin in _ms_bulletin_terms(finding.detail):
+            search_calls.append([bulletin])
     # Path findings (gobuster/ffuf) never populate .product — they're a
     # URL path, not a service banner — so a product-shaped last segment
     # like /nibbleblog/ used to never reach searchsploit even when
@@ -212,6 +218,10 @@ _GENERIC_PATH_SEGMENTS = frozenset({
     "html", "php", "txt", "icons", "media",
     # obvious extra generic web paths — not product names
     "cgi-bin", "cgi",
+    # seen live during coverage-sim: /themes/ on pfSense (Sense) became
+    # `searchsploit themes` and returned unrelated WordPress theme
+    # exploits. Same class as images/css/static.
+    "themes", "javascript", "classes", "widgets",
 })
 
 
