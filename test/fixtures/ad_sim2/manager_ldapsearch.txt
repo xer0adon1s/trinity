@@ -1,0 +1,21 @@
+# extended LDIF
+#
+# LDAPv3
+# base <> (default) with scope baseObject
+# filter: (objectclass=*)
+# requesting: namingcontexts
+#
+# Shape from 0xdf HTB Manager:
+# ldapsearch -H ldap://dc01.manager.htb -x -s base namingcontexts
+# https://0xdf.gitlab.io/2024/03/16/htb-manager.html
+
+dn:
+namingcontexts: DC=manager,DC=htb
+namingcontexts: CN=Configuration,DC=manager,DC=htb
+namingcontexts: CN=Schema,CN=Configuration,DC=manager,DC=htb
+namingcontexts: DC=DomainDnsZones,DC=manager,DC=htb
+namingcontexts: DC=ForestDnsZones,DC=manager,DC=htb
+
+# search result
+search: 2
+result: 0 Success

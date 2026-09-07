@@ -1,0 +1,22 @@
+$ trinity next --box Blue
+exit=0
+----- stdout -----
+─────────────────────────────── Recommended next ───────────────────────────────
+enum4linux-ng -A $TARGET
+
+'enum4linux-ng' isn't installed. Depending on your system:
+  Debian/Ubuntu:  sudo apt install enum4linux-ng
+  Otherwise:      https://github.com/cddmp/enum4linux-ng (pip install or clone +
+run directly)
+
+Once that's installed, just run this same command again -- I'll pick up right 
+where we left off: `trinity next --box "Blue"`
+
+(done? `trinity did --box "Blue"`  ·  skipping this one? `trinity skip --box 
+"Blue"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+----- stderr -----
+

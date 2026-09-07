@@ -1,0 +1,44 @@
+$ trinity parse-ad /home/alexander/Work/trinity-wt-ad-sim2/test/fixtures/ad_sim2/attacktive_getnpusers.txt --box AttacktiveDirectory --target 10.10.230.172
+exit=0
+----- stdout -----
+──────────────────────── asrep_hash account: svc-admin ─────────────────────────
+  Kerberos open — worth checking for AS-REP roastable accounts  [MEDIUM]  (score
+0.6, user_curated)
+  An open Kerberos port does NOT by itself mean any account has 'Do not require 
+Kerberos preauthentication' set — most domains have zero such accounts. This is 
+worth checking, not something already confirmed. IF a roastable account exists, 
+GetNPUsers.py will hand back a $krb5asrep$ blob encrypted to that account's 
+password with no credentials needed first — a per-account misconfig, not a 
+product CVE, so there's nothing for searchsploit to find either way.
+  Check with: `GetNPUsers.py <realm>/ -usersfile <users.txt> -no-pass -dc-ip 
+<target>`. An empty/error result means no roastable accounts exist on this 
+domain — that's a normal, common outcome, not a sign the check failed. If it 
+DOES return a hash, crack offline with hashcat -m 18200. No hash is stored by 
+Trinity; run the cracker yourself.
+
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.6, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  GetNPUsers.py spookysec.local/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  (run `trinity explain "GetNPUsers.py spookysec.local/ -usersfile users.txt 
+-no-pass -dc-ip $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  ldapsearch -x -H ldap://$TARGET -s base namingcontexts
+  (run `trinity explain "ldapsearch -x -H ldap://$TARGET -s base 
+namingcontexts"` to break this down)
+
+----- stderr -----
+

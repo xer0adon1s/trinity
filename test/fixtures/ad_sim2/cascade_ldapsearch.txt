@@ -1,0 +1,31 @@
+# extended LDIF
+#
+# LDAPv3
+# base <> (default) with scope baseObject
+# filter: (objectclass=*)
+# requesting: namingcontexts
+#
+# Shape from 0xdf HTB Cascade:
+# ldapsearch -h 10.10.10.182 -x -s base namingcontexts
+# then ldapsearch -h 10.10.10.182 -x -b "DC=cascade,DC=local"
+# https://0xdf.gitlab.io/2020/07/25/htb-cascade.html
+
+dn:
+namingContexts: DC=cascade,DC=local
+namingContexts: CN=Configuration,DC=cascade,DC=local
+namingContexts: CN=Schema,CN=Configuration,DC=cascade,DC=local
+namingContexts: DC=DomainDnsZones,DC=cascade,DC=local
+namingContexts: DC=ForestDnsZones,DC=cascade,DC=local
+
+# search result
+search: 2
+result: 0 Success
+
+dn: CN=Ryan Thompson,OU=Users,OU=UK,DC=cascade,DC=local
+objectClass: user
+objectClass: person
+sAMAccountName: r.thompson
+
+dn: CN=ArkSvc,OU=Users,OU=UK,DC=cascade,DC=local
+objectClass: user
+sAMAccountName: arkSvc

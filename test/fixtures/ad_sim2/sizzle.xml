@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- HTB Sizzle 10.10.10.103 — 0xdf 2019-06-01. DC ports + anonymous FTP. Domain: HTB.LOCAL banner (no trailing 0.). Writeup quote: 'All my attempts to get information out of LDAP without any authentication failed.' — real negative anon-LDAP result. Real path: SCF NetNTLMv2 capture -> certsrv cert enrollment -> Kerberoast-with-cert -> DCSync — out of scope. -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.103" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.103" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="21">
+<state state="open" reason="syn-ack"/>
+<service name="ftp" method="probed" conf="10" product="Microsoft ftpd"/>
+<script id="ftp-anon" output="Anonymous FTP login allowed (FTP code 230)"/>
+</port>
+<port protocol="tcp" portid="53">
+<state state="open" reason="syn-ack"/>
+<service name="domain" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft IIS httpd" version="10.0"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Microsoft Windows netbios-ssn"/>
+</port>
+<port protocol="tcp" portid="443">
+<state state="open" reason="syn-ack"/>
+<service name="https" method="probed" conf="10" product="Microsoft IIS httpd" version="10.0" extrainfo="commonName=sizzle.htb.local"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="464">
+<state state="open" reason="syn-ack"/>
+<service name="kpasswd5" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="593">
+<state state="open" reason="syn-ack"/>
+<service name="ncacn_http" method="probed" conf="10" product="Microsoft Windows RPC over HTTP 1.0"/>
+</port>
+<port protocol="tcp" portid="636">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: HTB.LOCAL, Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="3268">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: HTB.LOCAL, Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="3269">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: HTB.LOCAL, Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="5985">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft HTTPAPI httpd" version="2.0" extrainfo="SSDP/UPnP"/>
+</port>
+<port protocol="tcp" portid="5986">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft HTTPAPI httpd" version="2.0" extrainfo="SSDP/UPnP"/>
+</port>
+<port protocol="tcp" portid="9389">
+<state state="open" reason="syn-ack"/>
+<service name="mc-nmf" method="probed" conf="10" product=".NET Message Framing"/>
+</port>
+<port protocol="tcp" portid="47001">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft HTTPAPI httpd" version="2.0" extrainfo="SSDP/UPnP"/>
+</port>
+</ports>
+</host>
+</nmaprun>

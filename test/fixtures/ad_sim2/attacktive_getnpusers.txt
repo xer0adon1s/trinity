@@ -1,0 +1,6 @@
+Impacket v0.9.22 - Copyright 2020 SecureAuth Corporation
+
+[-] User administrator doesn't have UF_DONT_REQUIRE_PREAUTH set
+[-] User backup doesn't have UF_DONT_REQUIRE_PREAUTH set
+[*] Getting TGT for svc-admin
+$krb5asrep$23$svc-admin@SPOOKYSEC.LOCAL:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee$ffffffffffffffffffffffffffffffffffffffffffffffff

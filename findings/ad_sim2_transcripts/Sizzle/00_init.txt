@@ -1,0 +1,8 @@
+$ trinity init
+exit=0
+----- stdout -----
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+----- stderr -----
+

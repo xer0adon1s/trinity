@@ -1,0 +1,14 @@
+$ trinity explain ldapsearch -x -H ldap://$TARGET -s base namingcontexts --box Scrambled
+exit=0
+----- stdout -----
+From local cache (no tokens spent):
+
+ldapsearch talks to the directory on port 389. `-x` means a simple bind with no 
+username — anonymous. `-s base` asks only the RootDSE (the server's 'who am I' 
+entry), and `namingcontexts` is the attribute that names the domain 
+(DC=htb,DC=local). If that comes back without an error, anonymous LDAP is 
+allowed and the domain name is now a fact, not a guess. Trinity never runs this 
+for you.
+
+----- stderr -----
+

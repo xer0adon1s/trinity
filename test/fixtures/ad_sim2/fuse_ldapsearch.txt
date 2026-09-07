@@ -1,0 +1,21 @@
+# extended LDIF
+#
+# LDAPv3
+# base <> (default) with scope baseObject
+# filter: (objectclass=*)
+# requesting: namingcontexts
+#
+# Shape from 0xdf HTB Fuse: ldapsearch -h 10.10.10.193 -x -s base namingcontexts
+# succeeds; -b "DC=fabricorp,DC=local" subtree query fails without a bind.
+# https://0xdf.gitlab.io/2020/10/31/htb-fuse.html
+
+dn:
+namingContexts: DC=fabricorp,DC=local
+namingContexts: CN=Configuration,DC=fabricorp,DC=local
+namingContexts: CN=Schema,CN=Configuration,DC=fabricorp,DC=local
+namingContexts: DC=DomainDnsZones,DC=fabricorp,DC=local
+namingContexts: DC=ForestDnsZones,DC=fabricorp,DC=local
+
+# search result
+search: 2
+result: 0 Success

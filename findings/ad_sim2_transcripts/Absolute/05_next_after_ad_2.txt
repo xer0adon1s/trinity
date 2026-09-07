@@ -1,0 +1,62 @@
+$ trinity next --box Absolute
+exit=0
+----- stdout -----
+─────────────────────────────── Recommended next ───────────────────────────────
+ldapsearch -x -H ldap://$TARGET -b 'DC=absolute,DC=htb' '(objectClass=user)' 
+sAMAccountName
+
+'ldapsearch' doesn't have install instructions in Trinity's tool registry yet --
+try your system's package manager, or search for "ldapsearch install" for the 
+official instructions.
+
+Once that's installed, just run this same command again -- I'll pick up right 
+where we left off: `trinity next --box "Absolute"`
+
+Most of the recent timeline is still in `enum` while other leads sit untouched. 
+the classic trap is deciding one port *must* be the answer. parking it for a bit
+is allowed. even people with security master's degrees get stuck for hours on 
+'easy' boxes. this is normal, not a sign you're bad at this. take a walk, then 
+pick a lead you haven't touched — or keep pushing if you still believe this 
+path. both are legitimate..
+
+(done? `trinity did --box "Absolute"`  ·  skipping this one? `trinity skip --box
+"Absolute"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  ldapsearch -x -H ldap://$TARGET -s base namingcontexts  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+  GetNPUsers.py absolute.htb/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  ldapsearch -x -H ldap://$TARGET -b 'DC=absolute,DC=htb' '(objectClass=user)' 
+sAMAccountName  (tool not installed)
+  ldapsearch -x -H ldap://$TARGET -s base namingcontexts  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+  GetNPUsers.py absolute.htb/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  ldapsearch -x -H ldap://$TARGET -s base namingcontexts  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+  GetNPUsers.py absolute.htb/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  ldapsearch -x -H ldap://$TARGET -s base namingcontexts  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+  GetNPUsers.py absolute.htb/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  enum4linux-ng -A $TARGET  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+----- stderr -----
+

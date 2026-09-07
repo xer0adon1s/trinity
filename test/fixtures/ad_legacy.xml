@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- HTB Legacy (10.10.10.4) — retired. Negative control: Windows XP
+     workstation, NOT a DC. Ports from
+     https://www.justus.pw/writeups/hack-the-box-machines/legacy.html
+     and 0xdf https://0xdf.gitlab.io/2019/02/21/htb-legacy.html :
+     135/msrpc, 139/netbios-ssn, 445/microsoft-ds. Workgroup HTB, not
+     a domain. No LDAP/Kerberos/DNS. -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.4" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.4" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" product="Microsoft Windows RPC" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" product="Microsoft Windows netbios-ssn" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" product="Windows XP microsoft-ds" method="probed" conf="10" extrainfo="Workgroup: HTB"/>
+</port>
+</ports>
+</host>
+</nmaprun>

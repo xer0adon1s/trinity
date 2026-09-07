@@ -1,0 +1,8 @@
+$ trinity parse-ad /home/alexander/Work/trinity-wt-ad-sim2/test/fixtures/ad_sim2/mantis_getnpusers.txt --box Mantis --target 10.10.10.52
+exit=0
+----- stdout -----
+That file wasn't recognized as ldapsearch, GetNPUsers.py, or GetUserSPNs.py 
+output.
+
+----- stderr -----
+

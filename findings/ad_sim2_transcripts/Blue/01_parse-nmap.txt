@@ -1,0 +1,237 @@
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-ad-sim2/test/fixtures/ad_sim2/blue.xml --box Blue --target 10.10.10.40 --platform htb
+exit=0
+----- stdout -----
+──────────────── 10.10.10.40:135 msrpc (Microsoft Windows RPC ) ────────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+───────── 10.10.10.40:139 netbios-ssn (Microsoft Windows netbios-ssn ) ─────────
+  No local match — this would be a candidate for AI escalation.
+─ 10.10.10.40:445 microsoft-ds (Windows 7 Professional 7601 Service Pack 1 mi… ─
+  SMB null session / anonymous enumeration  [MEDIUM]  (score 0.9, user_curated)
+  SMB (port 445/139) often allows unauthenticated enumeration of shares, users, 
+and groups — a very common early foothold path.
+  Try: `smbclient -L //<target>/ -N`, `enum4linux -a <target>`, or `crackmapexec
+smb <target> --shares -u '' -p ''`.
+
+─────────────── 10.10.10.40:49152 msrpc (Microsoft Windows RPC ) ───────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+─────────────── 10.10.10.40:49153 msrpc (Microsoft Windows RPC ) ───────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+─────────────── 10.10.10.40:49154 msrpc (Microsoft Windows RPC ) ───────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+─────────────── 10.10.10.40:49155 msrpc (Microsoft Windows RPC ) ───────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+─────────────── 10.10.10.40:49156 msrpc (Microsoft Windows RPC ) ───────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+─────────────── 10.10.10.40:49157 msrpc (Microsoft Windows RPC ) ───────────────
+  Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
+(MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16366.rb
+
+  Microsoft DNS RPC Service - 'extractQuotedChar()' TCP Overflow (MS07-029) 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16748), CVE-2007-1748;OSVDB-34100;MS07-029. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16748.rb
+
+  Microsoft RPC DCOM Interface - Remote Overflow (MS03-026) (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 16749), CVE-2003-0352;OSVDB-2100;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/16749.rb
+
+  Microsoft Windows - 'Lsasrv.dll' RPC Remote Buffer Overflow (MS04-011)  [HIGH]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 293), OSVDB-5248;CVE-2003-0533;MS04-011. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/293.c
+
+  Microsoft Windows - 'RPC DCOM' Long Filename Overflow (MS03-026)  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 100), OSVDB-2100;CVE-2003-0352;MS03-026. 
+Verified working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+
+----- stderr -----
+

@@ -21,6 +21,7 @@ from trinity.parsers.ffuf import parse_ffuf_json
 from trinity.parsers.gobuster import parse_gobuster_text
 from trinity.parsers.nikto import parse_nikto_json
 from trinity.notify import notify_critical
+from trinity.parsers.ad_recon import detect_ad_signals, parse_ad_recon_file
 from trinity.parsers.nmap import Finding, parse_nmap_xml
 from trinity.parsers.rustscan import parse_rustscan_text
 from trinity.parsers.whatweb import parse_whatweb_json
@@ -60,7 +61,11 @@ def detect_and_parse(path: Path) -> tuple[str, list[Finding]] | None:
         if suffix == ".xml":
             text = path.read_text(errors="ignore")
             if "<nmaprun" in text:
-                return "nmap", parse_nmap_xml(path)
+                findings = parse_nmap_xml(path)
+                extra = detect_ad_signals(findings)
+                if extra is not None:
+                    findings = [*findings, extra]
+                return "nmap", findings
             return None
 
         if suffix in (".json", ".jsonl"):
@@ -149,6 +154,16 @@ def process_scan_file(conn: sqlite3.Connection, box_id: int, path: Path) -> Proc
 
     tool, findings = detected
     return _process_findings(conn, box_id, tool, findings, source_path=path)
+
+
+def process_ad_file(conn: sqlite3.Connection, box_id: int, path: Path) -> ProcessResult:
+    """Parse ldapsearch / GetNPUsers.py / GetUserSPNs.py output the
+    operator captured themselves, then the same persist/match/suggest
+    pipeline as process_scan_file(). Empty findings means the file
+    wasn't a recognized AD-tool shape — caller reports that, same as
+    an unrecognized scan file."""
+    findings = parse_ad_recon_file(path)
+    return _process_findings(conn, box_id, "ad_recon", findings, source_path=path)
 
 
 def process_autorecon_results(

@@ -1,0 +1,38 @@
+$ trinity next --box Cascade
+exit=0
+----- stdout -----
+─────────────────────────────── Recommended next ───────────────────────────────
+# noted: user: arkSvc — try it against SSH/FTP logins you find, or as an SMB 
+null-session identity
+
+FTP servers sometimes just let anyone in. Costs nothing to check before assuming
+you need real credentials. enum4linux-ng found user: arkSvc. Keep a running list
+of usernames — they matter later for SSH/FTP login attempts or privilege 
+escalation, even though there's no single command to run on one alone right now.
+
+(run `trinity explain "# noted: user: arkSvc — try it against SSH/FTP logins you
+find, or as an SMB null-session identity"` for a command breakdown, or `trinity 
+hint --box "Cascade"` if you want to work it out yourself first)
+(done? `trinity did --box "Cascade"`  ·  skipping this one? `trinity skip --box 
+"Cascade"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  # noted: user: r.thompson — try it against SSH/FTP logins you find, or as an 
+SMB null-session identity
+  ldapsearch -x -H ldap://$TARGET -b 'DC=cascade,DC=local' '(objectClass=user)' 
+sAMAccountName  (tool not installed)
+  ldapsearch -x -H ldap://$TARGET -s base namingcontexts  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+  GetNPUsers.py cascade.local/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  ldapsearch -x -H ldap://$TARGET -s base namingcontexts  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+  GetNPUsers.py cascade.local/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  ldapsearch -x -H ldap://$TARGET -s base namingcontexts  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+  GetNPUsers.py cascade.local/ -usersfile users.txt -no-pass -dc-ip $TARGET
+  enum4linux-ng -A $TARGET  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+  enum4linux-ng -A $TARGET  (tool not installed)
+
+----- stderr -----
+

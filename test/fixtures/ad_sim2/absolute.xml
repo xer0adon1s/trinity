@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- HTB Absolute 10.10.11.181 — 0xdf 2023-05-27. DC ports. Domain: absolute.htb0. banner (trailing 0. artifact). Genuinely credential-less AS-REP roast: GetNPUsers.py -dc-ip dc.absolute.htb -usersfile valid_users absolute.htb/ (no password) hit d.klay. Also: anon ldapsearch -s base namingcontexts succeeds (secondary signal, not separately scored). -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.11.181" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.11.181" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="53">
+<state state="open" reason="syn-ack"/>
+<service name="domain" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft IIS httpd" version="10.0"/>
+</port>
+<port protocol="tcp" portid="88">
+<state state="open" reason="syn-ack"/>
+<service name="kerberos-sec" method="probed" conf="10" product="Microsoft Windows Kerberos"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Microsoft Windows netbios-ssn"/>
+</port>
+<port protocol="tcp" portid="389">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: absolute.htb0., Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="464">
+<state state="open" reason="syn-ack"/>
+<service name="kpasswd5" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="593">
+<state state="open" reason="syn-ack"/>
+<service name="ncacn_http" method="probed" conf="10" product="Microsoft Windows RPC over HTTP 1.0"/>
+</port>
+<port protocol="tcp" portid="636">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: absolute.htb0., Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="3268">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: absolute.htb0., Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="3269">
+<state state="open" reason="syn-ack"/>
+<service name="ldap" method="probed" conf="10" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: absolute.htb0., Site: Default-First-Site-Name"/>
+</port>
+<port protocol="tcp" portid="5985">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft HTTPAPI httpd" version="2.0"/>
+</port>
+<port protocol="tcp" portid="9389">
+<state state="open" reason="syn-ack"/>
+<service name="mc-nmf" method="probed" conf="10" product=".NET Message Framing"/>
+</port>
+</ports>
+</host>
+</nmaprun>

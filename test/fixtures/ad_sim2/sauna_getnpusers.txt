@@ -1,0 +1,6 @@
+Impacket v0.9.21 - Copyright 2020 SecureAuth Corporation
+
+[-] User administrator doesn't have UF_DONT_REQUIRE_PREAUTH set
+[-] User hsmith doesn't have UF_DONT_REQUIRE_PREAUTH set
+[-] User sauna doesn't have UF_DONT_REQUIRE_PREAUTH set
+$krb5asrep$23$fsmith@EGOTISTICAL-BANK.LOCAL:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb

@@ -1,0 +1,45 @@
+# extended LDIF
+#
+# LDAPv3
+# base <> with scope baseObject
+# filter: (objectclass=*)
+# requesting: namingContexts defaultNamingContext
+#
+# Real shape: OpenLDAP ldapsearch(1) LDIF for
+# `ldapsearch -x -H ldap://10.10.10.161 -s base namingcontexts`
+# against HTB Forest (domain htb.local; joenibe.github.io/htb/forest/).
+# `result: 0 Success` + namingContexts = anonymous bind worked.
+
+dn:
+namingContexts: DC=htb,DC=local
+namingContexts: CN=Configuration,DC=htb,DC=local
+namingContexts: CN=Schema,CN=Configuration,DC=htb,DC=local
+namingContexts: DC=DomainDnsZones,DC=htb,DC=local
+namingContexts: DC=ForestDnsZones,DC=htb,DC=local
+defaultNamingContext: DC=htb,DC=local
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 2
+# numEntries: 1
+
+# Follow-up user dump shape (same tool, -b DC=htb,DC=local):
+# ldapsearch -x -H ldap://10.10.10.161 -b "DC=htb,DC=local" "(objectClass=user)" sAMAccountName
+
+dn: CN=svc-alfresco,CN=Users,DC=htb,DC=local
+objectClass: user
+objectClass: person
+objectClass: organizationalPerson
+objectClass: top
+sAMAccountName: svc-alfresco
+
+dn: CN=sebastien,CN=Users,DC=htb,DC=local
+objectClass: user
+sAMAccountName: sebastien
+
+dn: CN=FOREST,OU=Domain Controllers,DC=htb,DC=local
+objectClass: computer
+objectClass: user
+sAMAccountName: FOREST$

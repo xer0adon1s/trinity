@@ -1,0 +1,14 @@
+$ trinity suggest --box Legacy
+exit=0
+----- stdout -----
+enum4linux-ng -A $TARGET
+Port 139 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+enum4linux-ng -A $TARGET
+Port 445 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
+pass, often without needing credentials at all.
+
+
+----- stderr -----
+
