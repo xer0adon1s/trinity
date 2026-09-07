@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.183.0.223" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.183.0.223" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.10" extrainfo="Debian"/>
+<script id="http-server-header" output="Apache/2.4.10 (Debian)"/>
+</port>
+<port protocol="tcp" portid="111">
+<state state="open" reason="syn-ack"/>
+<service name="rpcbind" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="3306">
+<state state="open" reason="syn-ack"/>
+<service name="mysql" method="probed" conf="10" product="MySQL" version="5.5.47-0+deb8u1"/>
+</port>
+</ports>
+</host>
+</nmaprun>

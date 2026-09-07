@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.165" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.165" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="7.9p1 Debian 10+deb10u1"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="nostromo" version="1.9.6"/>
+<script id="http-server-header" output="nostromo 1.9.6"/>
+<script id="http-title" output="TRAVERXEC"/>
+</port>
+</ports>
+</host>
+</nmaprun>

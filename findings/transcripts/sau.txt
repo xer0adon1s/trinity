@@ -1,0 +1,55 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/sau.xml --box sau --target 10.10.11.224
+──────────── 10.10.11.224:22 ssh (OpenSSH 8.2p1 Ubuntu 4ubuntu0.7) ─────────────
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+────────────────────────── 10.10.11.224:55555 unknown ──────────────────────────
+  No local match — this would be a candidate for AI escalation.
+─────────────────────────── Suggested next commands ────────────────────────────
+  searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.7
+  (run `trinity explain "searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.7"` to break
+this down)
+
+[exit 0]
+
+$ trinity next --box sau
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.7
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh 8.2p1 Ubuntu 4ubuntu0.7"` for a 
+command breakdown, or `trinity hint --box "sau"` if you want to work it out 
+yourself first)
+(done? `trinity did --box "sau"`  ·  skipping this one? `trinity skip --box 
+"sau"`)
+
+[exit 0]
+
+$ trinity suggest --box sau
+No new suggestions — either nothing's been parsed yet, or everything obvious has
+already been suggested.
+
+[exit 0]
+
+$ trinity hint --box sau
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

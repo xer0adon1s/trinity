@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.198" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.198" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="7680">
+<state state="open" reason="syn-ack"/>
+<service name="pando-pub" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="8080">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.43" extrainfo="Win64 OpenSSL/1.1.1g PHP/7.4.6"/>
+<script id="http-server-header" output="Apache/2.4.43 (Win64) OpenSSL/1.1.1g PHP/7.4.6"/>
+<script id="http-title" output="mrb3n's Bro Hut"/>
+</port>
+</ports>
+</host>
+</nmaprun>

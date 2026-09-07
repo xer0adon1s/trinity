@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.82" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.82" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft IIS httpd" version="8.5"/>
+<script id="http-methods" output="Potentially risky methods: TRACE"/>
+<script id="http-server-header" output="Microsoft-IIS/8.5"/>
+<script id="http-title" output="IIS Windows Server"/>
+</port>
+<port protocol="tcp" portid="135">
+<state state="open" reason="syn-ack"/>
+<service name="msrpc" method="probed" conf="10" product="Microsoft Windows RPC"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="microsoft-ds" method="probed" conf="10" product="Microsoft Windows Server 2008 R2 - 2012 microsoft-ds"/>
+</port>
+<port protocol="tcp" portid="1521">
+<state state="open" reason="syn-ack"/>
+<service name="oracle-tns" method="probed" conf="10" product="Oracle TNS listener" version="11.2.0.2.0" extrainfo="unauthorized"/>
+</port>
+<port protocol="tcp" portid="5985">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Microsoft HTTPAPI httpd" version="2.0" extrainfo="SSDP/UPnP"/>
+</port>
+</ports>
+</host>
+</nmaprun>

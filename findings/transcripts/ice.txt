@@ -4,23 +4,8 @@ error patterns.
 
 [exit 0]
 
-$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/netmon.xml --box netmon --target 10.10.10.152
-──────────────────── 10.10.10.152:21 ftp (Microsoft ftpd ) ─────────────────────
-  Anonymous FTP login  [MEDIUM]  (score 0.9, user_curated)
-  FTP server allows the 'anonymous' user with any/blank password. Always worth 
-checking before anything else on port 21.
-  Try: `ftp <target>` then username `anonymous`, any password.
-
-─────────────── 10.10.10.152:80 http (Indy httpd 18.1.37.13946) ────────────────
-  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
-(score 0.9, user_curated)
-  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
-brute-forcing before anything else — hidden admin panels, backup files, and API 
-routes are extremely common.
-  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
--x php,txt,html`
-
-─────────────── 10.10.10.152:135 msrpc (Microsoft Windows RPC ) ────────────────
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/ice.xml --box ice --target 10.10.139.241
+─────────────── 10.10.139.241:135 msrpc (Microsoft Windows RPC ) ───────────────
   Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
 (MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
   Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
@@ -51,16 +36,18 @@ Verified working.
 Verified working.
   PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
 
-──────── 10.10.10.152:139 netbios-ssn (Microsoft Windows netbios-ssn ) ─────────
+──────── 10.10.139.241:139 netbios-ssn (Microsoft Windows netbios-ssn ) ────────
   No local match — this would be a candidate for AI escalation.
-─ 10.10.10.152:445 microsoft-ds (Microsoft Windows Server 2008 R2 - 2012 micr… ─
+─ 10.10.139.241:445 microsoft-ds (Windows 7 Professional 7601 Service Pack 1 … ─
   SMB null session / anonymous enumeration  [MEDIUM]  (score 0.9, user_curated)
   SMB (port 445/139) often allows unauthenticated enumeration of shares, users, 
 and groups — a very common early foothold path.
   Try: `smbclient -L //<target>/ -N`, `enum4linux -a <target>`, or `crackmapexec
 smb <target> --shares -u '' -p ''`.
 
-───────────── 10.10.10.152:5985 http (Microsoft HTTPAPI httpd 2.0) ─────────────
+─────────────────────── 10.10.139.241:3389 ms-wbt-server ───────────────────────
+  No local match — this would be a candidate for AI escalation.
+──────────── 10.10.139.241:5357 http (Microsoft HTTPAPI httpd 2.0) ─────────────
   HTTP directory brute-forcing is next after a webserver is found  [INFO]  
 (score 0.9, user_curated)
   Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
@@ -69,60 +56,77 @@ routes are extremely common.
   Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
 -x php,txt,html`
 
+────────── 10.10.139.241:8000 http (Icecast streaming media server ) ───────────
+  Icecast 1.1.x/1.3.x - Directory Traversal  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 20972), CVE-2001-0784;OSVDB-1883. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/20972.txt
+
+  Icecast 1.1.x/1.3.x - Slash File Name Denial of Service  [LOW]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 20973), CVE-2001-1083;OSVDB-5472. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/20973.txt
+
+  Icecast 1.3.7/1.3.8 - 'print_client()' Format String  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 20582), CVE-2001-0197;OSVDB-496. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/20582.c
+
+  Icecast 1.x - AVLLib Buffer Overflow  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 21363), CVE-2002-0177;OSVDB-10445. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/21363.c
+
+  Icecast 2.0.1 (Win32) - Remote Code Execution (1)  [CRITICAL]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 568), OSVDB-10406;CVE-2004-1561. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/568.c
+
 ─────────────────────────── Suggested next commands ────────────────────────────
-  ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
-  (run `trinity explain "ftp $TARGET  # login as anonymous, then: ls -la && get 
-any interesting files"` to break this down)
-  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  enum4linux-ng -A $TARGET
+  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
+  gobuster dir -u http://$TARGET:5357 -w /usr/share/wordlists/dirb/common.txt -x
 php,txt,html
-  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+  (run `trinity explain "gobuster dir -u http://$TARGET:5357 -w 
 /usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
-  enum4linux-ng -A $TARGET
-  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
-  enum4linux-ng -A $TARGET
-  (run `trinity explain "enum4linux-ng -A $TARGET"` to break this down)
-  gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x
+  gobuster dir -u http://$TARGET:8000 -w /usr/share/wordlists/dirb/common.txt -x
 php,txt,html
-  (run `trinity explain "gobuster dir -u http://$TARGET:5985 -w 
+  (run `trinity explain "gobuster dir -u http://$TARGET:8000 -w 
 /usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
 
 [exit 0]
 
-$ trinity next --box netmon
+$ trinity next --box ice
 ─────────────────────────────── Recommended next ───────────────────────────────
-enum4linux-ng -A $TARGET
+gobuster dir -u http://$TARGET:8000 -w 
+/usr/share/seclists/Discovery/Web-Content/common.txt -x php,txt,html
 
-'enum4linux-ng' isn't installed. Depending on your system:
-  Debian/Ubuntu:  sudo apt install enum4linux-ng
-  Otherwise:      https://github.com/cddmp/enum4linux-ng (pip install or clone +
-run directly)
+You have a website and you haven't looked inside it. Easy boxes hide the door in
+a path, not on the port. Port 8000 is serving HTTP — directory brute-forcing is 
+the standard next step to find hidden admin panels, backups, or API routes 
+before anything else.
 
-Once that's installed, just run this same command again -- I'll pick up right 
-where we left off: `trinity next --box "netmon"`
-
-(done? `trinity did --box "netmon"`  ·  skipping this one? `trinity skip --box 
-"netmon"`)
+(run `trinity explain "gobuster dir -u http://$TARGET:8000 -w 
+/usr/share/seclists/Discovery/Web-Content/common.txt -x php,txt,html"` for a 
+command breakdown, or `trinity hint --box "ice"` if you want to work it out 
+yourself first)
+(done? `trinity did --box "ice"`  ·  skipping this one? `trinity skip --box 
+"ice"`)
 
 ────────────────────────────── Also worth trying ───────────────────────────────
-  ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
-  gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x
-php,txt,html
-  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+  enum4linux-ng -A $TARGET  (tool not installed)
+  gobuster dir -u http://$TARGET:5357 -w /usr/share/wordlists/dirb/common.txt -x
 php,txt,html
   enum4linux-ng -A $TARGET  (tool not installed)
 
 [exit 0]
 
-$ trinity suggest --box netmon
-ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
-Port 21's nmap scripts already confirmed anonymous FTP login works — don't 
-re-check it, go straight to listing and pulling whatever files are there.
-
-gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
-php,txt,html
-Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
-find hidden admin panels, backups, or API routes before anything else.
-
+$ trinity suggest --box ice
 enum4linux-ng -A $TARGET
 Port 139 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
 pass, often without needing credentials at all.
@@ -131,15 +135,20 @@ enum4linux-ng -A $TARGET
 Port 445 is SMB — enum4linux-ng pulls shares, users, groups, and OS info in one 
 pass, often without needing credentials at all.
 
-gobuster dir -u http://$TARGET:5985 -w /usr/share/wordlists/dirb/common.txt -x 
+gobuster dir -u http://$TARGET:5357 -w /usr/share/wordlists/dirb/common.txt -x 
 php,txt,html
-Port 5985 is serving HTTP — directory brute-forcing is the standard next step to
+Port 5357 is serving HTTP — directory brute-forcing is the standard next step to
+find hidden admin panels, backups, or API routes before anything else.
+
+gobuster dir -u http://$TARGET:8000 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 8000 is serving HTTP — directory brute-forcing is the standard next step to
 find hidden admin panels, backups, or API routes before anything else.
 
 
 [exit 0]
 
-$ trinity hint --box netmon
+$ trinity hint --box ice
 ───────────────────────────────── Nudge (1/3) ──────────────────────────────────
 You're at the enum phase. Before I just tell you what to do — look at what 
 you've found so far. What's unusual, unexpected, or different about it compared 

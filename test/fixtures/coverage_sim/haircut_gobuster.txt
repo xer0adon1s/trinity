@@ -1,0 +1,2 @@
+/uploads               (Status: 301) [Size: 0]
+/exposed.php           (Status: 200) [Size: 0]

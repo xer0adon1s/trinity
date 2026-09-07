@@ -1,0 +1,4 @@
+/profile               (Status: 301) [Size: 0]
+/admin                 (Status: 301) [Size: 0]
+/upload                (Status: 301) [Size: 0]
+/license               (Status: 200) [Size: 0]

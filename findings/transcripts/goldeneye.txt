@@ -1,0 +1,159 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/goldeneye.xml --box goldeneye --target 192.168.111.128
+─────────────────── 192.168.111.128:25 smtp (Postfix smtpd ) ───────────────────
+  gld 1.4 - Postfix Greylisting Daemon Remote Format String  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 934), OSVDB-15493;CVE-2005-1100. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/934.c
+
+  Postfix 1.1.x - Denial of Service (1)  [LOW]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 22981), CVE-2003-0540;OSVDB-10545. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/dos/22981.c
+
+  Postfix 1.1.x - Denial of Service (2)  [LOW]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 22982), CVE-2003-0540;OSVDB-10545. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/dos/22982.pl
+
+  Postfix 2.6-20080814 - 'symlink' Local Privilege Escalation  [HIGH]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 6337), CVE-2008-2936. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/local/6337.sh
+
+  Postfix < 2.4.9/2.5.5/2.6-20080902 - '.forward' Local Denial of Service  [LOW]
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 6472), CVE-2008-4042. Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/6472.c
+
+───────────────── 192.168.111.128:80 http (Apache httpd 2.4.7) ─────────────────
+  Apache + PHP < 5.3.12 / < 5.4.2 - cgi-bin Remote Code Execution  [CRITICAL]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29290), 
+CVE-2012-2336;CVE-2012-2311;CVE-2012-1823;OSVDB-81633. Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/remote/29290.c
+
+  Apache CXF < 2.5.10/2.6.7/2.7.4 - Denial of Service  [LOW]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 26710), CVE-2013-2160;OSVDB-95011. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/multiple/dos/26710.txt
+
+  Apache mod_ssl < 2.8.7 OpenSSL - 'OpenFuck.c' Remote Buffer Overflow  [HIGH]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 21671), CVE-2002-0082;OSVDB-857. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/21671.c
+
+  Apache mod_ssl < 2.8.7 OpenSSL - 'OpenFuckV2.c' Remote Buffer Overflow (1)  
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 764), CVE-2002-0082;OSVDB-857. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/unix/remote/764.c
+
+  Apache Tomcat < 5.5.17 - Remote Directory Listing  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 2061). Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/2061.txt
+
+───────────────── 192.168.111.128:55006 pop3 (Dovecot pop3d ) ──────────────────
+  Dovecot 1.1.x - Invalid Message Address Parsing Denial of Service  [LOW]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 32551), CVE-2008-4907;OSVDB-49429. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/dos/32551.txt
+
+  Dovecot IMAP 1.0.10 < 1.1rc2 - Remote Email Disclosure  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 5257), CVE-2008-1218. Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/5257.py
+
+  Dovecot with Exim - 'sender_address' Remote Command Execution  [CRITICAL]  
+(score 0.8, searchsploit)
+  Found in local ExploitDB (EDB-ID 25297), OSVDB-93004.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/25297.txt
+
+───────────────── 192.168.111.128:55007 pop3 (Dovecot pop3d ) ──────────────────
+  Dovecot 1.1.x - Invalid Message Address Parsing Denial of Service  [LOW]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 32551), CVE-2008-4907;OSVDB-49429. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/linux/dos/32551.txt
+
+  Dovecot IMAP 1.0.10 < 1.1rc2 - Remote Email Disclosure  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 5257), CVE-2008-1218. Verified working.
+  PoC: /usr/share/exploitdb/exploits/multiple/remote/5257.py
+
+  Dovecot with Exim - 'sender_address' Remote Command Execution  [CRITICAL]  
+(score 0.8, searchsploit)
+  Found in local ExploitDB (EDB-ID 25297), OSVDB-93004.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/25297.txt
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/goldeneye_gobuster.txt --box goldeneye
+───────────────────────────────── None:None ? ──────────────────────────────────
+  No local match — this would be a candidate for AI escalation.
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity next --box goldeneye
+─────────────────────────────── Recommended next ───────────────────────────────
+gobuster dir -u http://$TARGET:80 -w 
+/usr/share/seclists/Discovery/Web-Content/common.txt -x php,txt,html
+
+You have a website and you haven't looked inside it. Easy boxes hide the door in
+a path, not on the port. Port 80 is serving HTTP — directory brute-forcing is 
+the standard next step to find hidden admin panels, backups, or API routes 
+before anything else.
+
+(run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/seclists/Discovery/Web-Content/common.txt -x php,txt,html"` for a 
+command breakdown, or `trinity hint --box "goldeneye"` if you want to work it 
+out yourself first)
+(done? `trinity did --box "goldeneye"`  ·  skipping this one? `trinity skip 
+--box "goldeneye"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+
+[exit 0]
+
+$ trinity suggest --box goldeneye
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+
+[exit 0]
+
+$ trinity hint --box goldeneye
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the enum phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

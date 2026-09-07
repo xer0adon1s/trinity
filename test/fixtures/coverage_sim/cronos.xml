@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.13" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.13" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="7.2p2 Ubuntu 4ubuntu2.1"/>
+</port>
+<port protocol="tcp" portid="53">
+<state state="open" reason="syn-ack"/>
+<service name="domain" method="probed" conf="10" product="ISC BIND" version="9.10.3-P4" extrainfo="Ubuntu Linux"/>
+<script id="dns-nsid" output="bind.version: 9.10.3-P4-Ubuntu"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.18" extrainfo="Ubuntu"/>
+<script id="http-server-header" output="Apache/2.4.18 (Ubuntu)"/>
+<script id="http-title" output="Apache2 Ubuntu Default Page: It works"/>
+</port>
+</ports>
+</host>
+</nmaprun>

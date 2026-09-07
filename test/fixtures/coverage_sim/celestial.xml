@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.10.85" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.10.85" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="3000">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Node.js Express framework"/>
+<script id="http-title" output="Site doesn't have a title (text/html; charset=utf-8)."/>
+</port>
+</ports>
+</host>
+</nmaprun>

@@ -1,0 +1,147 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/haircut.xml --box haircut --target 10.10.10.24
+───────────── 10.10.10.24:22 ssh (OpenSSH 7.2p2 Ubuntu 4ubuntu2.2) ─────────────
+  OpenSSH 2.3 < 7.7 - Username Enumeration (PoC)  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 45210), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45210.py
+
+  OpenSSH 2.3 < 7.7 - Username Enumeration  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 45233), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45233.py
+
+  OpenSSH < 7.4 - 'UsePrivilegeSeparation Disabled' Forwarded Unix Domain 
+Sockets Privilege Escalation  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40962), CVE-2016-10010. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/local/40962.txt
+
+  OpenSSH < 7.4 - agent Protocol Arbitrary Library Loading  [MEDIUM]  (score 
+0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 40963), CVE-2016-10009. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/40963.txt
+
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+────────────────────── 10.10.10.24:80 http (nginx 1.10.0) ──────────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.9, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  searchsploit openssh 7.2p2 Ubuntu 4ubuntu2.2
+  (run `trinity explain "searchsploit openssh 7.2p2 Ubuntu 4ubuntu2.2"` to break
+this down)
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/haircut_gobuster.txt --box haircut
+───────────────────────────────── None:None ? ──────────────────────────────────
+  barbo91 uploads - Arbitrary File Upload  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 10660). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/10660.txt
+
+  Flashden - Multiple Arbitrary File Uploads  [HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 10236). Verified working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/10236.txt
+
+  HP Intelligent Management Center BIms UploadServlet - Directory Traversal 
+(Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29130), CVE-2013-4822;OSVDB-98247. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/29130.rb
+
+  ManageEngine Desktop Central 9 - FileUploadServlet ConnectionId (Metasploit)  
+[MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 38982), CVE-2015-8249;OSVDB-130862. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/jsp/remote/38982.rb
+
+  Oracle Event Processing FileUploadServlet - Arbitrary File Upload (Metasploit)
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 33989), CVE-2014-2424;OSVDB-105844. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/windows/remote/33989.rb
+
+───────────────────────────────── None:None ? ──────────────────────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.6, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  curl -i http://$TARGET/uploads
+  (run `trinity explain "curl -i http://$TARGET/uploads"` to break this down)
+
+[exit 0]
+
+$ trinity next --box haircut
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 7.2p2 Ubuntu 4ubuntu2.2
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh 7.2p2 Ubuntu 4ubuntu2.2"` for a 
+command breakdown, or `trinity hint --box "haircut"` if you want to work it out 
+yourself first)
+(done? `trinity did --box "haircut"`  ·  skipping this one? `trinity skip --box 
+"haircut"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  curl -i http://$TARGET/uploads
+
+[exit 0]
+
+$ trinity suggest --box haircut
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+curl -i http://$TARGET/uploads
+'/uploads' (status 301) looks like an admin/login/backup-shaped path, not just a
+generic hit — open it, look at any forms, and try default credentials before 
+brute-forcing more paths.
+
+
+[exit 0]
+
+$ trinity hint --box haircut
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

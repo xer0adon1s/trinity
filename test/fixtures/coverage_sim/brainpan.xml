@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.92.146" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.92.146" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="9999">
+<state state="open" reason="syn-ack"/>
+<service name="abyss" method="probed" conf="10"/>
+</port>
+<port protocol="tcp" portid="10000">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="SimpleHTTPServer" version="0.6" extrainfo="Python 2.7.3"/>
+</port>
+</ports>
+</host>
+</nmaprun>

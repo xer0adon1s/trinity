@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 192.168.111.128" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="192.168.111.128" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="25">
+<state state="open" reason="syn-ack"/>
+<service name="smtp" method="probed" conf="10" product="Postfix smtpd"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.7" extrainfo="Ubuntu"/>
+<script id="http-title" output="GoldenEye Primary Admin Server"/>
+</port>
+<port protocol="tcp" portid="55006">
+<state state="open" reason="syn-ack"/>
+<service name="pop3" method="probed" conf="10" product="Dovecot pop3d"/>
+</port>
+<port protocol="tcp" portid="55007">
+<state state="open" reason="syn-ack"/>
+<service name="pop3" method="probed" conf="10" product="Dovecot pop3d"/>
+</port>
+</ports>
+</host>
+</nmaprun>

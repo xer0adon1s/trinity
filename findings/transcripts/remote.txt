@@ -4,14 +4,14 @@ error patterns.
 
 [exit 0]
 
-$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/netmon.xml --box netmon --target 10.10.10.152
-──────────────────── 10.10.10.152:21 ftp (Microsoft ftpd ) ─────────────────────
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/remote.xml --box remote --target 10.10.10.180
+──────────────────── 10.10.10.180:21 ftp (Microsoft ftpd ) ─────────────────────
   Anonymous FTP login  [MEDIUM]  (score 0.9, user_curated)
   FTP server allows the 'anonymous' user with any/blank password. Always worth 
 checking before anything else on port 21.
   Try: `ftp <target>` then username `anonymous`, any password.
 
-─────────────── 10.10.10.152:80 http (Indy httpd 18.1.37.13946) ────────────────
+────────────── 10.10.10.180:80 http (Microsoft HTTPAPI httpd 2.0) ──────────────
   HTTP directory brute-forcing is next after a webserver is found  [INFO]  
 (score 0.9, user_curated)
   Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
@@ -20,7 +20,9 @@ routes are extremely common.
   Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
 -x php,txt,html`
 
-─────────────── 10.10.10.152:135 msrpc (Microsoft Windows RPC ) ────────────────
+─────────────────────────── 10.10.10.180:111 rpcbind ───────────────────────────
+  No local match — this would be a candidate for AI escalation.
+─────────────── 10.10.10.180:135 msrpc (Microsoft Windows RPC ) ────────────────
   Microsoft DNS RPC Service - 'extractQuotedChar()' Remote Overflow 'SMB' 
 (MS07-029) (Metasploit)  [MEDIUM]  (score 0.9, searchsploit)
   Found in local ExploitDB (EDB-ID 16366), CVE-2007-1748;OSVDB-34100;MS07-029. 
@@ -51,16 +53,18 @@ Verified working.
 Verified working.
   PoC: /usr/share/exploitdb/exploits/windows/remote/100.c
 
-──────── 10.10.10.152:139 netbios-ssn (Microsoft Windows netbios-ssn ) ─────────
+──────── 10.10.10.180:139 netbios-ssn (Microsoft Windows netbios-ssn ) ─────────
   No local match — this would be a candidate for AI escalation.
-─ 10.10.10.152:445 microsoft-ds (Microsoft Windows Server 2008 R2 - 2012 micr… ─
+──────────────────────── 10.10.10.180:445 microsoft-ds ─────────────────────────
   SMB null session / anonymous enumeration  [MEDIUM]  (score 0.9, user_curated)
   SMB (port 445/139) often allows unauthenticated enumeration of shares, users, 
 and groups — a very common early foothold path.
   Try: `smbclient -L //<target>/ -N`, `enum4linux -a <target>`, or `crackmapexec
 smb <target> --shares -u '' -p ''`.
 
-───────────── 10.10.10.152:5985 http (Microsoft HTTPAPI httpd 2.0) ─────────────
+─────────────────────────── 10.10.10.180:2049 mountd ───────────────────────────
+  No local match — this would be a candidate for AI escalation.
+───────────── 10.10.10.180:5985 http (Microsoft HTTPAPI httpd 2.0) ─────────────
   HTTP directory brute-forcing is next after a webserver is found  [INFO]  
 (score 0.9, user_curated)
   Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
@@ -88,7 +92,7 @@ php,txt,html
 
 [exit 0]
 
-$ trinity next --box netmon
+$ trinity next --box remote
 ─────────────────────────────── Recommended next ───────────────────────────────
 enum4linux-ng -A $TARGET
 
@@ -98,10 +102,10 @@ enum4linux-ng -A $TARGET
 run directly)
 
 Once that's installed, just run this same command again -- I'll pick up right 
-where we left off: `trinity next --box "netmon"`
+where we left off: `trinity next --box "remote"`
 
-(done? `trinity did --box "netmon"`  ·  skipping this one? `trinity skip --box 
-"netmon"`)
+(done? `trinity did --box "remote"`  ·  skipping this one? `trinity skip --box 
+"remote"`)
 
 ────────────────────────────── Also worth trying ───────────────────────────────
   ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
@@ -113,7 +117,7 @@ php,txt,html
 
 [exit 0]
 
-$ trinity suggest --box netmon
+$ trinity suggest --box remote
 ftp $TARGET  # login as anonymous, then: ls -la && get any interesting files
 Port 21's nmap scripts already confirmed anonymous FTP login works — don't 
 re-check it, go straight to listing and pulling whatever files are there.
@@ -139,7 +143,7 @@ find hidden admin panels, backups, or API routes before anything else.
 
 [exit 0]
 
-$ trinity hint --box netmon
+$ trinity hint --box remote
 ───────────────────────────────── Nudge (1/3) ──────────────────────────────────
 You're at the enum phase. Before I just tell you what to do — look at what 
 you've found so far. What's unusual, unexpected, or different about it compared 

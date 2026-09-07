@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 172.16.96.131" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="172.16.96.131" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="6.6.1p1 Ubuntu 2ubuntu2.8"/>
+</port>
+<port protocol="tcp" portid="80">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="Apache httpd" version="2.4.7" extrainfo="Ubuntu"/>
+<script id="http-generator" output="Silex v2.2.7"/>
+<script id="http-title" output="Backnode"/>
+</port>
+<port protocol="tcp" portid="139">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" version="3.X - 4.X"/>
+</port>
+<port protocol="tcp" portid="445">
+<state state="open" reason="syn-ack"/>
+<service name="netbios-ssn" method="probed" conf="10" product="Samba smbd" version="4.3.11-Ubuntu"/>
+</port>
+<port protocol="tcp" portid="3306">
+<state state="open" reason="syn-ack"/>
+<service name="mysql" method="probed" conf="10" product="MySQL"/>
+</port>
+<port protocol="tcp" portid="6667">
+<state state="open" reason="syn-ack"/>
+<service name="irc" method="probed" conf="10" product="InspIRCd"/>
+</port>
+</ports>
+</host>
+</nmaprun>

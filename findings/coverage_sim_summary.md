@@ -1,121 +1,93 @@
-# Coverage simulation — checkpoint 1
+# Coverage simulation — checkpoint 2 (first Doc-review target)
 
 **Worktree:** `/home/alexander/Work/trinity-wt-coverage-sim`  
 **Branch:** `coverage-sim-findings`  
-**Boxes simulated:** 20 (honest cited fixtures; not 100–150). Stopped expanding Apache-httpd Easy web boxes after the same product-query noise repeated.
+**Boxes simulated:** **102** (cited fixtures + real CLI transcripts). This is the ~100–150 first-checkpoint stop. Do not push or merge — Doc reviews.
+
+Prior checkpoint was 20 HTB Easy (`90c04fa`). This session added THM, VulnHub, Medium, and new vuln categories. Did **not** re-expand the Apache-httpd Easy-web product-noise pattern already logged.
+
+Baseline before new boxes: `.venv/bin/pytest -q` → **355 passed** (after merge with main: KB version-scoping, KB service-scoping in FTS stage 2, explain-cache-key). After live routing fixes this session: **359 passed**.
 
 ## Tally
 
 | result | count |
 |--------|------:|
-| pass | 6 |
-| partial | 11 |
-| fail | 1 |
-| capability_gap | 2 |
-| **total** | **20** |
+| pass | 17 |
+| partial | 80 |
+| fail | 0 |
+| capability_gap | 5 |
+| **total** | **102** |
+
+Netmon was FAIL at checkpoint 1 (vsftpd 2.3.4 CRITICAL on Microsoft ftpd). Re-sim after main `3b4bd84` version-scope: that CRITICAL is gone. Rescored to **PARTIAL** (PRTG still unrouted). No remaining FAILs.
 
 ### Bucket breakdown (fail + partial + gap)
 
-| bucket | boxes |
-|--------|-------|
-| searchsploit_routing | grandpa (IIS6 crowding), armageddon (Drupal in http-generator), netmon PRTG-in-title (also fail/other) |
-| missing_kb_entry | devel, jerry, bashed, sense, mirai |
-| missing_suggest_coverage | shocker, granny, knife, valentine |
-| capability_gap | forest, active |
-| other | netmon (vsftpd-on-any-ftp CRITICAL) |
+| bucket | count | what it means in this batch |
+|--------|------:|-----------------------------|
+| missing_kb_entry | 40 | Default creds, upload filters, SQLi/cmdi/SSTI/NoSQL, content leaks, Jenkins/Tomcat/ColdFusion identity without a banner CVE |
+| searchsploit_routing | 19 | ExploitDB has the hit (`searchsploit <terms>` verified) but Trinity did not ask the right query — mostly **http-title / http-generator / extrainfo** (Drupal, Joomla, GitLab, Koken, PRTG, Webmin-as-MiniServ, Bludit-as-Blunder, NSClient++, Fuel CMS in title) |
+| missing_suggest_coverage | 17 | No branch for DNS AXFR, NFS/mountd, finger, AJP/Ghostcat, LFI-as-primary, WebDAV PUT on lighttpd, SSTI, `/ping?ip=` cmdi |
+| capability_gap | 5 | AD AS-REP/Kerberoast (forest, active, sauna, attacktivedirectory); custom BOF (brainpan) |
+| other | 4 | Version-era / product-only ExploitDB noise: Broker (ActiveMQ 2016 vs CVE-2023-46604 not in local EDB), Help/Node/UltraTech (Node.js → node-serialize CRITICAL, wrong app) |
 
-PASS: lame, nibbles, blue, legacy, optimum, beep.
+**PASS (17):** lame, nibbles, blue, legacy, optimum, beep, solidstate, irked, traverxec, ice, kenobi, steelmountain, celestial, kioptrix1 (Samba trans2open alt path), basicpentesting1 (ProFTPD 1.3.3c backdoor), access (anon FTP *is* the foothold), brooklynninenine (anon FTP note *is* the start).
 
-## Live fixes shipped
+## Platform / difficulty mix
+
+| | HTB | THM | VulnHub | total |
+|--|----:|----:|--------:|------:|
+| Easy | many | 18 | 12 | |
+| Medium | first Mediums this project (arctic, postman-era through poison/haircut/mango/magic/node/broker/celestial/cronos/…) | relevant | stapler, goldeneye, brainpan | |
+| Linux / Windows / AD | mixed; AD kept to 4 boxes (expected gaps) | | | |
+
+New categories vs checkpoint 1: Redis, James, UnrealIRCd, Nostromo, Icecast, ProFTPD mod_copy + 1.3.3c backdoor, ColdFusion/CFIDE, Jenkins/Jetty, Oracle TNS, Finger, GitLab-in-title, NFS/Umbraco, Fuel CMS, Ghostcat/AJP, ActiveMQ, node-serialize, request-baskets, Koken, Drupal/Joomla-in-generator, Kioptrix OpenFuck-era + LotusCMS + login SQLi, Brainpan BOF, Magento, Bludit, Adminer, HelpDeskZ, Mattermost, NSClient++, Access DB, NFS+LFI/SMB write, SSTI, NoSQL, command injection, WebDAV PUT, WordPress brute, phpLiteAdmin, exposed SSH keys.
+
+## Live fixes shipped this session
 
 | commit | what |
 |--------|------|
-| `dc00d8b` | Path findings: last product-shaped segment → searchsploit. Skip generic web segments (incl. cgi-bin). Regression: `/nibbleblog/` surfaces Nibbleblog 4.0.3 file-upload. |
-| `7cf4071` | One searchsploit call **per** MS-bulletin. Legacy had ms08-067 **and** ms17-010 in one detail string; AND query returned zero. Also skip-listed `themes`/`javascript`/`classes`/`widgets` after Sense `/themes/` → WordPress-theme exploits. |
+| `7729518` | Strip nmap role suffixes/phrases (`smtpd\|pop3d\|nntpd\|listener`, `streaming media server`, `key-value store`, `remote admin`). Icecast + JAMES now hit. |
+| `9797be8` | Skip English-word path segments that are product-shaped but not products: `fuel`, `simple`, `internal`, `music`, `artwork`, `askjeeves`. |
+| `2b95f26` | Strip `openwire transport` / `express framework`. Celestial node-serialize PASS; Broker at least queries ActiveMQ. |
+| `ce1914a` | Skip `/uploads/` (plural of already-skipped `upload`). Haircut was querying random file-upload exploits. |
 
-**Not changed:** match priority/ordering, default `limit=5`, advisories, wizard, CLI surface, KB seed, new suggest phrasing.
-
-## Path-fix verification (Nibbles / Netmon / Shocker)
-
-All CLI runs: isolated `HOME=/tmp/trinity_sim_<box>`, `PYTHONPATH=src`, `scripts/trinity-cli.py`. Full transcripts in `findings/transcripts/`.
-
-### Nibbles — PASS (path fix worked)
-
-Gobuster `/nibbleblog` (attested path; 0xdf found it via HTML comment, then gobusted inside it):
-
-```
-$ trinity parse-nmap .../nibbles_gobuster.txt --box nibbles
-  Nibbleblog 3 - Multiple SQL Injections  [HIGH]  (score 0.9, searchsploit)
-  Nibbleblog 4.0.3 - Arbitrary File Upload (Metasploit)  [HIGH]  (score 0.9, searchsploit)
-  Found in local ExploitDB (EDB-ID 38489), CVE-2015-6967;OSVDB-127059. Verified working.
-  PoC: /usr/share/exploitdb/exploits/php/remote/38489.rb
-```
-
-`next` still ranks `searchsploit openssh 7.2p2` first (ordering not touched). Exploit is clearly surfaced in parse-nmap.
-
-### Netmon — FAIL / path-fix does **not** apply
-
-Writeups: PRTG is the **root page** (nmap `product=Indy httpd`, extrainfo `Paessler PRTG bandwidth monitor`, `http-title: Welcome | PRTG Network Monitor`). There is no `/prtg/` gobuster hit to invent.
-
-```
-$ trinity parse-nmap .../netmon.xml --box netmon
-10.10.10.152:21 ftp (Microsoft ftpd)
-  vsftpd 2.3.4 backdoor (CVE-2011-2523)  [CRITICAL]  (score 0.9, user_curated)  ← WRONG
-  Anonymous FTP login  [MEDIUM]  ← real user foothold
-10.10.10.152:80 http (Indy httpd 18.1.37.13946)
-  HTTP directory brute-forcing ... [INFO]
-  (no PRTG, no CVE-2018-9276)
-```
-
-`searchsploit prtg` has local exploits; Trinity never queried `prtg`.
-
-### Shocker — PARTIAL (`missing_suggest_coverage`)
-
-`/cgi-bin/` correctly **not** sent to searchsploit. `/cgi-bin/user.sh` is not product-shaped (dot). No Shellshock.
-
-```
-$ trinity parse-nmap .../shocker_gobuster.txt --box shocker
-  /cgi-bin  → No local match
-  /cgi-bin/user.sh → FTS token "user" cross-matched Anonymous FTP + vsftpd 2.3.4 [CRITICAL]
-```
-
-Did **not** add a `/cgi-bin/` → Shellshock suggest rule (new phrasing). Proposal logged.
+**Not changed:** match priority/ordering, default `limit=5`, advisories, wizard, CLI surface, KB seed, new suggest phrasing, title/generator/extrainfo parsers, version-range filters.
 
 ## Pytest
 
 | when | result |
 |------|--------|
-| before this worktree's code changes | not re-run on `bd81f92`; original `test_match_engine.py` had 14 tests in the match file |
-| after path-fix `dc00d8b` | **348 passed** |
-| after bulletin-split `7cf4071` | **349 passed** (full suite, `PYTHONPATH=src`) |
-
-## `_FTS_STOPWORDS` / `2003`
-
-- Confirmed in code: `windows`/`server` are stopwords, so `"Windows Server 2003"` → `"2003"`.
-- This 20-box batch had **no** nmap product string `Windows Server 2003`. Grandpa/Granny product is `Microsoft IIS httpd 6.0`.
-- Related FTS FPs seen: token `user` from `/cgi-bin/user.sh` → FTP KB; token `anonymous` in FTP detail → SMB null-session KB (score 0.6).
-- Did **not** blanket-raise min token length. Did **not** remove stopwords.
+| after merge with main, before new boxes | **355 passed** |
+| after Icecast/JAMES phrase+suffix strip `7729518` | **358 passed** |
+| after OpenWire/Express + skip-list + uploads | **359 passed** (`test_match_engine.py` 23) |
 
 ## STOP AND ASK
 
-1. **Apache httpd product query noise (5+ boxes, same root cause).** Nibbles, Shocker, Knife, Valentine, Armageddon, Beep: `searchsploit` on `Apache httpd` + a 2.x/2.4 version still returns `Apache + PHP < 5.3.12 cgi-bin RCE` [CRITICAL] and `OpenFuck` (2002). Trinity did not filter version ranges. Logged **one** pattern; stopped adding more Apache Easy web boxes. Design question: filter searchsploit hits by version sanity, or leave as "operator still sees ExploitDB noise"? **Do not change ordering here.**
+1. **Apache / product-only version-sanity (still the #1 pattern, not re-expanded).** Almost every Apache 2.4.x box still surfaces `Apache + PHP < 5.3.12 cgi-bin RCE [CRITICAL]` and OpenFuck. Same for product-only `OpenSSH`, `vsftpd` with no version (Stapler → 2.3.4 CRITICAL via searchsploit, not KB), `Node.js` → node-serialize on Help/UltraTech/Node (Celestial is the one box where that is correct), `ActiveMQ` → 2016 CVEs (CVE-2023-46604 is **not** in this machine's ExploitDB; `searchsploit 46604` is a different Windows DoS). Design question: filter searchsploit hits by version sanity / RCE-vs-DoS, or leave as operator-visible ExploitDB noise? **Do not change ordering/limit here.**
 
-2. **vsftpd 2.3.4 KB matches any `service=ftp`.** Stage 1 uses `match_service IN (ftp)` and only *boosts* score when version matches. Netmon + Devel (Microsoft ftpd) got CRITICAL vsftpd backdoor. Same class as the original cross-service FTS bug, but it is exact-service matching, not FTS. Fix would be "require product/version for that KB row" — adjacent to match rules, not a new query term. Asking before touching it.
+2. **http-title / http-generator / extrainfo → searchsploit.** Recurs on Netmon (PRTG), Armageddon/Bastard/DC-1 (Drupal), DC-3 (Joomla), Ready (GitLab), Photographer (Koken), Ignite (FUEL CMS title), Blunder (generator `Blunder` ≠ Bludit), Source/Postman (MiniServ vs Webmin in extrainfo), Servmon (title NSClient++), Delivery (title Mattermost). `searchsploit prtg|drupal|joomla|gitlab|koken|fuel cms|bludit|webmin|nsclient` all have local hits. Mechanical-ish but fuzzier than path/bulletin regex. **Not implemented.**
 
-3. **`limit=5` crowding.** Grandpa's intended IIS6 WebDAV RCE is in ExploitDB but DoS titles fill the five slots. Raising limit or re-ranking RCE vs DoS is **priority/ordering**. Not changed.
+3. **English last-segment skip-list is not a dictionary.** After `themes` then `fuel/simple/internal/music/artwork/askjeeves` then `uploads`, the same FP class hit `/writeup` (WP plugin noise), `/mage` (4Images, not Magento), `/torrent` (BitTorrent client BOF), `/about`, `/department`. Stopped adding one-off English skips. Either accept the noise or design a tighter product-shaped rule. **Do not keep expanding the frozenset.**
 
-4. **nmap hostscripts.** Real `smb-vuln-ms17-010` often lands in `<hostscript>`, which `parse_nmap_xml` ignores. Fixtures attached scripts to port 445 so the existing bulletin path can fire. Parser gap logged, not implemented.
+4. **`/ona` length ≥ 4.** OpenAdmin's attested path is 3 characters. `searchsploit OpenNetAdmin` works. Lowering the gate to 3 would query other short junk. Do not invent `OpenNetAdmin` from `ona`.
 
-5. **http-title / extrainfo / http-generator → searchsploit.** Netmon PRTG, Armageddon Drupal 7, Beep Elastix. Mechanical-ish but fuzzier than path/bulletin regex. Logged as `searchsploit_routing`; not implemented this checkpoint.
+5. **Product-only fallback when versioned AND is empty/wrong.** Redis `4.0.9` misses “4.x” unauth/SSH-key write; Oracle TNS `11.2.0.2.0` ANDs to zero. Adjacent to ordering if we *also* keep the versioned query. Asking before adding a fallback call.
 
-6. **AD (Forest, Active).** Capability gap as specified. No AD code in this worktree.
+6. **`limit=5` crowding / RCE vs DoS.** Grandpa IIS6 WebDAV; Kioptrix1 OpenFuck (mod_ssl in *extrainfo*, Samba alt path still PASSed). Priority/ordering. Not changed.
 
-7. **Shellshock suggest rule.** Logged as `missing_suggest_coverage` + optional KB proposal. Not implemented (new phrasing).
+7. **nmap hostscripts** still ignored (`smb-vuln-*` fixtures stay on the port). Parser gap logged, not implemented.
+
+8. **AD + custom BOF.** Forest, Active, Sauna, Attacktive Directory, Brainpan. No AD/BOF code in this worktree.
+
+9. **New suggest phrasing (log only):** `/cgi-bin/` → Shellshock; finger → user enum; DNS → AXFR; mountd/nfs → `showmount -e`; ajp13/8009 → Ghostcat; http-methods PUT → HTTP PUT upload; LFI `file=` parameters; `/ping?ip=` → cmdi; message boards → SSTI.
+
+10. **Stapler vsftpd 2.3.4 CRITICAL** is searchsploit product-only (nmap had no version), **not** a regression of main's KB version-scope gate. Confirmed in engine: empty `finding.version` skips the KB row in both stages.
 
 ## How far this got
 
-Twenty retired HTB Easy boxes, mixed Linux/Windows, with real CLI transcripts. Not 100–150. Diversity is decent for a first checkpoint (SMB RCE, CMS upload, HFS, Tomcat creds, FTP webroot, WebDAV, Shellshock, Heartbleed, PHP backdoor, Drupal, pfSense, Pi default creds, two AD DCs). No THM/VulnHub yet. No Medium boxes yet.
+102 retired Easy/Medium boxes across HTB, THM, and VulnHub, with real CLI transcripts under isolated `$HOME`. Diversity is now the point of the corpus (first THM/VulnHub/Medium were zero at checkpoint 1). Ran out of *clearly new* categories faster than raw count — another 50 Apache-shaped web boxes would only reconfirm STOP-AND-ASK #1 and #2.
 
 Full transcripts: `findings/transcripts/<box>.txt`  
 JSONL: `findings/coverage_sim_log.jsonl`  
-Fixtures: `test/fixtures/coverage_sim/`
+Fixtures: `test/fixtures/coverage_sim/`  
+Citation scratch: `findings/coverage_sim_thm_vulnhub_research.md`, `findings/coverage_sim_batch6_research.md`

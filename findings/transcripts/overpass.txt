@@ -1,0 +1,145 @@
+$ trinity init
+Trinity DB ready. Seeded 0 new KB entries, 0 new command explanations, and 0 new
+error patterns.
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/overpass.xml --box overpass --target 10.10.164.129
+──────────── 10.10.164.129:22 ssh (OpenSSH 7.6p1 Ubuntu 4ubuntu0.3) ────────────
+  OpenSSH 2.3 < 7.7 - Username Enumeration (PoC)  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 45210), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45210.py
+
+  OpenSSH 2.3 < 7.7 - Username Enumeration  [MEDIUM]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 45233), CVE-2018-15473. Verified working.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45233.py
+
+  SSH version banner grabbing for known CVEs  [INFO]  (score 0.9, user_curated)
+  Old OpenSSH versions occasionally have known auth-bypass or info-leak CVEs. 
+Check the exact version against searchsploit before assuming SSH is a dead end.
+  Try: `searchsploit openssh <version>`
+
+  OpenSSH < 7.7 - User Enumeration (2)  [MEDIUM]  (score 0.8, searchsploit)
+  Found in local ExploitDB (EDB-ID 45939), CVE-2018-15473.
+  PoC: /usr/share/exploitdb/exploits/linux/remote/45939.py
+
+─────────────── 10.10.164.129:80 http (Golang net/http server ) ────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.9, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  searchsploit openssh 7.6p1 Ubuntu 4ubuntu0.3
+  (run `trinity explain "searchsploit openssh 7.6p1 Ubuntu 4ubuntu0.3"` to break
+this down)
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+
+[exit 0]
+
+$ trinity parse-nmap /home/alexander/Work/trinity-wt-coverage-sim/test/fixtures/coverage_sim/overpass_gobuster.txt --box overpass
+───────────────────────────────── None:None ? ──────────────────────────────────
+  HTTP directory brute-forcing is next after a webserver is found  [INFO]  
+(score 0.6, user_curated)
+  Any open HTTP/HTTPS port warrants gobuster/ffuf directory and vhost 
+brute-forcing before anything else — hidden admin panels, backup files, and API 
+routes are extremely common.
+  Try: `gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt 
+-x php,txt,html`
+
+───────────────────────────────── None:None ? ──────────────────────────────────
+  All In One Control Panel 1.3.x - 'cp_downloads.php?did' SQL Injection  [HIGH] 
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 29451), CVE-2007-0316;OSVDB-32809. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/29451.txt
+
+  BlueDragon CFChart Servlet 7.1.1.17759 - Arbitrary File Retrieval/Deletion  
+[HIGH]  (score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 36815), CVE-2014-5370;OSVDB-119527. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/cfm/webapps/36815.txt
+
+  Broadcom PIPA C211 - Sensitive Information Disclosure  [MEDIUM]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 33353), CVE-2014-2046;OSVDB-106845. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/hardware/webapps/33353.txt
+
+  dompdf 0.6.0 - 'dompdf.php?read' Arbitrary File Read  [HIGH]  (score 0.9, 
+searchsploit)
+  Found in local ExploitDB (EDB-ID 33004), CVE-2014-2383;OSVDB-106083. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/33004.txt
+
+  Dragonfly CMS 9.0.6.1 Downloads Module - 'c' Cross-Site Scripting  [MEDIUM]  
+(score 0.9, searchsploit)
+  Found in local ExploitDB (EDB-ID 27268), CVE-2006-1033;OSVDB-23413. Verified 
+working.
+  PoC: /usr/share/exploitdb/exploits/php/webapps/27268.txt
+
+─────────────────────────── Suggested next commands ────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  (run `trinity explain "gobuster dir -u http://$TARGET:80 -w 
+/usr/share/wordlists/dirb/common.txt -x php,txt,html"` to break this down)
+  curl -i http://$TARGET/admin
+  (run `trinity explain "curl -i http://$TARGET/admin"` to break this down)
+
+[exit 0]
+
+$ trinity next --box overpass
+─────────────────────────────── Recommended next ───────────────────────────────
+searchsploit openssh 7.6p1 Ubuntu 4ubuntu0.3
+
+You already know the exact software and version. That's specific enough to check
+against a real exploit database, not guess. Port 22 is SSH — checking the exact 
+version against the local exploit database is worth doing early, even though SSH
+itself is rarely the first foothold.
+
+(run `trinity explain "searchsploit openssh 7.6p1 Ubuntu 4ubuntu0.3"` for a 
+command breakdown, or `trinity hint --box "overpass"` if you want to work it out
+yourself first)
+(done? `trinity did --box "overpass"`  ·  skipping this one? `trinity skip --box
+"overpass"`)
+
+────────────────────────────── Also worth trying ───────────────────────────────
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+  curl -i http://$TARGET/admin
+
+[exit 0]
+
+$ trinity suggest --box overpass
+gobuster dir -u http://$TARGET:80 -w /usr/share/wordlists/dirb/common.txt -x 
+php,txt,html
+Port 80 is serving HTTP — directory brute-forcing is the standard next step to 
+find hidden admin panels, backups, or API routes before anything else.
+
+curl -i http://$TARGET/admin
+'/admin' (status 301) looks like an admin/login/backup-shaped path, not just a 
+generic hit — open it, look at any forms, and try default credentials before 
+brute-forcing more paths.
+
+
+[exit 0]
+
+$ trinity hint --box overpass
+───────────────────────────────── Nudge (1/3) ──────────────────────────────────
+You're at the recon phase. Before I just tell you what to do — look at what 
+you've found so far. What's unusual, unexpected, or different about it compared 
+to a typical box? What would you check first?
+
+(ask again for a stronger hint on this same step)
+
+[exit 0]
+

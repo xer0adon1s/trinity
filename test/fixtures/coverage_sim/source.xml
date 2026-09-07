@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap -sC -sV -oX scan.xml 10.10.178.7" start="1" version="7.94">
+<host starttime="1" endtime="2">
+<status state="up" reason="syn-ack"/>
+<address addr="10.10.178.7" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" method="probed" conf="10" product="OpenSSH" version="7.6p1 Ubuntu 4ubuntu0.3"/>
+</port>
+<port protocol="tcp" portid="10000">
+<state state="open" reason="syn-ack"/>
+<service name="http" method="probed" conf="10" product="MiniServ" version="1.890" extrainfo="Webmin httpd"/>
+<script id="http-server-header" output="MiniServ/1.890"/>
+</port>
+</ports>
+</host>
+</nmaprun>
