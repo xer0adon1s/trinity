@@ -27,6 +27,7 @@ from trinity.state import (
     HACKER_NAME_ENABLED,
     NOTIFY_ENABLED,
     SETUP_DONE,
+    claim_state,
     get_state,
     set_state,
 )
@@ -97,11 +98,24 @@ def run_intro(conn: sqlite3.Connection) -> None:
                 set_state(conn, HACKER_NAME_ENABLED, "0")
 
     console.print()
-    if get_state(conn, NOTIFY_ENABLED) is None:
+    if get_state(conn, NOTIFY_ENABLED) is None and claim_state(conn, "_notify_setup_claim"):
         # Only asked once, ever -- re-running setup doesn't re-nag if
         # the operator already made a call (on or off), same as the
         # hacker-name toggle. `trinity notify on/off` remains the way
         # to change it later without re-running the whole intro.
+        #
+        # claim_state() is the actual gate (not the get_state check
+        # above, which is just a fast-path read): trinity.db is shared
+        # across every Trinity worktree checkout, so it's normal for
+        # several AI agent terminals to run `trinity` against the same
+        # fresh DB within moments of each other. Without an atomic
+        # claim here, each of them reads NOTIFY_ENABLED as None before
+        # any of them writes it, and each independently prompts + fires
+        # send_test_notification() -- the "triple popup" bug. Only the
+        # process that wins the claim_state() insert gets to ask/send;
+        # the rest fall through silently, exactly as if setup had
+        # already been answered by someone else (which it effectively
+        # has, once the winner finishes below).
         from trinity.notify import send_test_notification
 
         want_notify = Confirm.ask(

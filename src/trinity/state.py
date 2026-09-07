@@ -20,6 +20,33 @@ def set_state(conn: sqlite3.Connection, key: str, value: str) -> None:
     conn.commit()
 
 
+def claim_state(conn: sqlite3.Connection, key: str) -> bool:
+    """Atomically claims a one-time-ever gate. Returns True only for the
+    caller that actually wins the insert; every other (concurrent)
+    caller gets False and should skip whatever the claim guards.
+
+    Exists because `trinity.db` is shared across all Trinity worktree
+    checkouts (~/.trinity/trinity.db, not per-worktree), and Alexander
+    routinely runs several AI agent terminals against the same worktree
+    at once. A plain "get_state(...) is None" read-then-write check
+    (like the old notify/hacker-name wizard gates) is a TOCTOU race: two
+    or three processes can all read None before any of them commits,
+    and all act on it -- e.g. all firing a one-time-ever test
+    notification, producing duplicate desktop popups. A raw INSERT
+    (not the upsert set_state uses) only ever succeeds once per key;
+    every later/concurrent attempt hits the PRIMARY KEY and loses.
+    """
+    try:
+        conn.execute(
+            "INSERT INTO local_state (key, value) VALUES (?, '1')", (key,),
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        return False
+
+
 def clear_state(conn: sqlite3.Connection, key: str) -> None:
     conn.execute("DELETE FROM local_state WHERE key = ?", (key,))
     conn.commit()
