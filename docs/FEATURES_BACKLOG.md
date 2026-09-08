@@ -23,6 +23,80 @@ REVERSED in the 2026-09 pivot — see `docs/AGENT_HARNESS.md` and
 `docs/SHOULDER_MODE.md`, and `OPEN_DECISIONS.md`'s updated entries for
 those two items specifically.
 
+## 2026-09-08 live alpha test on HTB Lame — notes and backlog
+
+Alexander's first real live-alpha-test session on v0.9.0, running
+`trinity watch` against a real HackTheBox retired machine (Lame) in a
+dedicated kitty pane setup (wizard / scan / OpenVPN panes). Two real
+bugs hit live were diagnosed, fixed, tested, and shipped same-session
+(see git log around commits fixing the `$HOME`-recursive-watch
+`PermissionError` and the empty-nmap-XML `ET.ParseError` -- both
+already on `main`). Everything below is backlog: things Alexander fed
+in as "random thought notes... just musings for later," explicitly
+NOT to be acted on this session unless he said so directly.
+
+- **Rich empty-scan / bad-target guidance, not just a raw error.**
+  Alexander ran `nmap -sC -sV -oX scan.xml 10.129.59.141` against a
+  freshly-started HTB target and got "Note: Host seems down... try
+  -Pn" -- nmap itself suggested the fix, but Trinity (watching the
+  same file) said nothing beyond what was already visible on his
+  terminal screen. `-Pn` fixed it. His own framing: "ideally trinity
+  would have caught this and been able to explain what was happening
+  here and inform/teach." Two real things worth separating: (1) the
+  now-shipped fix already stops the raw `ParseError` crash and prints
+  a plain "empty scan" message; (2) this note asks for something
+  richer -- actually reading nmap's own "seems down... try -Pn" hint
+  out of the near-empty XML/stderr and turning it into real Trinity
+  teaching (why ICMP block ≠ host down, why `-Pn` exists, when to
+  reach for it) rather than a generic "scan produced no findings"
+  message. This is squarely a Trinity's Voice-shaped problem (a
+  known, locally-detectable signal -- nmap's own "seems down" text --
+  narrated with teaching context) and should be considered as a
+  future Voice corpus entry once the failure-mode itself has a stable
+  local detection signal to key off of (nmap's stderr/summary text
+  when 0 hosts are up), not a new subsystem.
+- **`watch` mode wipes prior terminal scrollback when it launches.**
+  "once it told me what command to do and it started the watcher i
+  could no longer see the previous text or commands" -- confirmed
+  later in the session it was the TUI's alt-screen behavior (Textual
+  apps take over the terminal, same as any TUI/vim/htop), not data
+  loss, but the *experience* of losing the previous recommended
+  command mid-session is a real rough edge worth designing around:
+  Alexander accidentally lost track of "what was the nmap command it
+  told me to run" once watch mode's TUI took over the pane. Options
+  worth considering later: echo the just-handed-off command as the
+  first line of the watch feed itself (so it's never actually gone,
+  just relocated), or a `?`/`h` keybind in the dashboard that reprints
+  the last suggested command from history. Do not build without a
+  dedicated design pass -- this touches the wizard's command-handoff
+  flow (`show_handoff()`) which was already restructured once this
+  session for the directory-confirmation fix.
+- **Onboarding Q&A to scale hand-holding: "how new are you?"**
+  Alexander's own framing, verbatim: "trinity should fully hold ones
+  hand and have a Q/A when it starts, like 'how new are you?' and
+  eventually it'll literally walk them through eeeeeverything that
+  they need. we'll flesh that out more later." This is explicitly
+  flagged by him as unflesh-out'd -- a real wizard-onboarding feature
+  idea (a self-reported experience-level question driving how much
+  scaffolding Trinity provides), NOT the same thing as the previously
+  CUT "difficulty-aware guidance" wizard question (that one asked
+  about the BOX's difficulty; this one asks about the STUDENT's
+  experience level). Needs its own design conversation before
+  building -- in particular how it interacts with the existing
+  Instructor Mode continuum and whether it's a one-time wizard
+  question or a revisitable setting.
+- **HTB VIP tier note (informational, not a Trinity feature):**
+  confirmed this session that Lame specifically requires VIP+ (not
+  plain VIP) for retired-machine access, contradicting the earlier
+  general "all retired machines need at least VIP" research finding
+  from earlier in the session -- Alexander caught this live by
+  checking the actual machine page ("it appears out of the list we
+  made, lame is a VIP+ box"). Worth revisiting the "easiest boxes with
+  simple exploits" live-testing checklist (discussed but not yet
+  written down as a concrete list) against actual per-box tier labels
+  before recommending a second box, rather than assuming VIP alone
+  covers everything on that list.
+
 ## 2026-09 Cursor prototype triage — decisions record
 
 Cursor drafted roughly 19 features unprompted-beyond-"keep drafting"
@@ -164,6 +238,73 @@ more). Regression test added (`test_process_scan_file_batches_
 multiple_criticals_into_one_notification`); live-verified against the
 real installed `notify-send` and the `lame_style_scan.xml` fixture
 (2 real criticals, confirmed exactly 1 call via mock assertion).
+
+## Trinity's Voice v2 — deferred, from the shipped v1's own reviews
+
+v1 (authored corpus + deterministic renderer, no live AI) shipped this
+session -- see `docs/TRINITY_VOICE_DESIGN.md` for the full build and
+`ad2a0f6`/`69865e5`/`90b30ee` for the implementation/fix/polish
+commits. Two independent design reviews and two independent polish
+reviews (Cursor + Claude Code CLI, each round) surfaced real items
+that are correctly OUT of v1's scope but worth recording here so they
+survive to whenever v2 or a v1.1 gets scheduled:
+
+- **Live AI generation (the original ask) stays deferred to v2**, per
+  both design reviews' consensus: no spoiler gate existed to reuse
+  (fixed for v1 by authoring phase-safely + the new phase-gate
+  described below), no stable cache key existed in the schema
+  (resolved for v1 by keying on `kb_entries.title`, not `id` or a
+  nonexistent CVE field), and live attacker-controlled banner text
+  flowing into an AI CLI automatically on every finding is a real
+  prompt-injection surface that needs its own design pass before it's
+  safe to build, not a bolt-on to v1.
+- **`trinity explain`/`trinity next`/report surfacing.** v1 is
+  TUI-only (`trinity watch`'s dashboard) by deliberate scope cut.
+  Claude Code CLI's polish review specifically flagged `trinity
+  explain` as "the command whose name literally promises this" and
+  noted `get_voice_text()` already takes a plain `conn` + scalars, so
+  wiring a second caller is cheap once there's bandwidth for it.
+- **Multiple authored entries per finding.** Right now `_render_result`
+  narrates at most one entry per finding even when a finding's match
+  list has two authored entries that are BOTH true and useful (e.g.
+  Lame's port 21 matches both the vsftpd backdoor AND a separate
+  Anonymous FTP login entry -- nmap's `ftp-anon` script had already
+  confirmed the second one, and the student is never told about it).
+  Cheap to add once the per-scan dedup mechanism (already built) is in
+  place; flagged, not built, this session.
+- **`match_service` accepting multiple services per KB row.** Found as
+  a byproduct of Voice coverage testing: `SMB null session / anonymous
+  enumeration`'s `match_service = "microsoft-ds"` only, so it never
+  fires on port 139 (`netbios-ssn`) even though the entry's own
+  `summary` text says "port 445/139". This is a `kb/` schema
+  limitation the Voice work exposed rather than caused -- either add a
+  second KB row for `netbios-ssn` (needs its own Voice entry + relies
+  on the per-scan dedup so the student doesn't read the same four
+  paragraphs twice) or extend `match_service` to accept a comma-
+  separated list. Out of Voice's own scope; a `kb/`-owning session
+  should pick this up.
+- **A `trinity doctor` check for orphaned `voice_explanations` rows** --
+  a hand-edit or future intake path could leave a `kb_title` that no
+  longer resolves to a live `kb_entries.title`; CI's bidirectional
+  test catches corpus drift at build time, doctor would catch it after
+  an install has already diverged. Not alpha-blocking.
+- **Instance-paragraph ordering** (Claude Code CLI's Q2): currently
+  what_it_is / why_it_happens / instance-data / what_to_watch_for.
+  Worth trying what_it_is / why_it_happens / what_to_watch_for /
+  instance-data instead (ending on "...and on your scan, this showed
+  up at X" as a closing call-to-action) and seeing which reads better
+  to an actual student -- genuinely untested either way, not a known
+  bug.
+- **Path-kind findings still don't get their concrete path substituted**
+  into the instance paragraph (gobuster/ffuf/nikto findings are
+  `kind="path"` with port/product/version all `None`) -- the paragraph
+  degrades to a bare host with no path shown, even though the headline
+  line one row above does show the path. Small, contained fix
+  (`_instance_paragraph` gains a `path` parameter) flagged by Claude
+  Code CLI's polish review but not built this session; low urgency
+  since the corpus's one path-shaped entry (HTTP directory
+  brute-forcing) actually matches on `port`-kind HTTP findings, not
+  `path`-kind ones, in the current fixture.
 
 ## Wizard: hacker name
 
