@@ -25,7 +25,7 @@ import sqlite3
 
 from textual import work
 from textual.app import ComposeResult
-from textual.containers import Vertical
+from textual.containers import Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, ListItem, ListView, Static
 
@@ -122,7 +122,8 @@ class _TextResultScreen(ModalScreen[None]):
     def compose(self) -> ComposeResult:
         with Vertical(id="result-box"):
             yield Label(f"[bold]{self.title_text}[/bold]")
-            yield Static(self.get_text(), markup=False)
+            with VerticalScroll():
+                yield Static(self.get_text(), markup=False)
             yield Static("[dim]Esc to close[/dim]")
 
     def action_dismiss_screen(self) -> None:
@@ -163,11 +164,34 @@ class LootListScreen(_TextResultScreen):
 
 
 class DoctorScreen(_TextResultScreen):
+    """Runs doctor (including the VPN `ip link` probe) on a worker
+    thread so a slow/hung probe cannot freeze the Textual event loop.
+    Does not touch the DB -- safe vs the cross-thread SQLite issue in
+    docs/SHOW_ME_MODE_QUARANTINE.md finding #2."""
+
     title_text = "Doctor"
 
     def get_text(self) -> str:
         from trinity.doctor import render_doctor, run_doctor
         return render_doctor(run_doctor(include_vpn=True))
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="result-box"):
+            yield Label(f"[bold]{self.title_text}[/bold]")
+            with VerticalScroll():
+                yield Static("Running health checks...", id="doctor-body", markup=False)
+            yield Static("[dim]Esc to close[/dim]")
+
+    def on_mount(self) -> None:
+        self._run_doctor()
+
+    @work(thread=True, exclusive=True)
+    def _run_doctor(self) -> None:
+        text = self.get_text()
+        self.app.call_from_thread(self._apply_doctor_text, text)
+
+    def _apply_doctor_text(self, text: str) -> None:
+        self.query_one("#doctor-body", Static).update(text)
 
 
 class LootAddScreen(ModalScreen[None]):
@@ -372,6 +396,8 @@ class ModeSwitchScreen(ModalScreen[None]):
         set_mode(self.conn, self.box.id, mode)
         self.box.mode = mode
         self.dismiss(None)
+        # Header only refreshes on mount / mark-done / mark-skip otherwise.
+        self.app._refresh_status()  # type: ignore[attr-defined]
 
 
 class HackerNameScreen(ModalScreen[None]):
