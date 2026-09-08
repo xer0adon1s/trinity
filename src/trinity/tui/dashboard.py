@@ -126,8 +126,16 @@ class TrinityDashboard(App):
 
     async def _watch_loop(self) -> None:
         """Background worker: watches the directory forever, reacting to
-        each new/modified file that looks like scan output."""
-        async for changes in awatch(self.watch_dir):
+        each new/modified file that looks like scan output.
+
+        ignore_permission_denied=True because a recursive watch under a
+        real home directory WILL cross into a folder the operator can't
+        read (an AUR build cache, a root-owned dir, etc.) -- watchfiles'
+        default is to raise and kill the whole watch on the first one it
+        hits, which took down this entire dashboard the first time a
+        live tester ran `trinity` from their home directory instead of a
+        dedicated project folder."""
+        async for changes in awatch(self.watch_dir, ignore_permission_denied=True):
             for change_type, changed_path in changes:
                 if change_type not in (Change.added, Change.modified):
                     continue

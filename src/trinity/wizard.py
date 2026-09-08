@@ -305,6 +305,32 @@ def prompt_resume_or_new(conn: sqlite3.Connection) -> Box | None:
     return None
 
 
+def _safe_watch_dir() -> Path:
+    """The wizard hands off into `trinity watch` using the operator's
+    current directory -- correct for a dedicated project folder, but a
+    real live tester ran `trinity` straight from their home directory
+    and the resulting recursive watch crossed into a permission-denied
+    build-cache folder before the ignore_permission_denied fix existed.
+    That fix makes a home-dir watch survive, but it's still a bad
+    default: slow, noisy, and picks up unrelated file churn. If cwd is
+    the actual home directory, offer a same-named subfolder instead
+    rather than silently watching everything the operator owns."""
+    cwd = Path.cwd()
+    if cwd != Path.home():
+        return cwd
+    console.print(
+        "\n[yellow]Heads up:[/yellow] you're in your home directory -- "
+        "watching it recursively works, but it's slower and noisier than "
+        "a dedicated folder."
+    )
+    if Confirm.ask("Create/use ./trinity-work here instead?", default=True):
+        work_dir = cwd / "trinity-work"
+        work_dir.mkdir(exist_ok=True)
+        console.print(f"[dim]Watching {work_dir} -- save scan output there.[/dim]")
+        return work_dir
+    return cwd
+
+
 def show_handoff(conn: sqlite3.Connection, box: Box) -> None:
     """Shown right before the wizard exits and hands control to the
     operator's own terminal: the coach's single recommended next step,
@@ -346,21 +372,48 @@ def show_handoff(conn: sqlite3.Connection, box: Box) -> None:
     target_hint = f" {box.target}" if box.target else " <target>"
     nmap_cmd = f"nmap -sC -sV -oX scan.xml{target_hint}"
 
+    # Confirm the operator is somewhere sane BEFORE telling them
+    # anything else -- a live tester hit a crash from running the
+    # wizard straight out of $HOME (see _safe_watch_dir's docstring).
+    # NOTE: a subshell `cd` while this process is blocked on input does
+    # NOT change os.getcwd() here -- Python's cwd is fixed at process
+    # start, a shell's `cd` only affects the shell. So this can only
+    # ask once and, if the answer is no, tell them to restart -- it
+    # cannot loop-and-recheck the way a first draft of this assumed.
+    console.print(
+        f"\n[bold]cd into your project folder for {box.name}[/bold] "
+        "before running `trinity` -- that's where your scan output "
+        "should land, and it's what Trinity will watch."
+    )
+    if not Confirm.ask("Are you in that folder right now?", default=True):
+        console.print(
+            "\n[yellow]No problem -- Ctrl-C out, `cd` into your project "
+            f"folder, then run `trinity` again[/yellow] (box \"{box.name}\" "
+            "is already saved, so the wizard will skip straight back to "
+            "this handoff)."
+        )
+        return
+
     if rec is None:
+        watch_dir = _safe_watch_dir()
         console.print(Panel(
-            f"[bold]In your OTHER terminal pane[/bold], run:\n"
-            f"  [bold]{nmap_cmd}[/bold]\n\n"
-            "[dim]Save it in the directory Trinity is watching (your current "
-            "directory, unless you tell it otherwise).[/dim]",
+            "[bold]In order:[/bold]\n"
+            "  1. Open your other terminal pane (same folder).\n"
+            "  2. We'll start watch-mode HERE first, so nothing you scan "
+            "gets missed.\n"
+            f"  3. THEN, in that other pane, run:\n"
+            f"     [bold]{nmap_cmd}[/bold]\n\n"
+            f"[dim]Save it in {watch_dir} -- that's the directory Trinity "
+            "is about to watch.[/dim]",
             title=handoff_title, border_style="cyan",
         ))
         if Confirm.ask("\nStart watch-mode in THIS pane now?", default=True):
             from trinity.tui.dashboard import run_dashboard
-            run_dashboard(box.name, Path.cwd())
+            run_dashboard(box.name, watch_dir)
         else:
             console.print(
                 f"\n[dim]No problem -- start it any time with:[/dim]\n"
-                f"  [bold]trinity watch --box \"{box.name}\"[/bold]"
+                f"  [bold]trinity watch --box \"{box.name}\" --dir \"{watch_dir}\"[/bold]"
             )
         return
 
@@ -374,7 +427,8 @@ def show_handoff(conn: sqlite3.Connection, box: Box) -> None:
     )
     if Confirm.ask("\nStart watch-mode in THIS pane now?", default=True):
         from trinity.tui.dashboard import run_dashboard
-        run_dashboard(box.name, Path.cwd())
+        watch_dir = _safe_watch_dir()
+        run_dashboard(box.name, watch_dir)
     else:
         console.print(
             f"\n[dim]No problem -- start it any time with:[/dim]\n"
