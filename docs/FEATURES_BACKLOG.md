@@ -369,6 +369,41 @@ purpose rather than given a design doc. Full argument and a
 "printed recipe only, no hyprctl" cousin: see
 docs/OPEN_DECISIONS.md (`trinity lab` / hyprctl).
 
+## 2.0 GUI — local webserver, not a hosted website
+
+Raised when Alexander asked whether Trinity could become a standalone
+website. Answer, recorded here so it isn't re-litigated: **no, not as
+a multi-tenant hosted site** — Shoulder Mode needs a real local pty,
+Agent Harness invokes the operator's own agent CLI as a local
+subprocess, and the whole DB/no-accounts/no-telemetry model assumes
+one local SQLite file. All of that requires Trinity to run ON the
+student's own machine; a browser tab alone can't do any of it.
+
+The right shape for 2.0's GUI ambition: `trinity web` (or similar)
+spins up a local-only webserver (binds `127.0.0.1`, nothing leaves the
+machine) and opens `localhost:<port>` in whatever browser is already
+installed, rendering the same dashboard/coaching data the Textual TUI
+shows today, just as HTML/CSS/JS. Zero backend, zero accounts, same
+local-first principles — just a friendlier, more polished rendering
+layer than a terminal.
+
+Bonus: this is MORE cross-platform than the current TUI, not less.
+Terminal rendering (true color, box-drawing glyphs, pty behavior)
+varies a lot across OS/terminal-emulator combos, especially Windows
+(ConPTY vs. native cmd/PowerShell vs. WSL). A local web server
+rendered in an ordinary browser sidesteps that entirely — the browser
+is the most universally cross-platform rendering target available.
+Caveat that stays true regardless of UI layer: Shoulder Mode's raw pty
+capture (`src/trinity/shoulder.py`) is genuinely OS-coupled today
+(Python's `pty` module is Unix-shaped) — porting live terminal capture
+cleanly to native Windows is its own separate problem, independent of
+whether the UI is a TUI or a local web page.
+
+Also floated: a hosted marketing/docs site (landing page, install
+instructions, embedded terminal-recording demo) is fine and separate
+from the product itself — that's not the same thing as the product
+running remotely, and doesn't conflict with any of the above.
+
 ## Social/multiplayer features (leaderboards, shared sessions)
 
 Explicitly NOT pursuing any network/social component at this stage.

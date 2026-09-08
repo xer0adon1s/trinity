@@ -33,6 +33,18 @@ _SEVERITY_COLOR = {
     "info": "dim",
 }
 
+# Confidence labels answer a DIFFERENT question than severity: not "how
+# bad is this if true" but "how sure is Trinity this is the right next
+# step." See KBMatch.confidence in match/engine.py for the derivation.
+# Kept as plain bracketed text (not colored as loud as severity) so the
+# two signals stay visually distinct rather than competing for the same
+# red/yellow/green attention.
+_CONFIDENCE_LABEL = {
+    "confirmed": "confirmed match",
+    "likely": "likely match",
+    "best_guess": "best guess — unreviewed searchsploit hit",
+}
+
 
 @click.group(invoke_without_command=True)
 @click.pass_context
@@ -191,9 +203,10 @@ def parse_nmap_cmd(xml_path: str, box_name: str, target: str | None, platform: s
 
         for m in fr.matches:
             color = _SEVERITY_COLOR.get(m.severity, "white")
+            confidence_label = _CONFIDENCE_LABEL.get(m.confidence, m.confidence)
             console.print(
                 f"  [bold green]{m.title}[/bold green]  "
-                f"[{color}]\\[{m.severity.upper()}][/{color}]  [dim](score {m.score:.1f}, {m.source})[/dim]"
+                f"[{color}]\\[{m.severity.upper()}][/{color}]  [dim]({confidence_label}; score {m.score:.1f}, {m.source})[/dim]"
             )
             console.print(f"  {m.summary}")
             if m.detail:
@@ -244,9 +257,10 @@ def parse_ad_cmd(path: str, box_name: str, target: str | None, platform: str | N
             continue
         for m in fr.matches:
             color = _SEVERITY_COLOR.get(m.severity, "white")
+            confidence_label = _CONFIDENCE_LABEL.get(m.confidence, m.confidence)
             console.print(
                 f"  [bold green]{m.title}[/bold green]  "
-                f"[{color}]\\[{m.severity.upper()}][/{color}]  [dim](score {m.score:.1f}, {m.source})[/dim]"
+                f"[{color}]\\[{m.severity.upper()}][/{color}]  [dim]({confidence_label}; score {m.score:.1f}, {m.source})[/dim]"
             )
             console.print(f"  {m.summary}")
             if m.detail:
@@ -310,9 +324,10 @@ def parse_autorecon_cmd(
 
             for m in fr.matches:
                 color = _SEVERITY_COLOR.get(m.severity, "white")
+                confidence_label = _CONFIDENCE_LABEL.get(m.confidence, m.confidence)
                 console.print(
                     f"  [bold green]{m.title}[/bold green]  "
-                    f"[{color}]\\[{m.severity.upper()}][/{color}]  [dim](score {m.score:.1f}, {m.source})[/dim]"
+                    f"[{color}]\\[{m.severity.upper()}][/{color}]  [dim]({confidence_label}; score {m.score:.1f}, {m.source})[/dim]"
                 )
                 console.print(f"  {m.summary}")
                 if m.detail:
@@ -498,6 +513,37 @@ def engagement_show_cmd(box_name: str):
         console.print(f"{key}: {row[key] or '—'}")
 
 
+@cli.command("recap")
+@click.option("--box", "box_name", required=True, help="Box name.")
+def recap_cmd(box_name: str):
+    """A short, personal end-of-box (or mid-box) summary: phases
+    touched, techniques encountered, loot recorded, times you got
+    stuck. Not a report (see `trinity report`) and not gamified (no
+    points/streaks/badges) -- just an honest glance-back at one box,
+    for your own study record."""
+    from trinity.recap import build_recap, render_recap
+
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+    recap = build_recap(conn, box.id)
+    console.print(render_recap(recap), markup=False, highlight=False)
+
+
+@cli.command("doctor")
+@click.option("--no-vpn", is_flag=True, help="Skip the VPN check (useful before picking a target).")
+def doctor_cmd(no_vpn: bool):
+    """One health check: DB reachable, recon tools on PATH, VPN
+    status. Read-only -- never installs or fixes anything itself, same
+    as every other tool-availability check in Trinity. Also runs
+    quietly (failures-only) at the start of `trinity watch`/`trinity
+    shoulder` so a missing tool or dead VPN surfaces before it wastes
+    your time mid-box."""
+    from trinity.doctor import render_doctor, run_doctor
+
+    report = run_doctor(include_vpn=not no_vpn)
+    console.print(render_doctor(report), markup=False, highlight=False)
+
+
 @cli.command("report")
 @click.option("--box", "box_name", required=True, help="Box name.")
 @click.option("--mode", default=None, type=click.Choice(["educational", "professional", "notebook"]),
@@ -539,12 +585,19 @@ def watch_cmd(box_name: str, watch_dir: str):
     from pathlib import Path
 
     from trinity.boxes import get_box_by_name
+    from trinity.doctor import run_doctor
     from trinity.tui.dashboard import run_dashboard
 
     conn = connect()
     box = get_box_by_name(conn, box_name)
     if box:
         touch_active_box(conn, box.id)
+
+    doctor_report = run_doctor(include_vpn=True)
+    for failure in doctor_report.failures:
+        if failure.name.startswith("tool:"):
+            continue  # missing tools are handled per-suggestion by coach.py already
+        console.print(f"[yellow]doctor: {failure.name} — {failure.detail}[/yellow]")
 
     run_dashboard(box_name, Path(watch_dir).resolve())
 
@@ -572,12 +625,19 @@ def shoulder_cmd(box_name: str, shell_bin: str | None):
     import os as _os
 
     from trinity.boxes import get_box_or_fail
+    from trinity.doctor import run_doctor
     from trinity.shell_coach import new_session as new_coach_session
     from trinity.shoulder import apply_milestones, record_session, scan_for_milestones, session_log_path
 
     conn = connect()
     box = get_box_or_fail(conn, box_name)
     touch_active_box(conn, box.id)
+
+    doctor_report = run_doctor(include_vpn=True)
+    for failure in doctor_report.failures:
+        if failure.name.startswith("tool:"):
+            continue  # missing tools are handled per-suggestion by coach.py already
+        console.print(f"[yellow]doctor: {failure.name} — {failure.detail}[/yellow]")
 
     shell = shell_bin or _os.environ.get("SHELL", "/bin/bash")
     log_path = session_log_path(box_name)

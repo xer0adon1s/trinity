@@ -17,6 +17,7 @@ def test_exact_service_version_match_scores_highest(seeded_conn):
     assert matches[0].score == 1.0
     assert "backdoor" in matches[0].title.lower()
     assert matches[0].severity == "critical"
+    assert matches[0].confidence == "confirmed"
 
 
 def test_service_match_without_version_scores_lower(seeded_conn):
@@ -26,6 +27,14 @@ def test_service_match_without_version_scores_lower(seeded_conn):
     # Still matches on service, just not the version-specific top score.
     assert any(m.score == 0.9 for m in matches)
     assert not any(m.score == 1.0 for m in matches)
+    assert all(m.confidence == "likely" for m in matches if m.score == 0.9)
+
+
+def test_searchsploit_source_is_always_best_guess_confidence(seeded_conn):
+    from trinity.match.engine import KBMatch
+
+    live_hit = KBMatch(title="x", summary="y", source="searchsploit", score=0.95, severity="high")
+    assert live_hit.confidence == "best_guess"
 
 
 def test_no_match_returns_empty_list(seeded_conn):

@@ -24,6 +24,34 @@ class KBMatch(BaseModel):
     severity: str = "medium"          # heuristic unless the entry carries a
                                        # real CVSS score (see kb.severity)
 
+    @property
+    def confidence(self) -> str:
+        """A student-facing honesty signal, distinct from `severity`
+        (how bad the finding is) and `score` (internal ranking float).
+        Answers "how sure is Trinity this is actually the right next
+        step" rather than "how dangerous is this if true":
+
+        - 'confirmed': a version-exact KB match (score == 1.0, see the
+          match_version branch above) -- Trinity has seen this exact
+          version/technique pairing before and it's a known-good hit.
+        - 'likely': a version-agnostic curated KB entry (score == 0.9)
+          or an FTS full-text hit against the curated KB -- a real,
+          hand-authored entry, just not narrowed to an exact version.
+        - 'best_guess': anything sourced from live `searchsploit`
+          output. Real, citable, but an unvetted keyword match against
+          ExploitDB rather than a Trinity-authored, reviewed entry --
+          exactly the shape of hit Coverage Sim's `searchsploit_routing`
+          bucket shows can misfire (wrong product, right words).
+        Kept as a derived property (not a stored column) so it's
+        always in sync with `source`/`score` and never drifts from the
+        matching logic that actually produced them.
+        """
+        if self.source == "searchsploit":
+            return "best_guess"
+        if self.score >= 1.0:
+            return "confirmed"
+        return "likely"
+
 
 def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) -> list[KBMatch]:
     """Search the local KB for entries relevant to a finding.

@@ -320,6 +320,13 @@ def show_handoff(conn: sqlite3.Connection, box: Box) -> None:
     really does hand off into the dual-pane workflow instead of a
     homework assignment."""
     from trinity.coach import get_recommendation
+    from trinity.doctor import run_doctor
+
+    doctor_report = run_doctor(include_vpn=bool(box.target))
+    for failure in doctor_report.failures:
+        if failure.name.startswith("tool:"):
+            continue  # per-suggestion install guidance already covers this
+        console.print(f"[yellow]Heads up — {failure.detail}[/yellow]")
 
     rec = get_recommendation(conn, box.id)
     console.print()

@@ -205,7 +205,8 @@ class TrinityDashboard(App):
                 continue
             top = fr.matches[0]
             style = _SEVERITY_STYLE.get(top.severity, "white")
-            self._append_feed(f"  {label} — [{style}][{top.severity.upper()}][/{style}] {top.title}")
+            confidence_note = " [dim](best guess)[/dim]" if top.confidence == "best_guess" else ""
+            self._append_feed(f"  {label} — [{style}][{top.severity.upper()}][/{style}] {top.title}{confidence_note}")
 
         for command in result.suggestions:
             suggestions.append(ListItem(Static(Text.from_markup(f"[bold]{command}[/bold]"))))
