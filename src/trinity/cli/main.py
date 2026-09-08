@@ -34,6 +34,12 @@ from trinity.wordlists import NO_WORDLIST_GUIDANCE
 
 console = Console()
 
+# Seconds the VPN probe gets when doctor runs as a pre-check on the way
+# into an interactive command (`watch`, `shoulder`). `trinity doctor`
+# itself keeps vpn.py's generous default -- there the operator asked for
+# the check and is waiting on it; here they asked for something else.
+STARTUP_VPN_TIMEOUT = 1.0
+
 _SEVERITY_COLOR = {
     "critical": "bold red",
     "high": "red",
@@ -691,7 +697,9 @@ def watch_cmd(box_name: str, watch_dir: str):
     if box:
         touch_active_box(conn, box.id)
 
-    doctor_report = run_doctor(include_vpn=True)
+    # Startup pre-check: keep the VPN probe on a short leash so a hung
+    # `ip link show` can't stall the command before it even starts.
+    doctor_report = run_doctor(include_vpn=True, vpn_timeout=STARTUP_VPN_TIMEOUT)
     for failure in doctor_report.failures:
         if failure.name.startswith("tool:"):
             continue  # missing tools are handled per-suggestion by coach.py already
@@ -736,7 +744,9 @@ def shoulder_cmd(box_name: str, shell_bin: str | None):
     box = get_box_or_fail(conn, box_name)
     touch_active_box(conn, box.id)
 
-    doctor_report = run_doctor(include_vpn=True)
+    # Startup pre-check: keep the VPN probe on a short leash so a hung
+    # `ip link show` can't stall the command before it even starts.
+    doctor_report = run_doctor(include_vpn=True, vpn_timeout=STARTUP_VPN_TIMEOUT)
     for failure in doctor_report.failures:
         if failure.name.startswith("tool:"):
             continue  # missing tools are handled per-suggestion by coach.py already

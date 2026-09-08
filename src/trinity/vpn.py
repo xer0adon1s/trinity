@@ -17,14 +17,21 @@ class VpnStatus:
     kind: str | None = None  # 'openvpn' or 'wireguard', best-effort guess
 
 
-def _list_interfaces() -> list[str]:
+# Default `ip link show` budget. Generous, because a slow answer is
+# still a useful one when the caller is `trinity doctor` and the
+# operator is watching a single command run. Interactive startup
+# pre-checks pass something much smaller -- see check_vpn's docstring.
+DEFAULT_TIMEOUT = 5.0
+
+
+def _list_interfaces(timeout: float = DEFAULT_TIMEOUT) -> list[str]:
     """Return interface names via `ip link show`. Falls back to an
     empty list if `ip` isn't available (e.g. non-Linux) rather than
     raising -- VPN detection degrading gracefully to 'unknown' is
     better than crashing the wizard."""
     try:
         result = subprocess.run(
-            ["ip", "-o", "link", "show"], capture_output=True, text=True, timeout=5,
+            ["ip", "-o", "link", "show"], capture_output=True, text=True, timeout=timeout,
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return []
@@ -40,13 +47,18 @@ def _list_interfaces() -> list[str]:
     return names
 
 
-def check_vpn() -> VpnStatus:
+def check_vpn(timeout: float = DEFAULT_TIMEOUT) -> VpnStatus:
     """Best-effort check for an active VPN interface. A tun*/tap*
     interface strongly implies OpenVPN; a wg*/tailscale-style interface
     implies WireGuard. Either is treated as 'connected' -- Trinity
     doesn't care which VPN tech the platform uses, only that a lab
-    network path exists."""
-    interfaces = _list_interfaces()
+    network path exists.
+
+    `timeout` caps how long the `ip link show` probe may block. Callers
+    that run this on the startup path of an interactive command should
+    pass a small value: a hung probe there costs the operator a visibly
+    frozen terminal, and "unknown" is a fine answer for a warning line."""
+    interfaces = _list_interfaces(timeout)
 
     for name in interfaces:
         lname = name.lower()
