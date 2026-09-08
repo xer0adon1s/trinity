@@ -27,11 +27,26 @@ class TimelineEvent(BaseModel):
     severity: str | None = None
 
 
+class AiAssistedStep(BaseModel):
+    """One Show Me Mode run that produced real progress on this box.
+    Populated from show_me_runs (src/trinity/show_me.py), independent
+    of individual timeline rows -- this is the authoritative,
+    non-suppressible disclosure surface docs/SHOW_ME_MODE.md §7
+    requires. Whenever this list is non-empty, BOTH report renderers
+    must show a disclosure block; neither has a code path that omits
+    it."""
+    milestone: str
+    agent_used: str | None
+    outcome: str
+    started_at: str
+
+
 class ReportData(BaseModel):
     box: Box
     events: list[TimelineEvent]
     engagement: dict | None = None
     loot: list[LootItem] = []
+    ai_assisted_steps: list[AiAssistedStep] = []
     generated_at: str
 
     @property
@@ -77,10 +92,24 @@ def gather_report_data(conn: sqlite3.Connection, box_id: int) -> ReportData:
     ).fetchone()
     engagement = dict(engagement_row) if engagement_row else None
 
+    show_me_rows = conn.execute(
+        "SELECT * FROM show_me_runs WHERE box_id = ? AND outcome IN ('succeeded', 'already_known') "
+        "ORDER BY id",
+        (box_id,),
+    ).fetchall()
+    ai_assisted_steps = [
+        AiAssistedStep(
+            milestone=row["milestone"], agent_used=row["agent_used"],
+            outcome=row["outcome"], started_at=row["started_at"],
+        )
+        for row in show_me_rows
+    ]
+
     return ReportData(
         box=box,
         events=events,
         engagement=engagement,
+        ai_assisted_steps=ai_assisted_steps,
         loot=list_loot(conn, box_id),
         generated_at=datetime.now().isoformat(timespec="seconds"),
     )

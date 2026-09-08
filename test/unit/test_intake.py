@@ -86,7 +86,11 @@ def test_approve_kb_entry_makes_it_live(conn):
         "SELECT * FROM kb_entries WHERE title = 'Made-up service backdoor (test)'"
     ).fetchone()
     assert row is not None
-    assert row["source"] == "ai_escalation"
+    # Provenance is preserved through approval (fixed bug: this used to
+    # flatten every approved candidate to a hardcoded "ai_escalation"
+    # regardless of its real source -- see intake.py's approve_candidate,
+    # and findings/design_review_claude.md's A4.4/C3 for how this was found).
+    assert row["source"] == "agent_harness"
     assert row["severity"] == "critical"
 
 

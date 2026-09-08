@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import click
 from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Confirm
 from rich.table import Table
 
 from trinity.boxes import get_box_or_fail, get_or_create_box, list_boxes, set_mode, set_status, touch_active_box
@@ -527,6 +529,82 @@ def recap_cmd(box_name: str):
     box = get_box_or_fail(conn, box_name)
     recap = build_recap(conn, box.id)
     console.print(render_recap(recap), markup=False, highlight=False)
+
+
+@cli.command("show-me")
+@click.option("--box", "box_name", required=True, help="Box name (must have a target set).")
+@click.option("--milestone", required=True,
+              type=click.Choice(["foothold", "privesc_to_user", "privesc_to_root"]),
+              help="The single milestone to attempt live, in Trinity's own session.")
+def show_me_cmd(box_name: str, milestone: str):
+    """Show Me Mode (docs/SHOW_ME_MODE.md): Trinity's own agent
+    attempts ONE step live, in ITS OWN session, against this box's
+    target -- never your terminal. Always-available, no stuck-signal
+    gate required (break-glass in philosophy, not in access). First
+    use requires a one-time authorization acknowledgment. Every run is
+    disclosed and permanently recorded -- the resulting report always
+    shows when/whether AI assistance was used, this cannot be turned
+    off.
+
+    This is Assimilator's LIVE trigger (docs/ASSIMILATOR_PROJECT.md):
+    if the step succeeds, Trinity checks whether the answer was
+    already sitting in the local KB and the routing just missed it --
+    if so, you're told that directly instead of it being logged as new
+    knowledge.
+    """
+    from trinity.show_me import (
+        ATTESTATION_TEXT, build_disclosure, has_attestation, record_attestation, run_show_me,
+    )
+
+    conn = connect()
+    box = get_box_or_fail(conn, box_name)
+
+    if not box.target:
+        raise click.ClickException(
+            f"Box '{box_name}' has no target set -- Show Me Mode needs a real target to run against."
+        )
+
+    if not has_attestation(conn):
+        console.print(Panel(ATTESTATION_TEXT, title="Authorization", border_style="yellow"))
+        if not Confirm.ask("I understand and agree", default=False):
+            console.print("[dim]Not proceeding.[/dim]")
+            return
+        record_attestation(conn)
+
+    from trinity.agent_harness import detect_agent
+    agent = detect_agent()
+    disclosure = build_disclosure(agent.name if agent else None, milestone)
+    console.print(Panel(disclosure.banner, title="Show Me Mode", border_style="magenta"))
+    if not Confirm.ask("\nContinue?", default=False):
+        console.print("[dim]Not proceeding.[/dim]")
+        return
+
+    result = run_show_me(conn, box.id, milestone)
+
+    if result.outcome == "succeeded":
+        console.print(Panel(
+            f"[bold]Recipe to run yourself:[/bold]\n\n{result.recipe_for_student}",
+            title="Show Me Mode — succeeded", border_style="green",
+        ))
+        console.print(
+            "[dim](This does NOT count as your own progress until you run it "
+            "yourself. The report will mark this milestone as AI-assisted.)[/dim]"
+        )
+    elif result.outcome == "already_known":
+        console.print(Panel(
+            f"[bold]Trinity already knew this:[/bold] {result.already_known_title}\n\n"
+            f"Recipe: {result.recipe_for_student}\n\n"
+            "This wasn't a new capability gap — the answer was already in "
+            "Trinity's local knowledge base. Worth re-checking why the normal "
+            "coaching (`trinity next`/`hint`/`explain`) didn't surface it for "
+            "you — try those commands again on this finding.",
+            title="Show Me Mode — already known", border_style="cyan",
+        ))
+    else:
+        console.print(Panel(
+            f"Didn't reach {milestone}." + (f" ({result.stop_reason})" if result.stop_reason else ""),
+            title="Show Me Mode — no result", border_style="red",
+        ))
 
 
 @cli.command("doctor")

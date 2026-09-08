@@ -311,6 +311,80 @@ CREATE TABLE IF NOT EXISTS sync_state (
     last_status TEXT,                  -- 'ok' | 'failed' | 'skipped'
     detail TEXT                        -- e.g. an error message on failure
 );
+
+-- Assimilator's leverage ledger (docs/ASSIMILATOR_PROJECT.md §7). One
+-- row per diagnose/hypothesize/verify attempt, from EITHER trigger:
+-- 'offline' (Doc's batch sweep of the Coverage Sim corpus) or 'live'
+-- (a student's `trinity show-me` invocation against a real box, see
+-- docs/SHOW_ME_MODE.md). Both triggers are the same engine -- this is
+-- one shared table, not two. `others_lifted` (not a `self`-inclusive
+-- count) is the real leverage signal: how many OTHER boxes/situations
+-- a fix also resolved, so a fix's own trivial self-fix doesn't get
+-- counted as multiplier value.
+CREATE TABLE IF NOT EXISTS assimilator_runs (
+    id INTEGER PRIMARY KEY,
+    trigger TEXT NOT NULL,              -- 'offline' | 'live'
+    box_id INTEGER REFERENCES boxes(id),   -- NULL for offline corpus runs not tied to a live box
+    box_name TEXT,                      -- corpus box name for offline runs (fixture-based, no box_id)
+    trinity_commit TEXT,                -- git SHA this diagnosis/verification ran against
+    primary_cause TEXT NOT NULL,        -- see docs/ASSIMILATOR_PROJECT.md §3 taxonomy
+    secondary_causes TEXT,              -- JSON list
+    fix_shape TEXT,                     -- kb_content|routing_rule|suggest_rule|parser|fixture|
+                                         -- sync_policy|match_policy|new_subsystem|none
+    hypothesis TEXT,                    -- what fix/approach was proposed
+    verification_method TEXT,           -- 'fixture_replay' | 'live_target'
+    verification_evidence TEXT,         -- path to transcript/log
+    result TEXT NOT NULL,               -- 'verified_fix' | 'rejected_hypothesis' |
+                                         -- 'escalated_capability_gap' | 'needs_policy_decision' |
+                                         -- 'already_known' (see already_known_hits below)
+    intake_candidate_id INTEGER REFERENCES intake_candidates(id),
+    self_lifted INTEGER NOT NULL DEFAULT 0,   -- 0/1: did this fix resolve its own box/situation
+    others_lifted TEXT,                  -- JSON list of other box/situation names also resolved
+    boxes_regressed TEXT,                -- JSON list; must be empty at land time
+    new_false_positives TEXT,            -- JSON list -- still-passing boxes made noisier
+    already_known_hit INTEGER NOT NULL DEFAULT 0,  -- 0/1: see already_known_hits table --
+                                                    -- set when the "solution" already existed
+                                                    -- in the KB and the operator/engine just
+                                                    -- missed routing to it
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    finished_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_assimilator_runs_box ON assimilator_runs(box_id);
+CREATE INDEX IF NOT EXISTS idx_assimilator_runs_trigger ON assimilator_runs(trigger);
+
+-- Show Me Mode's authoritative disclosure record (docs/SHOW_ME_MODE.md
+-- §7). Independent of whether any individual timeline row survives --
+-- this is the record report rendering checks to decide whether the
+-- mandatory AI-assistance disclosure block must appear at all. Never
+-- suppressible: report/data.py's gather_report_data() populates
+-- ai_assisted_steps from this table whenever any row exists for the
+-- box, and neither report renderer has a code path that omits it.
+CREATE TABLE IF NOT EXISTS show_me_runs (
+    id INTEGER PRIMARY KEY,
+    box_id INTEGER NOT NULL REFERENCES boxes(id),
+    milestone TEXT NOT NULL,            -- 'foothold' | 'privesc_to_user' | 'privesc_to_root'
+    agent_used TEXT,                    -- which agent CLI actually ran it (hermes/claude/codex/...)
+    outcome TEXT NOT NULL,              -- 'succeeded' | 'aborted' | 'failed' | 'already_known'
+    commands_run TEXT,                  -- JSON list of the actual argv executed
+    recipe_for_student TEXT,            -- the exact command sequence handed back for the
+                                         -- student to run themselves (NULL if outcome != succeeded)
+    assimilator_run_id INTEGER REFERENCES assimilator_runs(id),
+    started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    finished_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_show_me_runs_box ON show_me_runs(box_id);
+
+-- Authorization attestation for Show Me Mode (docs/SHOW_ME_MODE.md §4,
+-- docs/OPEN_DECISIONS.md's "Auto-run scans or exploits" entry). A
+-- one-time, logged acknowledgment -- same legal shape as any pentest
+-- tool's terms-of-use checkbox, NOT a hardcoded per-box target
+-- allowlist (explicitly rejected, see that OPEN_DECISIONS entry).
+CREATE TABLE IF NOT EXISTS show_me_attestation (
+    id INTEGER PRIMARY KEY CHECK (id = 1),  -- single row, machine-wide
+    accepted_at TEXT NOT NULL
+);
 """
 
 

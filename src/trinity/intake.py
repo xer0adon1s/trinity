@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel
 
 VALID_KINDS = {"explanation", "error_pattern", "kb_entry", "method"}
-VALID_SOURCES = {"agent_harness", "methods_live_draft"}
+VALID_SOURCES = {"agent_harness", "methods_live_draft", "assimilator"}
 
 
 class IntakeCandidate(BaseModel):
@@ -99,13 +99,13 @@ def approve_candidate(conn: sqlite3.Connection, candidate_id: int, note: str | N
         from trinity.explain import save_explanation
         save_explanation(
             conn, candidate.payload["command"], candidate.payload["explanation"],
-            source="ai_escalation",
+            source=candidate.source,
         )
     elif candidate.kind == "error_pattern":
         from trinity.errors import save_error_fix
         save_error_fix(
             conn, candidate.payload["error_text"], candidate.payload["cause"],
-            candidate.payload["fix"], source="ai_escalation",
+            candidate.payload["fix"], source=candidate.source,
         )
     elif candidate.kind == "kb_entry":
         conn.execute(
@@ -115,7 +115,7 @@ def approve_candidate(conn: sqlite3.Connection, candidate_id: int, note: str | N
             VALUES (:source, :title, :summary, :detail, :match_service, :match_version, :tags, :severity)
             """,
             {
-                "source": "ai_escalation",
+                "source": candidate.source,
                 "title": candidate.payload["title"],
                 "summary": candidate.payload["summary"],
                 "detail": candidate.payload.get("detail"),

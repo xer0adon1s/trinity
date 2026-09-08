@@ -42,6 +42,12 @@ def generate_professional_report(data: ReportData) -> str:
     lines.append(f"| Classification | {classification} |")
     lines.append(f"| Version | {version} |")
     lines.append(f"| Distribution | {distribution} |")
+    if data.ai_assisted_steps:
+        lines.append(
+            f"| **AI-assisted steps** | **{len(data.ai_assisted_steps)} milestone(s) on this "
+            "engagement were performed via Trinity's Show Me Mode (an AI agent acting on the "
+            "tester's behalf, not manual tester action) — see Scope, Limitations, and Assumptions.** |"
+        )
     lines.append("")
 
     lines.append("## Contents")
@@ -129,9 +135,22 @@ def generate_professional_report(data: ReportData) -> str:
     lines.append(f"- **Authorization:** {_eng(data, 'authorization_ref')}")
     lines.append(
         "- **Limitations:** Trinity records tester activity; it does not "
-        "execute exploits or certify completeness. Findings are as-observed "
-        "from parsed tool output and local matching."
+        "autonomously execute exploits by default or certify completeness. "
+        "Findings are as-observed from parsed tool output and local matching."
     )
+    if data.ai_assisted_steps:
+        step_list = "; ".join(
+            f"{s.milestone} via {s.agent_used or 'an agent'} ({s.outcome})"
+            for s in data.ai_assisted_steps
+        )
+        lines.append(
+            f"- **AI-assisted steps (Show Me Mode):** {len(data.ai_assisted_steps)} "
+            f"milestone(s) on this engagement were performed by Trinity's own AI "
+            f"agent, at the tester's explicit, disclosed request, NOT by the tester "
+            f"manually — {step_list}. These specific milestones should not be read "
+            f"as demonstrating the tester's own exploitation skill for those steps; "
+            f"everything else in this report reflects tester-performed activity."
+        )
     lines.append(
         "- **Assumptions:** The tester operated only against the authorized "
         "target. Tool output files are assumed to be from this engagement."

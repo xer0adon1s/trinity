@@ -111,11 +111,22 @@ def generate_educational_report(data: ReportData) -> str:
 
     lines.append("---")
     lines.append("")
-    lines.append(
-        "*This walkthrough was assembled automatically from Trinity's local "
-        "knowledge base and (for the parts it recognized on its own) never "
-        "touched an AI model or the internet — everything above came from "
-        "matching real scan output against local reference data.*"
-    )
+
+    if data.ai_assisted_steps:
+        step_list = ", ".join(f"{s.milestone} (via {s.agent_used or 'an agent'})" for s in data.ai_assisted_steps)
+        lines.append(
+            f"*Heads up: {len(data.ai_assisted_steps)} step(s) on this box used Show Me "
+            f"Mode — {step_list}. Those specific steps were performed by Trinity's own AI "
+            "agent, not by you, and are not reflected as your own skill in the sections "
+            "above. Everything else in this walkthrough came from matching real scan "
+            "output against local reference data, with no AI or internet involved.*"
+        )
+    else:
+        lines.append(
+            "*This walkthrough was assembled automatically from Trinity's local "
+            "knowledge base and never touched an AI model or the internet — "
+            "everything above came from matching real scan output against "
+            "local reference data.*"
+        )
 
     return "\n".join(lines)
