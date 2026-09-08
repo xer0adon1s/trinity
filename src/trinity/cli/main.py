@@ -29,6 +29,7 @@ from trinity.report.render import render_report
 from trinity.sharing import set_sharing_enabled, write_share_bundle
 from trinity.suggest.engine import suggest_next_commands
 from trinity.timeline import log_event
+from trinity.vpn import STARTUP_TIMEOUT as STARTUP_VPN_TIMEOUT
 from trinity.wizard import launch as launch_wizard
 from trinity.wordlists import NO_WORDLIST_GUIDANCE
 
@@ -38,7 +39,9 @@ console = Console()
 # into an interactive command (`watch`, `shoulder`). `trinity doctor`
 # itself keeps vpn.py's generous default -- there the operator asked for
 # the check and is waiting on it; here they asked for something else.
-STARTUP_VPN_TIMEOUT = 1.0
+# Defined in vpn.py (as STARTUP_TIMEOUT) so wizard.py can share it
+# without a circular import; aliased here to keep this file's existing
+# call sites unchanged.
 
 _SEVERITY_COLOR = {
     "critical": "bold red",
@@ -694,8 +697,12 @@ def watch_cmd(box_name: str, watch_dir: str):
 
     conn = connect()
     box = get_box_by_name(conn, box_name)
-    if box:
-        touch_active_box(conn, box.id)
+    if box is None:
+        raise click.ClickException(
+            f"No box named {box_name!r}. Start one via the wizard (`trinity`) or "
+            f"`trinity parse-nmap <scan.xml> --box \"{box_name}\" --target <ip>` first."
+        )
+    touch_active_box(conn, box.id)
 
     # Startup pre-check: keep the VPN probe on a short leash so a hung
     # `ip link show` can't stall the command before it even starts.

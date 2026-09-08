@@ -23,6 +23,14 @@ class VpnStatus:
 # pre-checks pass something much smaller -- see check_vpn's docstring.
 DEFAULT_TIMEOUT = 5.0
 
+# Budget for VPN probes on the startup/interactive path -- anywhere a
+# hung `ip link show` would otherwise stall the operator's terminal
+# before the command even starts doing its real job (the wizard's VPN
+# nudge, `trinity watch`/`trinity shoulder`'s pre-flight doctor check).
+# Lives here, not in cli/main.py, so wizard.py can use it too without a
+# circular import (cli/main.py already imports from wizard.py).
+STARTUP_TIMEOUT = 1.0
+
 
 def _list_interfaces(timeout: float = DEFAULT_TIMEOUT) -> list[str]:
     """Return interface names via `ip link show`. Falls back to an

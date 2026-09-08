@@ -31,7 +31,7 @@ from trinity.state import (
     get_state,
     set_state,
 )
-from trinity.vpn import check_vpn
+from trinity.vpn import STARTUP_TIMEOUT, check_vpn
 
 console = Console()
 
@@ -167,7 +167,11 @@ def run_vpn_check(platform_id: str | None) -> None:
     network interface rather than trusting the operator's word; if
     nothing's up, offers a nudge, never blocks. Platform-aware so an
     OverTheWire/PortSwigger user (no VPN involved) isn't told to run
-    openvpn for a platform that doesn't need it."""
+    openvpn for a platform that doesn't need it.
+
+    Runs on vpn.STARTUP_TIMEOUT, not the generous default -- this is
+    the first thing a brand-new user sees, and a hung `ip link show`
+    here would look exactly like Trinity itself hanging on launch."""
     platform = get_platform(platform_id)
 
     if platform and not platform.needs_vpn:
@@ -176,7 +180,7 @@ def run_vpn_check(platform_id: str | None) -> None:
         return
 
     console.print()
-    status = check_vpn()
+    status = check_vpn(STARTUP_TIMEOUT)
 
     if status.connected:
         console.print(
@@ -209,7 +213,7 @@ def run_vpn_check(platform_id: str | None) -> None:
         console.print("No problem -- let me know when you're connected and I'll verify.")
 
     Prompt.ask("[dim]Press enter once connected[/dim]", default="", show_default=False)
-    recheck = check_vpn()
+    recheck = check_vpn(STARTUP_TIMEOUT)
     if recheck.connected:
         console.print(f"[green]Confirmed -- {recheck.interface} is up.[/green]")
     else:
@@ -322,7 +326,11 @@ def show_handoff(conn: sqlite3.Connection, box: Box) -> None:
     from trinity.coach import get_recommendation
     from trinity.doctor import run_doctor
 
-    doctor_report = run_doctor(include_vpn=bool(box.target))
+    # Same short leash as watch_cmd/shoulder_cmd's startup pre-check --
+    # this is the wizard's own handoff into an interactive session, and
+    # a hung `ip link show` here shouldn't stall the operator's very
+    # first hand-off screen.
+    doctor_report = run_doctor(include_vpn=bool(box.target), vpn_timeout=STARTUP_TIMEOUT)
     for failure in doctor_report.failures:
         if failure.name.startswith("tool:"):
             continue  # per-suggestion install guidance already covers this
