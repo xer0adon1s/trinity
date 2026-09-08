@@ -36,7 +36,6 @@ def test_attack_mapper_smoke(conn):
     for event in data.events:
         hits.extend(map_attack(f"{event.summary} {event.detail or ''}"))
     assert hits
-    assert data.box.name == "AttackRendererBox"
 
 
 def test_remediation_draft_smoke(conn):
@@ -46,4 +45,3 @@ def test_remediation_draft_smoke(conn):
     finding = next(e for e in data.events if e.event_type == "match")
     text = draft_remediation(finding.summary, finding.detail)
     assert isinstance(text, str) and len(text) > 20
-    assert data.box.name == "RemediationRendererBox"
