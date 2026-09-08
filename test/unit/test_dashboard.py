@@ -9,6 +9,7 @@ import pytest
 
 from trinity.boxes import create_box
 from trinity.db import connect
+from trinity.process import process_scan_file
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -118,6 +119,39 @@ def test_handle_file_explains_a_genuinely_empty_scan_file(db_path, tmp_path):
     assert len(feed_messages) == 1
     assert "is empty" in feed_messages[0]
     assert "no element found" not in feed_messages[0]
+
+
+def test_handle_file_narrates_a_confirmed_match_via_the_voice(db_path):
+    # End-to-end: a real scan.xml containing the classic vsftpd 2.3.4
+    # backdoor finding should produce a "Trinity explains:" block in the
+    # feed, using the actual seeded corpus (Trinity's Voice v1, see
+    # docs/TRINITY_VOICE_DESIGN.md) -- not a mock, the real render path.
+    from trinity.tui.dashboard import TrinityDashboard
+
+    conn = connect(db_path)  # real connect(), so voice_seed is populated
+    box = create_box(conn, "VoiceIntegrationBox", target="10.10.10.3")
+
+    dashboard = TrinityDashboard.__new__(TrinityDashboard)
+    dashboard.box = box
+    dashboard.conn = conn
+    dashboard._last_processed_hash = {}
+    feed_messages = []
+    dashboard._append_feed = lambda markup: feed_messages.append(markup)
+
+    class _FakeSuggestions:
+        def append(self, *a, **k):
+            pass
+
+    dashboard.query_one = lambda *a, **k: _FakeSuggestions()
+
+    scan_path = FIXTURES / "lame_style_scan.xml"
+    process_result = process_scan_file(conn, box.id, scan_path)
+    assert process_result is not None
+    dashboard._render_result(scan_path, process_result)
+
+    joined = "\n".join(feed_messages)
+    assert "Trinity explains:" in joined
+    assert "backdoor" in joined.lower()
 
 
 def test_handle_file_reprocesses_genuinely_changed_content(db_path, tmp_path):

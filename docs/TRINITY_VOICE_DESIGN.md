@@ -1,18 +1,11 @@
 # Trinity's Voice — design draft v2 (post-review, build order flipped)
 
-Status: DESIGN ONLY, revised. v1 (below) is a scoped-down,
-build-safe version of the original ask, revised after two independent
-reviews (`findings/voice_design_review_cursor.md`,
-`findings/voice_design_review_claude.md`) converged on the same
-finding: the original live-AI-generation design had real, unresolved
-gaps -- no spoiler gate exists anywhere in the codebase to "reuse" (it
-would have to be invented from a prompt-text promise, which isn't a
-rail), the proposed cache key (`cve_or_technique_id`) doesn't exist in
-the schema, and -- most seriously -- injecting live finding data
-(attacker-controlled banner text from the scanned box) into an AI CLI
-automatically, on every finding, with no human review, is a genuine
-prompt-injection surface broader than Show Me Mode's, which at least
-required per-invocation consent.
+Status: PARTIAL. v1 (a hand-authored corpus + deterministic local
+renderer, described below) is built: `src/trinity/voice.py`,
+`src/trinity/voice_seed.py`, the `finding_explanations` table, and the
+dashboard's feed integration. v2 (live AI generation, preserved below
+as "Deferred: v2 design") remains DESIGN ONLY, intentionally not
+started.
 
 **Both reviews independently recommended the same fix: flip the build
 order.** v1 ships an authored corpus (hand-written or agent-drafted

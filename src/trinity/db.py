@@ -409,6 +409,24 @@ CREATE TABLE IF NOT EXISTS show_me_attestation (
     id INTEGER PRIMARY KEY CHECK (id = 1),  -- single row, machine-wide
     accepted_at TEXT NOT NULL
 );
+
+-- Trinity's Voice v1 (docs/TRINITY_VOICE_DESIGN.md): a hand-authored
+-- corpus of plain-English teaching text, one row per kb_entries.title
+-- (NOT kb_entries.id -- id is an autoincrement, unstable across a
+-- fresh install/re-seed; title is the stable, human-authored key
+-- kb/seed.py already treats as unique). Deliberately NOT AI-generated
+-- live -- see the design doc's "why this isn't live generation" for
+-- the two independent reviews that led to this being an authored
+-- corpus + deterministic renderer rather than a cache of AI output.
+CREATE TABLE IF NOT EXISTS finding_explanations (
+    id INTEGER PRIMARY KEY,
+    kb_title TEXT NOT NULL UNIQUE,     -- joins to kb_entries.title
+    what_it_is TEXT NOT NULL,          -- paragraph 1: what this is
+    why_it_happens TEXT NOT NULL,      -- paragraph 2: the mechanism/story
+    what_to_watch_for TEXT NOT NULL,   -- paragraph 3: the generalizable lesson
+    source TEXT NOT NULL DEFAULT 'trinity_preseed',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
@@ -464,6 +482,7 @@ _ADDITIVE_COLUMNS: dict[str, list[tuple[str, str]]] = {
     "assimilator_runs": [],
     "show_me_runs": [],
     "show_me_attestation": [],
+    "finding_explanations": [],
 }
 
 
@@ -505,11 +524,13 @@ def _seed_brain(conn: sqlite3.Connection) -> None:
     from trinity.explain_seed.combine import seed_all as seed_all_explanations
     from trinity.kb.ad_seed import seed as seed_ad
     from trinity.kb.seed import seed as seed_kb
+    from trinity.voice import seed_voice_entries
 
     seed_kb(conn)
     seed_ad(conn)
     seed_all_explanations(conn)
     seed_error_patterns(conn)
+    seed_voice_entries(conn)
 
 
 def connect(db_path: Path | None = None, *, seed_brain: bool = True) -> sqlite3.Connection:

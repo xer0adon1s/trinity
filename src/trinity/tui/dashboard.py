@@ -24,6 +24,7 @@ from trinity.coach import get_recommendation, set_accepted
 from trinity.db import connect
 from trinity.hints import get_hint
 from trinity.process import ProcessResult, process_scan_file
+from trinity.voice import get_voice_text
 
 _SEVERITY_STYLE = {
     "critical": "bold red",
@@ -283,6 +284,16 @@ class TrinityDashboard(App):
             style = _SEVERITY_STYLE.get(top.severity, "white")
             confidence_note = " [dim](best guess)[/dim]" if top.confidence == "best_guess" else ""
             self._append_feed(f"  {label} — [{style}][{top.severity.upper()}][/{style}] {top.title}{confidence_note}")
+
+            voice_text = get_voice_text(
+                self.conn, top.title, top.confidence,
+                host=f.host, port=f.port, product=f.product, version=f.version,
+            )
+            if voice_text:
+                self._append_feed(
+                    "    [dim italic]Trinity explains:[/dim italic]\n"
+                    + "\n".join(f"    {line}" for line in voice_text.splitlines())
+                )
 
         for command in result.suggestions:
             suggestions.append(ListItem(Static(Text.from_markup(f"[bold]{command}[/bold]"))))
