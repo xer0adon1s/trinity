@@ -379,6 +379,12 @@ subprocess, and the whole DB/no-accounts/no-telemetry model assumes
 one local SQLite file. All of that requires Trinity to run ON the
 student's own machine; a browser tab alone can't do any of it.
 
+Full 2.0 vision (API-key AI access, opt-in community KB sync,
+nonprofit/pay-what-you-want model, school leaderboards, future original
+boxes/CTFs) now written up in full in `docs/TRINITY_2_0_VISION.md` —
+this entry stays as the short summary of the webserver piece
+specifically.
+
 The right shape for 2.0's GUI ambition: `trinity web` (or similar)
 spins up a local-only webserver (binds `127.0.0.1`, nothing leaves the
 machine) and opens `localhost:<port>` in whatever browser is already
