@@ -1,6 +1,6 @@
 # Project: Trinity Coverage Simulation — Scaled Run
 
-Status: PARTIAL. Assigned to Cursor. Doc (Claude) reviews the output file
+Assignment: ACTIVE. Assigned to Cursor. Doc (Claude) reviews the output file
 after each batch. Do not skip the "stop and ask" conditions below —
 this project produces a LOT of surface area for silent scope creep.
 

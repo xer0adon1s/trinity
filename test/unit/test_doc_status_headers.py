@@ -1,4 +1,13 @@
-"""Invariant: docs/*.md Status headers use a fixed vocabulary."""
+"""Invariant: docs/*.md `Status:` headers use a fixed vocabulary.
+
+The vocabulary describes BUILD state only. Docs that track something
+else -- who a work item is assigned to, whether a decision has been
+made -- deliberately do not carry a `Status:` line at all (see
+`Assignment:` in the project briefs and `Decision status:` in
+docs/OPEN_DECISIONS.md); forcing those into DESIGN ONLY/PARTIAL made
+them contradict their own body text. This test only constrains
+`Status:` lines that exist; it does not require every doc to have one,
+and that is on purpose."""
 from __future__ import annotations
 
 from pathlib import Path
