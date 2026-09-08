@@ -53,15 +53,12 @@ class KBMatch(BaseModel):
         return "likely"
 
 
-def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) -> list[KBMatch]:
-    """Search the local KB for entries relevant to a finding.
-
-    Two-stage: cheap exact filter on service/version first (near-free),
-    then full-text search over title/summary/detail/tags for anything
-    that survives or has no exact service match. FTS5's bm25() gives a
-    relevance score — lower is better, so we invert it for a friendlier
-    "higher is better" score.
-    """
+def _curated_matches(
+    conn: sqlite3.Connection, finding: Finding, fts_limit: int = 50,
+) -> tuple[list[KBMatch], set[int]]:
+    """Stages 1+2 shared by match_finding and match_curated_only: exact
+    service match, then FTS fallback. Returns (matches, seen_kb_ids) --
+    unsorted; callers sort and/or append searchsploit results."""
     matches: list[KBMatch] = []
     seen_ids: set[int] = set()
 
@@ -138,7 +135,7 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
                 ORDER BY rank
                 LIMIT ?
                 """,
-                (_fts_query(query_terms), limit),
+                (_fts_query(query_terms), fts_limit),
             ).fetchall()
         except sqlite3.OperationalError:
             # Malformed FTS query (rare, e.g. stray punctuation) — skip
@@ -184,6 +181,46 @@ def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) ->
                 )
             )
             seen_ids.add(row["id"])
+
+    return matches, seen_ids
+
+
+def match_curated_only(conn: sqlite3.Connection, finding: Finding) -> list[KBMatch]:
+    """Stages 1+2 of match_finding only: the hand-curated KB (exact
+    service match, then FTS fallback), sorted by score, uncapped and
+    with no searchsploit stage 3.
+
+    Exists for callers that only care about curated (confirmed/likely)
+    matches and must not be affected by two things `match_finding`
+    normally does for a good REASON but that are wrong for this use:
+    (1) the shared `limit` slice, which can and does drop a
+    lower-scored curated entry off the bottom once enough
+    higher-scored searchsploit hits exist (a real bug found live
+    against HTB Lame's HTTP port during Trinity's Voice v1's alpha
+    polish review -- searchsploit returned enough hits that the
+    curated "HTTP directory brute-forcing" entry sat at position 13,
+    past match_finding's default limit=5, and never got a chance to
+    narrate); (2) the searchsploit subprocess call itself, which
+    `match_finding` correctly always runs for the main coach/suggest
+    path but which a caller only asking "does a curated entry exist
+    for this finding" doesn't need and shouldn't pay for twice per
+    finding (process.py already called the full match_finding once).
+    """
+    matches, _seen_ids = _curated_matches(conn, finding)
+    matches.sort(key=lambda m: m.score, reverse=True)
+    return matches
+
+
+def match_finding(conn: sqlite3.Connection, finding: Finding, limit: int = 5) -> list[KBMatch]:
+    """Search the local KB for entries relevant to a finding.
+
+    Two-stage: cheap exact filter on service/version first (near-free),
+    then full-text search over title/summary/detail/tags for anything
+    that survives or has no exact service match. FTS5's bm25() gives a
+    relevance score — lower is better, so we invert it for a friendlier
+    "higher is better" score.
+    """
+    matches, seen_ids = _curated_matches(conn, finding, fts_limit=limit)
 
     matches.sort(key=lambda m: m.score, reverse=True)
 

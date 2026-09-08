@@ -180,16 +180,29 @@ caller of `get_voice_text` is the watch dashboard. `trinity next`,
 yet -- a real, deliberate v1 scope cut, not an oversight, tracked here
 so it isn't rediscovered as a gap later.
 
-**Naming note:** v2's still-deferred design below (see "Deferred: v2
-design") originally proposed a `finding_explanations` table keyed on
-`(service, product, version, cve_or_technique_id)`. v1 has taken that
-table name with a different key (`kb_title UNIQUE`). When v2 is
-actually scoped, it needs either a different table name for the live-
-generated cache, or a `source` discriminator column distinguishing
-reviewed-corpus rows from generated-cache rows within one table --
-the two categories have very different trust levels and should not
-silently share write/read paths. Flagging now so it's a naming
-decision, not a migration surprise, when v2 starts.
+**Naming, RESOLVED:** v1's table is `voice_explanations` (renamed
+from `finding_explanations` during the polish-review pass, before any
+alpha user had this table populated -- both independent reviewers
+flagged this as "rename now while it's a `sed`, not a migration on
+real user data"). v2's still-deferred design below (see "Deferred: v2
+design") can therefore use `finding_explanations` for its own,
+differently-keyed live-generated cache without any collision, or
+still add a `source` discriminator to `voice_explanations` if v2 ends
+up wanting to share the read path -- that decision is unblocked
+either way now that the names don't fight each other.
+
+**Phase gate, added during polish review:** `voice_explanations.phase`
+(recon/enum/foothold/privesc/post, mirroring `coach._PHASE_ORDER`) is
+checked in `get_voice_text()` against the box's own `shell_level`
+before rendering. This closes a real spoiler leak found live during
+polish review: the match engine's FTS stage can and does attach a
+later-phase KB entry (the SUID privesc entry) to an earlier-phase
+finding purely on shared vocabulary -- a plain recon-phase directory
+listing containing the word "root" was enough to rank it into that
+finding's match list. Every individual authored paragraph was already
+written phase-safely on its own, but nothing had enforced that at
+display time before this gate existed. A `privesc`-phase entry only
+narrates once `shell_level` is `'user'` or `'root'`.
 
 ### What v1 explicitly does NOT do
 

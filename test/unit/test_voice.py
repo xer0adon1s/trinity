@@ -61,26 +61,64 @@ def test_seed_voice_entries_inserts_into_empty_db(conn):
     assert count == len(ENTRIES)
 
 
-def test_seed_voice_entries_is_idempotent(conn):
+def test_seed_voice_entries_is_idempotent_in_effect(conn):
+    # With the R3 fix (UPSERT on trinity_preseed rows so a corpus
+    # wording change actually reaches an already-connected machine),
+    # "idempotent" now means "content converges and stays converged,"
+    # not "the second call touches zero rows" -- an UPSERT that
+    # rewrites identical values is still idempotent in the sense that
+    # matters (same content in, same content out, no drift, no error).
     first = seed_voice_entries(conn)
+    assert first == len(ENTRIES)
     second = seed_voice_entries(conn)
-    assert first > 0
-    assert second == 0
+    assert second == len(ENTRIES)  # re-touches every row, content unchanged
+    row = conn.execute(
+        "SELECT what_it_is FROM voice_explanations WHERE kb_title = ?",
+        (next(iter(ENTRIES)),),
+    ).fetchone()
+    assert row["what_it_is"] == ENTRIES[next(iter(ENTRIES))]["what_it_is"]
 
 
-def test_seed_voice_entries_does_not_overwrite_an_edited_entry(conn):
+def test_seed_voice_entries_refreshes_its_own_preseed_rows(conn):
+    # The actual point of R3: a corpus wording fix in voice_seed.py
+    # must reach a machine that already connected once, since teaching
+    # prose is exactly the content type Alexander will want to revise
+    # mid-alpha. Simulate "the old wording is in the DB, voice_seed.py
+    # has since been edited" by mutating a trinity_preseed row in
+    # place, then re-seeding.
     seed_voice_entries(conn)
     sample_title = next(iter(ENTRIES))
     conn.execute(
-        "UPDATE finding_explanations SET what_it_is = ? WHERE kb_title = ?",
-        ("MY HAND-EDITED VERSION", sample_title),
+        "UPDATE voice_explanations SET what_it_is = ? WHERE kb_title = ?",
+        ("STALE PRE-EDIT WORDING", sample_title),
     )
     conn.commit()
 
-    seed_voice_entries(conn)  # re-seeding must not clobber the edit
+    seed_voice_entries(conn)  # re-seeding must overwrite this back to current
 
     row = conn.execute(
-        "SELECT what_it_is FROM finding_explanations WHERE kb_title = ?", (sample_title,)
+        "SELECT what_it_is FROM voice_explanations WHERE kb_title = ?", (sample_title,)
+    ).fetchone()
+    assert row["what_it_is"] == ENTRIES[sample_title]["what_it_is"]
+
+
+def test_seed_voice_entries_does_not_overwrite_a_non_preseed_row(conn):
+    # A row from any OTHER source (a future hand-edited or AI-reviewed
+    # entry, once that exists) must never be silently overwritten by
+    # the bulk preseed -- same non-clobber contract as
+    # explain.seed_explanations and kb.seed.seed.
+    seed_voice_entries(conn)
+    sample_title = next(iter(ENTRIES))
+    conn.execute(
+        "UPDATE voice_explanations SET what_it_is = ?, source = ? WHERE kb_title = ?",
+        ("MY HAND-EDITED VERSION", "hand_edited", sample_title),
+    )
+    conn.commit()
+
+    seed_voice_entries(conn)  # re-seeding must not clobber a non-preseed source
+
+    row = conn.execute(
+        "SELECT what_it_is FROM voice_explanations WHERE kb_title = ?", (sample_title,)
     ).fetchone()
     assert row["what_it_is"] == "MY HAND-EDITED VERSION"
 
@@ -170,5 +208,5 @@ def test_voice_seeds_automatically_via_connect(tmp_path):
     from trinity.db import connect
 
     conn = connect(tmp_path / "trinity_test.db")
-    count = conn.execute("SELECT count(*) AS n FROM finding_explanations").fetchone()["n"]
+    count = conn.execute("SELECT count(*) AS n FROM voice_explanations").fetchone()["n"]
     assert count == len(ENTRIES)

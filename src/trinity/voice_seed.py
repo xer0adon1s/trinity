@@ -29,10 +29,11 @@ from __future__ import annotations
 
 ENTRIES: dict[str, dict[str, str]] = {
     "vsftpd 2.3.4 backdoor (CVE-2011-2523)": {
+        "phase": "recon",
         "what_it_is": (
             "vsftpd stands for \"very secure FTP daemon,\" which is a name "
             "this particular build spectacularly failed to live up to. "
-            "Somewhere between June 30th and July 1st, 2011, someone "
+            "For about three days at the start of July 2011, someone "
             "compromised the official download server and swapped the "
             "source tarball for a trojaned copy. Anyone who compiled "
             "vsftpd 2.3.4 from that window got a hidden backdoor baked "
@@ -59,16 +60,28 @@ ENTRIES: dict[str, dict[str, str]] = {
             "development or a specific CVE writeup; this one is unusually "
             "generous, but the habit it teaches -- version banner first, "
             "searchsploit second, assumptions third -- applies to every "
-            "service you'll ever enumerate."
+            "service you'll ever enumerate. One honest caveat: a banner "
+            "is a claim, not a guarantee. Plenty of boxes advertise "
+            "2.3.4 without a working backdoor -- the trigger port can be "
+            "firewalled, or the build can be a patched distro package "
+            "wearing the same version string. Give it one honest attempt, "
+            "and if port 6200 doesn't open, believe the box and move on "
+            "rather than assuming you typed it wrong. Knowing when to "
+            "stop is as much of the skill as knowing what to try."
         ),
     },
     "Anonymous FTP login": {
+        "phase": "recon",
         "what_it_is": (
             "FTP has supported an \"anonymous\" account since long before "
             "modern authentication norms existed -- log in as the literal "
             "username \"anonymous\" with any password (traditionally an "
             "email address, though most servers don't check), and you're "
-            "in, no real credentials required."
+            "in, no real credentials required. Most anonymous sessions "
+            "are read-only by design -- browsing and downloading, not "
+            "writing -- but a meaningful minority are misconfigured to "
+            "also allow uploads, which is the difference between "
+            "\"harmless legacy feature\" and \"real way in\"."
         ),
         "why_it_happens": (
             "This isn't a bug, it's a feature that outlived its original "
@@ -84,15 +97,17 @@ ENTRIES: dict[str, dict[str, str]] = {
         ),
         "what_to_watch_for": (
             "This is a five-second check that costs nothing and "
-            "occasionally hands you the whole box -- config files, "
-            "credentials left in a home directory, a write-access folder "
-            "you can drop a webshell into. The generalizable habit: "
-            "always try the free/default/no-auth path before assuming a "
-            "service requires real credentials. A shocking number of "
+            "sometimes turns up real leverage -- credentials left in a "
+            "home directory, a config file with a password in it, a "
+            "writable folder that becomes useful once you have a "
+            "foothold elsewhere. The generalizable habit: always try "
+            "the free/default/no-auth path before assuming a service "
+            "requires real credentials. A shocking number of "
             "\"vulnerabilities\" are just defaults nobody changed."
         ),
     },
     "SMB null session / anonymous enumeration": {
+        "phase": "recon",
         "what_it_is": (
             "SMB (Windows file/printer sharing, and Samba's Linux "
             "implementation of the same protocol) supports connecting "
@@ -106,12 +121,13 @@ ENTRIES: dict[str, dict[str, str]] = {
             "what an unauthenticated connection could see, on the "
             "assumption that internal networks were trusted by default -- "
             "a very 1990s-2000s security posture that didn't survive "
-            "contact with the modern internet. Even after Microsoft "
-            "tightened the defaults over successive Windows/Samba "
-            "versions, a huge number of deployed systems (and a huge "
-            "number of deliberately-vulnerable teaching boxes) still run "
-            "with the looser settings, either through inertia or because "
-            "some other internal tool depends on the old behavior."
+            "contact with the modern internet. Both projects tightened "
+            "their defaults over time -- Microsoft on the Windows side, "
+            "the Samba team independently on the Linux side -- but a huge "
+            "number of deployed systems (and a huge number of "
+            "deliberately-vulnerable teaching boxes) still run with the "
+            "looser settings, either through inertia or because some "
+            "other internal tool depends on the old behavior."
         ),
         "what_to_watch_for": (
             "This is one of the highest-value \"try it for free\" checks "
@@ -125,6 +141,7 @@ ENTRIES: dict[str, dict[str, str]] = {
         ),
     },
     "SSH version banner grabbing for known CVEs": {
+        "phase": "recon",
         "what_it_is": (
             "SSH servers announce their exact software version in the "
             "very first bytes of a connection, before any authentication "
@@ -133,10 +150,11 @@ ENTRIES: dict[str, dict[str, str]] = {
             "reading, with no login required."
         ),
         "why_it_happens": (
-            "This isn't a flaw specific to SSH -- almost every network "
-            "service announces itself this way, because interoperability "
-            "requires both sides to know what protocol dialect they're "
-            "speaking. The security tradeoff is that the same "
+            "This isn't a flaw specific to SSH. Almost every network "
+            "service introduces itself by name and version before it "
+            "asks who you are, which is either excellent engineering or "
+            "excellent manners depending on which side of the connection "
+            "you're sitting on. The security tradeoff is that the same "
             "transparency that lets two SSH clients/servers negotiate "
             "correctly also tells an attacker exactly which version-"
             "specific bugs might apply, without needing to guess."
@@ -154,6 +172,7 @@ ENTRIES: dict[str, dict[str, str]] = {
         ),
     },
     "HTTP directory brute-forcing is next after a webserver is found": {
+        "phase": "recon",
         "what_it_is": (
             "Web applications almost always have more URLs than the ones "
             "linked from the homepage -- admin panels, backup files left "
@@ -187,6 +206,7 @@ ENTRIES: dict[str, dict[str, str]] = {
         ),
     },
     "SUID binaries are the first privesc check on Linux": {
+        "phase": "privesc",
         "what_it_is": (
             "A SUID (\"set user ID\") bit on an executable makes it run "
             "with the permissions of the file's OWNER, not the user who "
@@ -201,8 +221,8 @@ ENTRIES: dict[str, dict[str, str]] = {
             "vulnerability shows up when a SUID binary can be convinced "
             "to do something its author didn't intend -- read an "
             "arbitrary file, write one, or spawn a shell -- while still "
-            "running as root. GTFOBins exists specifically because a "
-            "surprising number of completely ordinary, pre-installed "
+            "running as root. GTFOBins exists largely for this reason -- "
+            "a surprising number of completely ordinary, pre-installed "
             "Linux utilities (things you'd never suspect) have a "
             "documented way to be abused exactly like this if the SUID "
             "bit is set on them, usually by an administrator who set it "

@@ -418,12 +418,25 @@ CREATE TABLE IF NOT EXISTS show_me_attestation (
 -- live -- see the design doc's "why this isn't live generation" for
 -- the two independent reviews that led to this being an authored
 -- corpus + deterministic renderer rather than a cache of AI output.
-CREATE TABLE IF NOT EXISTS finding_explanations (
+CREATE TABLE IF NOT EXISTS voice_explanations (
     id INTEGER PRIMARY KEY,
     kb_title TEXT NOT NULL UNIQUE,     -- joins to kb_entries.title
     what_it_is TEXT NOT NULL,          -- paragraph 1: what this is
     why_it_happens TEXT NOT NULL,      -- paragraph 2: the mechanism/story
     what_to_watch_for TEXT NOT NULL,   -- paragraph 3: the generalizable lesson
+    phase TEXT NOT NULL DEFAULT 'recon',  -- which attack phase this
+    -- entry belongs to (coach._PHASE_ORDER's vocabulary: recon/enum/
+    -- foothold/privesc/post). get_voice_text refuses to narrate a
+    -- later-phase entry until the box's own shell_level says the
+    -- student is actually there -- the match engine can and does
+    -- FTS-attach a privesc-phase KB entry (SUID) to an ordinary recon
+    -- finding purely on shared vocabulary (e.g. a directory listing
+    -- containing the word "root"), which would otherwise spoil a
+    -- later phase despite every individual paragraph being authored
+    -- phase-safely on its own. This table didn't ship before this
+    -- session, so this column is a plain CREATE TABLE column, not an
+    -- _ADDITIVE_COLUMNS migration -- no alpha user has this table
+    -- populated yet.
     source TEXT NOT NULL DEFAULT 'trinity_preseed',  -- reserved for
     -- when v2 (live generation) lands: distinguishes reviewed corpus
     -- rows from generated-cache rows so the two trust levels never
@@ -487,7 +500,7 @@ _ADDITIVE_COLUMNS: dict[str, list[tuple[str, str]]] = {
     "assimilator_runs": [],
     "show_me_runs": [],
     "show_me_attestation": [],
-    "finding_explanations": [],
+    "voice_explanations": [],
 }
 
 

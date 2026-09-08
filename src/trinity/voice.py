@@ -33,28 +33,42 @@ NARRATABLE_CONFIDENCE = {"confirmed", "likely"}
 
 
 def seed_voice_entries(conn: sqlite3.Connection) -> int:
-    """Bulk-insert the hand-authored corpus, skipping any kb_title that
-    already has an entry (never overwrites something hand-edited after
-    the fact, same non-destructive contract as explain.seed_explanations
-    and kb.seed.seed). Returns the number of rows actually inserted."""
-    inserted = 0
+    """Bulk-insert/refresh the hand-authored corpus. Rows this function
+    itself wrote (source='trinity_preseed') are UPSERTed on every
+    connect() so a corpus wording fix in voice_seed.py actually reaches
+    a machine that already connected once -- teaching prose is exactly
+    the kind of content Alexander will want to revise mid-alpha, unlike
+    e.g. schema rows. Any row with a DIFFERENT source (a future
+    hand-edited or AI-reviewed row, once that exists) is left alone --
+    same non-clobber contract as explain.seed_explanations and
+    kb.seed.seed for everything that ISN'T Trinity's own preseed.
+    Returns the number of rows inserted OR refreshed."""
+    touched = 0
     for kb_title, parts in ENTRIES.items():
-        exists = conn.execute(
-            "SELECT 1 FROM finding_explanations WHERE kb_title = ?", (kb_title,)
+        existing = conn.execute(
+            "SELECT source FROM voice_explanations WHERE kb_title = ?", (kb_title,)
         ).fetchone()
-        if exists:
-            continue
+        if existing is not None and existing["source"] != "trinity_preseed":
+            continue  # hand-edited/other-sourced row -- never overwrite
         conn.execute(
             """
-            INSERT INTO finding_explanations
-                (kb_title, what_it_is, why_it_happens, what_to_watch_for, source)
-            VALUES (?, ?, ?, ?, 'trinity_preseed')
+            INSERT INTO voice_explanations
+                (kb_title, what_it_is, why_it_happens, what_to_watch_for, phase, source)
+            VALUES (?, ?, ?, ?, ?, 'trinity_preseed')
+            ON CONFLICT(kb_title) DO UPDATE SET
+                what_it_is = excluded.what_it_is,
+                why_it_happens = excluded.why_it_happens,
+                what_to_watch_for = excluded.what_to_watch_for,
+                phase = excluded.phase
             """,
-            (kb_title, parts["what_it_is"], parts["why_it_happens"], parts["what_to_watch_for"]),
+            (
+                kb_title, parts["what_it_is"], parts["why_it_happens"],
+                parts["what_to_watch_for"], parts.get("phase", "recon"),
+            ),
         )
-        inserted += 1
+        touched += 1
     conn.commit()
-    return inserted
+    return touched
 
 
 def _instance_paragraph(host: str | None, port: int | None, product: str | None,
@@ -64,11 +78,11 @@ def _instance_paragraph(host: str | None, port: int | None, product: str | None,
     what's on screen can be checked directly against their own scan.
     Guaranteed substitution (real string formatting), not a "please
     quote this back" instruction to a model that might not comply."""
-    if host and port:
+    if host and port is not None:
         where = f"{host}:{port}"
     elif host:
         where = host
-    elif port:
+    elif port is not None:
         where = f"port {port}"
     else:
         where = "this target"
@@ -88,22 +102,38 @@ def get_voice_text(
     port: int | None = None,
     product: str | None = None,
     version: str | None = None,
+    shell_level: str | None = None,
 ) -> str | None:
     """Look up the hand-authored entry for an already-matched finding
     and render it with the student's instance data filled in. Returns
-    None if there's no authored entry yet, or if the match isn't
-    confident enough to narrate (best_guess) -- callers should fall
-    back to the existing plain KB summary/why string in either case;
-    the Voice is additive, never a hard dependency."""
+    None if there's no authored entry yet, if the match isn't
+    confident enough to narrate (best_guess), or if the entry's phase
+    is ahead of where this box actually is -- callers should fall back
+    to the existing plain KB summary/why string in every case; the
+    Voice is additive, never a hard dependency.
+
+    The phase gate exists because the match engine can and does
+    FTS-attach a later-phase KB entry (e.g. the SUID privesc entry) to
+    an earlier-phase finding purely on shared vocabulary -- a plain
+    recon-phase directory listing containing the word "root" is enough
+    to rank the SUID entry into a finding's match list. Every
+    individual authored paragraph is written phase-safely on its own,
+    but nothing enforced that at display time until this gate:
+    `shell_level=None` (recon/enum, no shell yet) can only narrate a
+    'recon' entry; 'user' or 'root' unlocks 'privesc' too. This directly
+    mirrors coach.py's own phase-ordering vocabulary and boxes.shell_level
+    rather than inventing a second one."""
     if confidence not in NARRATABLE_CONFIDENCE:
         return None
 
     row = conn.execute(
-        "SELECT what_it_is, why_it_happens, what_to_watch_for "
-        "FROM finding_explanations WHERE kb_title = ?",
+        "SELECT what_it_is, why_it_happens, what_to_watch_for, phase "
+        "FROM voice_explanations WHERE kb_title = ?",
         (kb_title,),
     ).fetchone()
     if row is None:
+        return None
+    if row["phase"] == "privesc" and shell_level not in ("user", "root"):
         return None
 
     instance = _instance_paragraph(host, port, product, version)

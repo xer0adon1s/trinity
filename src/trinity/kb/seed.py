@@ -14,7 +14,7 @@ SEED_ENTRIES: list[dict[str, str | None]] = [
         "title": "vsftpd 2.3.4 backdoor (CVE-2011-2523)",
         "summary": (
             "This exact version has a known backdoor: sending a username "
-            "ending in ':)' opens a root shell on port 6200. Classic "
+            "containing ':)' opens a root shell on port 6200. Classic "
             "intentionally-vulnerable teaching box marker."
         ),
         "detail": (

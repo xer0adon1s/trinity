@@ -24,6 +24,7 @@ from trinity.boxes import Box
 from trinity.coach import get_recommendation, set_accepted
 from trinity.db import connect
 from trinity.hints import get_hint
+from trinity.match.engine import KBMatch, match_curated_only
 from trinity.process import ProcessResult, process_scan_file
 from trinity.voice import NARRATABLE_CONFIDENCE, get_voice_text
 
@@ -283,48 +284,106 @@ class TrinityDashboard(App):
         self._append_feed(f"[bold cyan]{path.name}[/bold cyan] ({result.tool}) — "
                            f"{len(result.findings)} finding(s)")
 
+        # Dedup: the same authored entry can legitimately match TWO
+        # findings in one scan (e.g. HTTP on both :80 and :8080, or SMB
+        # on both :139 and :445) -- without this, the identical ~1,500
+        # character four-paragraph block prints twice verbatim, which
+        # is a wall-of-text problem the corpus doesn't need to grow to
+        # hit. Scoped to this one _render_result call (one scan file),
+        # not the whole session -- a later, genuinely new scan of the
+        # same finding should narrate again.
+        narrated_this_scan: set[str] = set()
+
         for fr in result.findings:
             f = fr.finding
             label = f"{f.host}:{f.port}" if f.port else (f.path or f.host or "?")
             if not fr.matches:
-                self._append_feed(f"  {label} — [dim]no local match[/dim]")
+                self._append_feed(f"  {escape(label)} — [dim]no local match[/dim]")
                 continue
             top = fr.matches[0]
             style = _SEVERITY_STYLE.get(top.severity, "white")
             confidence_note = " [dim](best guess)[/dim]" if top.confidence == "best_guess" else ""
-            self._append_feed(f"  {label} — [{style}][{top.severity.upper()}][/{style}] {top.title}{confidence_note}")
+            self._append_feed(
+                f"  {escape(label)} — [{style}][{top.severity.upper()}][/{style}] "
+                f"{escape(top.title)}{confidence_note}"
+            )
 
-            # Narrate the best NARRATABLE match, not necessarily the
-            # headline one -- a verified searchsploit hit routinely
-            # outscores a hand-curated version-agnostic KB entry
-            # (0.95 vs 0.9) while still being best_guess confidence, so
-            # gating on matches[0] alone silently suppressed the
-            # authored entry every time a stronger-but-unvetted match
-            # existed (e.g. searchsploit installed + an exposed SSH
-            # port -- close to the default real-world case). Scan for
-            # the first match the Voice can actually speak to; if it's
-            # not the headline match, say which finding it's about so
-            # the student isn't confused by a paragraph describing a
-            # title they weren't shown.
-            voice_match = next(
-                (m for m in fr.matches if m.confidence in NARRATABLE_CONFIDENCE), None
-            )
-            voice_text = (
-                get_voice_text(
-                    self.conn, voice_match.title, voice_match.confidence,
+            # Narrate the best NARRATABLE match with an actual authored
+            # entry -- not necessarily the headline one, and not
+            # necessarily the first confidence-eligible one either. A
+            # verified searchsploit hit routinely outscores a
+            # hand-curated version-agnostic KB entry (0.95 vs 0.9)
+            # while still being best_guess confidence, so gating on
+            # matches[0] alone silently suppressed the authored entry
+            # every time a stronger-but-unvetted match existed (e.g.
+            # searchsploit installed + an exposed SSH port -- close to
+            # the default real-world case). And a real box can have
+            # SEVERAL likely/confirmed matches stacked before the one
+            # that actually has a corpus entry (e.g. multiple curated-
+            # but-uncovered KB rows ranked above the one Voice entry
+            # that exists) -- stopping at the first confidence-eligible
+            # match, as an earlier version of this fix did, silently
+            # gave up right there instead of continuing to look. Walk
+            # every match in rank order and take the first one that
+            # BOTH clears the confidence gate AND has real text; if
+            # it's not the headline match, say which finding it's
+            # about so the student isn't confused by a paragraph
+            # describing a title they weren't shown.
+            voice_match: KBMatch | None = None
+            voice_text: str | None = None
+            for candidate in fr.matches:
+                if candidate.confidence not in NARRATABLE_CONFIDENCE:
+                    continue
+                candidate_text = get_voice_text(
+                    self.conn, candidate.title, candidate.confidence,
                     host=f.host, port=f.port, product=f.product, version=f.version,
+                    shell_level=self.box.shell_level,
                 )
-                if voice_match else None
-            )
+                if candidate_text:
+                    voice_match, voice_text = candidate, candidate_text
+                    break
+
+            # Fallback: fr.matches is match_finding()'s shared top-N
+            # slice, and a curated (confirmed/likely) entry can be
+            # genuinely present in the KB but pushed off that slice's
+            # bottom by enough higher-scored best_guess searchsploit
+            # hits -- a real, reproduced bug on HTB Lame's HTTP port,
+            # where the curated "HTTP directory brute-forcing" entry
+            # sat at position 13 of an uncapped curated-only query
+            # while match_finding's limit=5 only ever surfaced
+            # searchsploit noise for that finding. This does one more
+            # local SQL query (no subprocess, no network) only when the
+            # first loop found nothing -- cheap insurance, not a
+            # per-finding tax.
+            if voice_text is None:
+                for candidate in match_curated_only(self.conn, f):
+                    if candidate.confidence not in NARRATABLE_CONFIDENCE:
+                        continue
+                    candidate_text = get_voice_text(
+                        self.conn, candidate.title, candidate.confidence,
+                        host=f.host, port=f.port, product=f.product, version=f.version,
+                        shell_level=self.box.shell_level,
+                    )
+                    if candidate_text:
+                        voice_match, voice_text = candidate, candidate_text
+                        break
             if voice_text:
                 assert voice_match is not None  # implied by voice_text being non-None
                 attribution = (
                     f" (on {escape(voice_match.title)})" if voice_match.title != top.title else ""
                 )
-                self._append_feed(
-                    f"    [dim italic]Trinity explains{attribution}:[/dim italic]\n"
-                    + "\n".join(f"    {escape(line)}" for line in voice_text.splitlines())
-                )
+                if voice_match.title in narrated_this_scan:
+                    self._append_feed(
+                        f"    [dim italic]Trinity explains{attribution}: "
+                        f"(same as above — see her note on {escape(voice_match.title)})"
+                        "[/dim italic]"
+                    )
+                else:
+                    narrated_this_scan.add(voice_match.title)
+                    self._append_feed(
+                        f"    [dim italic]Trinity explains{attribution}:[/dim italic]\n"
+                        + "\n".join(f"    {escape(line)}" for line in voice_text.splitlines())
+                    )
 
         for command in result.suggestions:
             suggestions.append(ListItem(Static(Text.from_markup(f"[bold]{command}[/bold]"))))
