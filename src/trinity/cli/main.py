@@ -556,6 +556,15 @@ def show_me_cmd(box_name: str, milestone: str):
         ATTESTATION_TEXT, build_disclosure, has_attestation, record_attestation, run_show_me,
     )
 
+    raise click.ClickException(
+        "Show Me Mode is QUARANTINED as of the 2026-09-07 independent code review "
+        "(Cursor + Claude Code CLI, see findings/full_review_cursor.md and "
+        "findings/full_review_claude.md, and docs/SHOW_ME_MODE_QUARANTINE.md for the "
+        "full findings + fix plan). It is disabled at both this CLI entry point and "
+        "the TUI Tools menu until a corrected version ships. The code is intact for "
+        "reference, not deleted."
+    )
+
     conn = connect()
     box = get_box_or_fail(conn, box_name)
 

@@ -54,7 +54,7 @@ class ToolsMenuScreen(ModalScreen[None]):
         with Vertical(id="tools-menu"):
             yield Label("[bold]Tools[/bold]")
             yield ListView(
-                ListItem(Label("[ (A)ssimilate Attack Vector ] — Show Me Mode"), id="opt-show-me"),
+                ListItem(Label("[ (A)ssimilate Attack Vector ] — QUARANTINED, see docs/SHOW_ME_MODE_QUARANTINE.md"), id="opt-show-me"),
                 ListItem(Label("Add loot (credential/hash/token/flag)"), id="opt-loot-add"),
                 ListItem(Label("List loot recorded so far"), id="opt-loot-list"),
                 ListItem(Label("Recap this box"), id="opt-recap"),
@@ -75,7 +75,11 @@ class ToolsMenuScreen(ModalScreen[None]):
         box, conn = app.box, app.conn  # type: ignore[attr-defined]
 
         if item_id == "opt-show-me":
-            app.push_screen(ShowMeAttestationScreen(box, conn))
+            self.notify(
+                "Show Me Mode is quarantined pending fixes from the 2026-09-07 "
+                "code review -- see docs/SHOW_ME_MODE_QUARANTINE.md.",
+                severity="warning", timeout=8,
+            )
         elif item_id == "opt-loot-add":
             app.push_screen(LootAddScreen(box, conn))
         elif item_id == "opt-loot-list":
