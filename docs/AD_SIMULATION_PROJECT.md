@@ -1,6 +1,6 @@
 # Project: AD/Windows-Specific Simulation — Testing the AD Engine Prototype
 
-Status: ACTIVE. Assigned to Cursor. Run this AFTER
+Assignment: ACTIVE. Assigned to Cursor. Run this AFTER
 `docs/AD_ENGINE_PROTOTYPE_PROJECT.md` has landed (in worktree
 `../trinity-wt-ad-engine`) — this project tests THAT engine
 specifically. Do not start this before the engine prototype exists;

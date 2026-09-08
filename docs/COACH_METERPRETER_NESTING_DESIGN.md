@@ -1,6 +1,10 @@
 # Meterpreter nested-session design (Coach subsystem)
 
-Status: APPROVED, implementing directly in this pass (per Alexander's
+Status: BUILT. Implemented in `src/trinity/shell_coach.py`
+(`CoachProfile.nested_profiles`, `CoachSession.profile_stack`,
+`METERPRETER_PROFILE`), covered by
+`test/unit/test_shell_coach_meterpreter.py`. Approved and built in one
+pass (per Alexander's
 2026-09-07 call: "agreed. fully plan and implement this system/fix" —
 critical engine-level system, Doc builds it directly, not delegated).
 

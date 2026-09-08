@@ -26,7 +26,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
@@ -71,11 +71,15 @@ class AlreadyKnownHit(BaseModel):
 def check_already_known(conn: sqlite3.Connection, service: str | None, product: str | None,
                          version: str | None, detail: str | None = None) -> AlreadyKnownHit | None:
     """Before treating a Show Me Mode success as new knowledge, check
-    whether Trinity's own KB already covers it. Reuses match_finding's
-    exact same lookup path (not a separate heuristic) so 'already
-    known' means the same thing here as it does everywhere else in the
-    engine. Returns the best existing match if the KB already had a
-    real answer, None if this is genuinely new."""
+    whether Trinity's own KB already covers it. Calls match_finding with
+    a synthetic Finding whose service/product/version are usually None
+    and whose detail is a raw agent transcript blob -- not the
+    structured Finding a parser would produce -- so this is a weaker,
+    transcript-shaped lookup, not the same path as everywhere else in
+    the engine. Known limitation; addressed in the Show Me Mode rebuild
+    (see docs/SHOW_ME_MODE_QUARANTINE.md). Returns the best existing
+    match if the KB already had a real answer, None if this is
+    genuinely new."""
     from trinity.match.engine import match_finding
     from trinity.parsers.nmap import Finding
 
@@ -177,7 +181,7 @@ def finish_run(
         (
             result, int(self_lifted), json.dumps(others_lifted or []),
             int(already_known_hit), intake_candidate_id, verification_evidence,
-            datetime.now(timezone.utc).isoformat(), run_id,
+            datetime.now(UTC).isoformat(), run_id,
         ),
     )
     conn.commit()

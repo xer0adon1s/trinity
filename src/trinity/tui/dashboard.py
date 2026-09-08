@@ -14,11 +14,11 @@ from pathlib import Path
 
 from rich.text import Text
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal
 from textual.widgets import Footer, Header, ListItem, ListView, Static
 from watchfiles import Change, awatch
 
-from trinity.boxes import Box, get_box
+from trinity.boxes import Box
 from trinity.coach import get_recommendation, set_accepted
 from trinity.db import connect
 from trinity.hints import get_hint
@@ -193,7 +193,6 @@ class TrinityDashboard(App):
         self._append_feed(f"[dim](auto-marked done: {row['command']})[/dim]")
 
     def _render_result(self, path: Path, result: ProcessResult) -> None:
-        feed = self.query_one("#feed", ListView)
         suggestions = self.query_one("#suggestions", ListView)
 
         self._append_feed(f"[bold cyan]{path.name}[/bold cyan] ({result.tool}) — "

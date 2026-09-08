@@ -1,6 +1,6 @@
 # Show Me Mode — QUARANTINED (2026-09-07)
 
-Status: **DISABLED at both entry points** (`trinity show-me` CLI
+Status: QUARANTINED. Disabled at both entry points (`trinity show-me` CLI
 command, and the TUI Tools menu's "Assimilate Attack Vector" item).
 Code is intact under `src/trinity/show_me.py`, `src/trinity/tui/
 show_me_screens.py`, and the `assimilator_runs`/`show_me_runs`/

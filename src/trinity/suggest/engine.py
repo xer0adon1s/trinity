@@ -278,8 +278,7 @@ def _suggest_for_path(
         return None
 
     cmd = _curl_command(finding["host"], finding["path"], fallback_host)
-    cmd = cmd if cmd not in already_suggested else None
-    if not cmd:
+    if cmd in already_suggested:
         return None
     return Suggestion(
         phase="foothold",
@@ -307,8 +306,7 @@ def _suggest_for_share(
     host = _effective_host(finding, fallback_host)
     share = finding["path"] or "?"
     cmd = f"smbclient //{host}/{share} -N"
-    cmd = cmd if cmd not in already_suggested else None
-    if not cmd:
+    if cmd in already_suggested:
         return None
     return Suggestion(
         phase="enum",
@@ -335,8 +333,7 @@ def _suggest_for_user(finding: sqlite3.Row, already_suggested: set[str]) -> Sugg
     beginner toward brute-forcing as a default move."""
     detail = finding["detail"] or "a username"
     cmd = f"# noted: {detail} — try it against SSH/FTP logins you find, or as an SMB null-session identity"
-    cmd = cmd if cmd not in already_suggested else None
-    if not cmd:
+    if cmd in already_suggested:
         return None
     return Suggestion(
         phase="enum",
@@ -365,8 +362,7 @@ def _suggest_for_header(finding: sqlite3.Row, already_suggested: set[str]) -> Su
     if not product:
         return None
     cmd = f"searchsploit {product} {version}".strip()
-    cmd = cmd if cmd not in already_suggested else None
-    if not cmd:
+    if cmd in already_suggested:
         return None
     label = f"{product} {version}".strip()
     return Suggestion(
@@ -396,8 +392,7 @@ def _suggest_for_vuln(
     if not path:
         return None
     cmd = _curl_command(finding["host"], path, fallback_host)
-    cmd = cmd if cmd not in already_suggested else None
-    if not cmd:
+    if cmd in already_suggested:
         return None
     return Suggestion(
         phase="enum",
@@ -489,7 +484,10 @@ def _suggest_for_ldap_anon(
     host = _effective_host(finding, fallback_host)
     detail = finding["detail"] or ""
     match = _DOMAIN_IN_DETAIL_RE.search(detail)
-    base = _dn_from_dns(match.group(1)) if match else ""
+    if not match:
+        return None
+    domain = match.group(1)
+    base = _dn_from_dns(domain)
     if not base:
         return None
     cmd = (
@@ -502,7 +500,7 @@ def _suggest_for_ldap_anon(
         phase="enum",
         command=cmd,
         rationale=(
-            f"Anonymous LDAP already worked and the domain is {match.group(1)} — "
+            f"Anonymous LDAP already worked and the domain is {domain} — "
             "pull usernames next; they feed AS-REP roasting and later logins."
         ),
         nudge=(

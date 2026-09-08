@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from trinity.boxes import create_box
 from trinity.notify import is_notify_enabled, notify_critical
-from trinity.state import NOTIFY_ENABLED, get_state, set_state
+from trinity.state import NOTIFY_ENABLED, set_state
 
 
 def test_notify_disabled_by_default(conn):

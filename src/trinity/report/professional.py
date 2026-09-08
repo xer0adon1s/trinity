@@ -38,7 +38,7 @@ def generate_professional_report(data: ReportData) -> str:
     lines.append("")
     lines.append("| Item | Value |")
     lines.append("|---|---|")
-    lines.append(f"| Document status | Draft — tester must verify before delivery |")
+    lines.append("| Document status | Draft — tester must verify before delivery |")
     lines.append(f"| Classification | {classification} |")
     lines.append(f"| Version | {version} |")
     lines.append(f"| Distribution | {distribution} |")

@@ -74,7 +74,7 @@ class CoachProfile:
     exit_pattern: re.Pattern
     states: list[CoachState]
     announce: str = ""
-    nested_profiles: list["CoachProfile"] = field(default_factory=list)
+    nested_profiles: list[CoachProfile] = field(default_factory=list)
 
 
 # Stall threshold: how many consecutive lines can pass with zero
@@ -155,7 +155,8 @@ class CoachSession:
         #    (the normal case) still falls through to the existing
         #    "end everything" behavior further below.
         if self.profile_stack and profile.exit_pattern.search(line):
-            return self._pop_to_parent()
+            self._pop_to_parent()
+            return None
 
         # 2. Implicit exit via the PARENT's own prompt reappearing --
         #    covers a dropped/died nested session (e.g. Metasploit's
@@ -164,7 +165,8 @@ class CoachSession:
         #    Without this, a dead nested session would permanently
         #    strand the coach believing it's still inside the child.
         if self.profile_stack and self.profile_stack[-1].prompt_pattern.search(line):
-            return self._pop_to_parent()
+            self._pop_to_parent()
+            return None
 
         # 3. Nested entry: this profile declares nested children and
         #    the line matches one's prompt_pattern -- push the current
@@ -236,14 +238,14 @@ class CoachSession:
 
         self.stall_counter = 0
         self.stall_level = min(self.stall_level + 1, 3)
-        state = self.active_state
-        if state is None:
+        stall_state = self.active_state
+        if stall_state is None:
             return None
         if self.stall_level == 1:
-            return state.stall_nudge or None
+            return stall_state.stall_nudge or None
         if self.stall_level == 2:
-            return state.stall_stronger_nudge or None
-        return state.stall_answer or None
+            return stall_state.stall_stronger_nudge or None
+        return stall_state.stall_answer or None
 
     def _pop_to_parent(self) -> None:
         """Return to the parent profile after a nested child session

@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from trinity.boxes import create_box
-from trinity.explain import get_explanation
 from trinity.errors import find_error_match
+from trinity.explain import get_explanation
 from trinity.intake import (
     approve_candidate,
     get_candidate,

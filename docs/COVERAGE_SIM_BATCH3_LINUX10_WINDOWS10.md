@@ -1,6 +1,6 @@
 # Project: Trinity Coverage Simulation — Batch 3 (10 Linux + 10 Windows)
 
-Status: ACTIVE. Assigned to Cursor (executes: research, fixtures, real
+Assignment: ACTIVE. Assigned to Cursor (executes: research, fixtures, real
 CLI simulation, scoring, logging, narrow bucket-1 live fixes). Doc
 (Claude) reviews the worktree output after completion, bug-fixes as
 needed, and reports findings back to Alexander. Same ground rules as

@@ -18,7 +18,6 @@ import json
 
 from trinity import gtfobins
 
-
 FIXTURE_WITH_SUDO_AND_SUID = """---
 functions:
   shell:

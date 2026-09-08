@@ -7,7 +7,14 @@ from rich.panel import Panel
 from rich.prompt import Confirm
 from rich.table import Table
 
-from trinity.boxes import get_box_or_fail, get_or_create_box, list_boxes, set_mode, set_status, touch_active_box
+from trinity.boxes import (
+    get_box_or_fail,
+    get_or_create_box,
+    list_boxes,
+    set_mode,
+    set_status,
+    touch_active_box,
+)
 from trinity.coach import get_recommendation, set_accepted
 from trinity.db import connect
 from trinity.errors import build_error_escalation_prompt, find_error_match, save_error_fix
@@ -19,13 +26,19 @@ from trinity.platform_registry import get_platform, list_platform_ids, resolve_t
 from trinity.process import process_ad_file, process_autorecon_results, process_scan_file
 from trinity.report.data import gather_report_data
 from trinity.report.render import render_report
-from trinity.sharing import is_sharing_enabled, set_sharing_enabled, write_share_bundle
+from trinity.sharing import set_sharing_enabled, write_share_bundle
 from trinity.suggest.engine import suggest_next_commands
 from trinity.timeline import log_event
 from trinity.wizard import launch as launch_wizard
 from trinity.wordlists import NO_WORDLIST_GUIDANCE
 
 console = Console()
+
+# Seconds the VPN probe gets when doctor runs as a pre-check on the way
+# into an interactive command (`watch`, `shoulder`). `trinity doctor`
+# itself keeps vpn.py's generous default -- there the operator asked for
+# the check and is waiting on it; here they asked for something else.
+STARTUP_VPN_TIMEOUT = 1.0
 
 _SEVERITY_COLOR = {
     "critical": "bold red",
@@ -553,7 +566,11 @@ def show_me_cmd(box_name: str, milestone: str):
     knowledge.
     """
     from trinity.show_me import (
-        ATTESTATION_TEXT, build_disclosure, has_attestation, record_attestation, run_show_me,
+        ATTESTATION_TEXT,
+        build_disclosure,
+        has_attestation,
+        record_attestation,
+        run_show_me,
     )
 
     raise click.ClickException(
@@ -680,7 +697,9 @@ def watch_cmd(box_name: str, watch_dir: str):
     if box:
         touch_active_box(conn, box.id)
 
-    doctor_report = run_doctor(include_vpn=True)
+    # Startup pre-check: keep the VPN probe on a short leash so a hung
+    # `ip link show` can't stall the command before it even starts.
+    doctor_report = run_doctor(include_vpn=True, vpn_timeout=STARTUP_VPN_TIMEOUT)
     for failure in doctor_report.failures:
         if failure.name.startswith("tool:"):
             continue  # missing tools are handled per-suggestion by coach.py already
@@ -714,13 +733,20 @@ def shoulder_cmd(box_name: str, shell_bin: str | None):
     from trinity.boxes import get_box_or_fail
     from trinity.doctor import run_doctor
     from trinity.shell_coach import new_session as new_coach_session
-    from trinity.shoulder import apply_milestones, record_session, scan_for_milestones, session_log_path
+    from trinity.shoulder import (
+        apply_milestones,
+        record_session,
+        scan_for_milestones,
+        session_log_path,
+    )
 
     conn = connect()
     box = get_box_or_fail(conn, box_name)
     touch_active_box(conn, box.id)
 
-    doctor_report = run_doctor(include_vpn=True)
+    # Startup pre-check: keep the VPN probe on a short leash so a hung
+    # `ip link show` can't stall the command before it even starts.
+    doctor_report = run_doctor(include_vpn=True, vpn_timeout=STARTUP_VPN_TIMEOUT)
     for failure in doctor_report.failures:
         if failure.name.startswith("tool:"):
             continue  # missing tools are handled per-suggestion by coach.py already
@@ -778,7 +804,7 @@ def nickname_group():
 @nickname_group.command("show")
 def nickname_show_cmd():
     """Show whether the hacker name is on, and what it's currently set to."""
-    from trinity.state import HACKER_NAME, HACKER_NAME_ENABLED, get_state
+    from trinity.state import HACKER_NAME, get_state
     from trinity.wizard import get_hacker_name
 
     conn = connect()
@@ -1056,7 +1082,7 @@ def next_cmd(box_name: str):
     if rec.also_worth_trying:
         console.print()
         console.rule("[dim]Also worth trying[/dim]")
-        for s, installed in zip(rec.also_worth_trying, rec.also_worth_trying_installed):
+        for s, installed in zip(rec.also_worth_trying, rec.also_worth_trying_installed, strict=True):
             marker = "" if installed else "  [dim](tool not installed)[/dim]"
             console.print(f"  [dim]{s.command}[/dim]{marker}")
 
@@ -1428,7 +1454,7 @@ def intake_approve_cmd(candidate_id: int, note: str | None):
     try:
         approve_candidate(conn, candidate_id, note=note)
     except ValueError as exc:
-        raise click.ClickException(str(exc))
+        raise click.ClickException(str(exc)) from None
     console.print(f"[green]Approved #{candidate_id}.[/green] Now live in the real cache.")
 
 
@@ -1443,7 +1469,7 @@ def intake_reject_cmd(candidate_id: int, note: str | None):
     try:
         reject_candidate(conn, candidate_id, note=note)
     except ValueError as exc:
-        raise click.ClickException(str(exc))
+        raise click.ClickException(str(exc)) from None
     console.print(f"[yellow]Rejected #{candidate_id}.[/yellow]")
 
 

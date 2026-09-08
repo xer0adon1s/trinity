@@ -1,6 +1,6 @@
 # Features Backlog
 
-Status: IDEAS ONLY. Nothing in this document is built. This is where
+Status: DESIGN ONLY. Nothing in this document is built. This is where
 discussed-but-not-yet-built ideas get recorded so they survive between
 sessions, roughly in the order/grouping they were discussed. Promote an
 entry to its own design doc (like docs/RABBIT_HOLE_DETECTION.md,

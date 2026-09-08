@@ -193,8 +193,8 @@ def test_set_accepted_makes_coach_move_on(conn):
     # forever. This is the core fix's contract.
     from trinity.coach import set_accepted
     box = create_box(conn, "AcceptedBox")
-    first_id = _insert_suggestion(conn, box.id, "enum", "cmd-first")
-    second_id = _insert_suggestion(conn, box.id, "enum", "cmd-second")
+    _insert_suggestion(conn, box.id, "enum", "cmd-first")
+    _insert_suggestion(conn, box.id, "enum", "cmd-second")
 
     rec1 = get_recommendation(conn, box.id)
     assert rec1.top.command == "cmd-second"  # newer wins the tie

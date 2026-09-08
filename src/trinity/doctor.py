@@ -8,7 +8,7 @@ moments that matter" rather than a manual-only command.
 
 Cheap by design: no network calls beyond the existing local `ip link`
 probe vpn.py already does, no subprocess spawns beyond `shutil.which`
-checks tools.py already does. Safe to call from wizard/watch/shoulder
+checks and vpn.py's `ip link` probe. Safe to call from wizard/watch/shoulder
 startup without noticeable latency.
 """
 from __future__ import annotations
@@ -64,8 +64,8 @@ def _check_tools() -> list[DoctorCheck]:
     return checks
 
 
-def _check_vpn() -> DoctorCheck:
-    status = check_vpn()
+def _check_vpn(timeout: float | None = None) -> DoctorCheck:
+    status = check_vpn() if timeout is None else check_vpn(timeout)
     if status.connected:
         return DoctorCheck(
             name="vpn", ok=True,
@@ -77,14 +77,24 @@ def _check_vpn() -> DoctorCheck:
     )
 
 
-def run_doctor(*, db_path: Path | None = None, include_vpn: bool = True) -> DoctorReport:
+def run_doctor(
+    *,
+    db_path: Path | None = None,
+    include_vpn: bool = True,
+    vpn_timeout: float | None = None,
+) -> DoctorReport:
     """Runs every check. VPN is optional (include_vpn=False) for
     contexts where "no VPN" isn't actionable, e.g. before a box/target
-    is even chosen -- avoids a scary red line on a fresh install."""
+    is even chosen -- avoids a scary red line on a fresh install.
+
+    `vpn_timeout` (seconds) caps the VPN probe's subprocess. Leave it
+    None for the normal generous default; pass something small when
+    doctor runs as a startup pre-check for an interactive command, so
+    a hung `ip` can't hold the operator's terminal hostage."""
     checks = [_check_db(db_path)]
     checks.extend(_check_tools())
     if include_vpn:
-        checks.append(_check_vpn())
+        checks.append(_check_vpn(vpn_timeout))
     return DoctorReport(checks=checks)
 
 

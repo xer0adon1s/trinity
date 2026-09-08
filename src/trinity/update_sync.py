@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 # Conservative default -- don't re-check literally every command
 # invocation within the same session. Individual sources can pass a
@@ -41,7 +41,7 @@ def is_sync_due(conn: sqlite3.Connection, source: str, min_interval: timedelta =
     last = _parse_ts(row["last_synced_at"])
     if last is None:
         return True
-    return datetime.now(timezone.utc) - last >= min_interval
+    return datetime.now(UTC) - last >= min_interval
 
 
 def record_sync_result(conn: sqlite3.Connection, source: str, ok: bool, detail: str | None = None) -> None:
@@ -49,7 +49,7 @@ def record_sync_result(conn: sqlite3.Connection, source: str, ok: bool, detail: 
         "INSERT INTO sync_state (source, last_synced_at, last_status, detail) VALUES (?, ?, ?, ?) "
         "ON CONFLICT(source) DO UPDATE SET last_synced_at = excluded.last_synced_at, "
         "last_status = excluded.last_status, detail = excluded.detail",
-        (source, datetime.now(timezone.utc).isoformat(), "ok" if ok else "failed", detail),
+        (source, datetime.now(UTC).isoformat(), "ok" if ok else "failed", detail),
     )
     conn.commit()
 

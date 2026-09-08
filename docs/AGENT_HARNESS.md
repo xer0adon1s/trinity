@@ -1,6 +1,6 @@
 # Agent Harness — Design
 
-Status: BUILT AND TESTED. Implemented in `src/trinity/agent_harness.py`
+Status: BUILT. Implemented in `src/trinity/agent_harness.py`
 (agent-CLI detection + bounded one-shot invocation) and
 `src/trinity/intake.py` (review-gate queue), with dedicated tests in
 `test/unit/test_agent_harness.py`, `test/unit/test_cli_agent_harness.py`,

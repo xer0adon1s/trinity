@@ -1,6 +1,6 @@
 # Shoulder Mode — Design
 
-Status: BUILT AND TESTED. Implemented in `src/trinity/shoulder.py`
+Status: BUILT. Implemented in `src/trinity/shoulder.py`
 (pty recording + milestone detection), wired to `trinity shoulder
 --box <name>` in `src/trinity/cli/main.py`, 39 passing unit tests
 across `test/unit/test_shoulder.py` and related files. This doc
