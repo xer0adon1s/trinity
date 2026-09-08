@@ -8,7 +8,7 @@ moments that matter" rather than a manual-only command.
 
 Cheap by design: no network calls beyond the existing local `ip link`
 probe vpn.py already does, no subprocess spawns beyond `shutil.which`
-checks tools.py already does. Safe to call from wizard/watch/shoulder
+checks and vpn.py's `ip link` probe. Safe to call from wizard/watch/shoulder
 startup without noticeable latency.
 """
 from __future__ import annotations

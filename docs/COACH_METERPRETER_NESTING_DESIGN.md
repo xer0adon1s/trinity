@@ -1,6 +1,6 @@
 # Meterpreter nested-session design (Coach subsystem)
 
-Status: APPROVED, implementing directly in this pass (per Alexander's
+Status: PARTIAL. Approved, implementing directly in this pass (per Alexander's
 2026-09-07 call: "agreed. fully plan and implement this system/fix" —
 critical engine-level system, Doc builds it directly, not delegated).
 

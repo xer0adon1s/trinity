@@ -1,6 +1,6 @@
 # Show Me Mode — Design (v2, post-review)
 
-Status: DESIGN ONLY. Nothing in this document is built yet. This
+Status: QUARANTINED. See docs/SHOW_ME_MODE_QUARANTINE.md. This
 supersedes the v1 draft reviewed by Cursor and Claude Code CLI (see
 `findings/design_review_cursor.md` and `findings/design_review_claude.md`
 in the `design-review-cursor`/`design-review-claude` worktrees/branches)

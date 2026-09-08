@@ -1,6 +1,6 @@
 # Trinity 2.0 — vision notes (GUI, access, community, sustainability)
 
-Status: IDEAS, captured for a future build phase. Nothing here is
+Status: DESIGN ONLY. Ideas captured for a future build phase. Nothing here is
 scheduled against 1.0. Recorded now, in detail, so the reasoning
 survives between sessions rather than getting re-litigated from
 scratch. See `docs/FEATURES_BACKLOG.md`'s "2.0 GUI — local webserver"

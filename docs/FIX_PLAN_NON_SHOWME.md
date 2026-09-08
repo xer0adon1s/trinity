@@ -1,7 +1,7 @@
 # Fix plan — everything except Show Me Mode (which is quarantined,
 # see docs/SHOW_ME_MODE_QUARANTINE.md)
 
-Status: DRAFT, for Cursor + Claude Code CLI peer review before any
+Status: DESIGN ONLY. Draft for Cursor + Claude Code CLI peer review before any
 code is assigned or written. Source: the two independent full-program
 reviews from 2026-09-07 (`findings/full_review_cursor.md`,
 `findings/full_review_claude.md`), items 15-17 plus the "high/medium

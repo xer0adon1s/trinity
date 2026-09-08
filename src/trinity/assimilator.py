@@ -71,11 +71,15 @@ class AlreadyKnownHit(BaseModel):
 def check_already_known(conn: sqlite3.Connection, service: str | None, product: str | None,
                          version: str | None, detail: str | None = None) -> AlreadyKnownHit | None:
     """Before treating a Show Me Mode success as new knowledge, check
-    whether Trinity's own KB already covers it. Reuses match_finding's
-    exact same lookup path (not a separate heuristic) so 'already
-    known' means the same thing here as it does everywhere else in the
-    engine. Returns the best existing match if the KB already had a
-    real answer, None if this is genuinely new."""
+    whether Trinity's own KB already covers it. Calls match_finding with
+    a synthetic Finding whose service/product/version are usually None
+    and whose detail is a raw agent transcript blob -- not the
+    structured Finding a parser would produce -- so this is a weaker,
+    transcript-shaped lookup, not the same path as everywhere else in
+    the engine. Known limitation; addressed in the Show Me Mode rebuild
+    (see docs/SHOW_ME_MODE_QUARANTINE.md). Returns the best existing
+    match if the KB already had a real answer, None if this is
+    genuinely new."""
     from trinity.match.engine import match_finding
     from trinity.parsers.nmap import Finding
 

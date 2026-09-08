@@ -1,6 +1,6 @@
 # Open decisions — DO NOT list and adjacent prototypes
 
-Status: **UNDECIDED.** Cursor wrote the understanding below so
+Status: DESIGN ONLY. Undecided — Cursor wrote the understanding below so
 Alexander can review it later, add thoughts, and say what (if
 anything) to implement. Nothing in the "might prototype" column
 is approved. Nothing in the "still a rail" column should be

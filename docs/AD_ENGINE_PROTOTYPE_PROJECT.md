@@ -1,6 +1,6 @@
 # Project: AD/Windows Enumeration Engine — Rough-Draft Prototype
 
-Status: ACTIVE. Assigned to Cursor. Doc (Claude) reviews after this
+Status: PARTIAL. Assigned to Cursor. Doc (Claude) reviews after this
 lands — expect real revision, this is explicitly a rough draft to
 chisel from, not a final design.
 
