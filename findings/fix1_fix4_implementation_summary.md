@@ -152,3 +152,96 @@ the dormant trap against pre-fix `db.py` — an old DB whose
    only `trinity_preseed` / `user_curated` as alternatives to the
    default. Not wrong, just incomplete now — `explain.py` is outside my
    ownership split, so I left it. Low priority.
+
+---
+
+# Polish pass — cross-review fixes (items 1-3 of POLISH_PASS_BRIEF.md)
+
+Three further commits on the same branch, after the cross-review round.
+Still not merged, not pushed. Full suite: **491 → 492 passing** (+1 new
+test case here, plus 11 new parametrized cases from the widened
+registry; no existing test's assertions were changed).
+
+| | |
+|---|---|
+| `81903db` | Item 1 — register all 17 SCHEMA tables in `_ADDITIVE_COLUMNS` |
+| `13c22fe` | Item 2 — `build_share_bundle` docstring |
+| `dd96ed8` | Item 3 — `frozenset` for the source vocabularies |
+
+## Item 1 — the `_ADDITIVE_COLUMNS` comment overclaim
+
+Picked **option (a)**: registered the remaining 11 tables with `[]`
+rather than softening the comment. The comment's claim ("EVERY table in
+SCHEMA belongs here") is the invariant actually worth having — an empty
+list is one line, costs nothing at runtime (the `sqlite_master`
+existence probe already short-circuits per table), and closes the
+missing-registration class of bug for the whole schema rather than only
+for the three Show-Me-adjacent tables that this round happened to catch.
+Softening the comment would have left the next table added to SCHEMA in
+exactly the position `assimilator_runs` was in.
+
+- The registry is now listed in SCHEMA order, so it and the `CREATE
+  TABLE` statements can be eyeballed side by side. The `boxes` /
+  `engagement_meta` / `suggestions` column data is unchanged; the
+  "PROTOTYPE columns" and Assimilator-fields notes moved with them.
+- New `test_registry_covers_every_schema_table` parses the `CREATE
+  TABLE IF NOT EXISTS <name>` statements out of `SCHEMA` and asserts set
+  equality with the registry keys. The comment is now enforced by the
+  build instead of by reviewer memory — adding a table to SCHEMA without
+  registering it fails at CI time rather than silently no-op'ing on an
+  installed database years later.
+- `test_registry_migrates_every_registered_table` was already
+  parametrized over `sorted(_ADDITIVE_COLUMNS)`, so it picked up all 17
+  tables for free (11 new cases). Its comment saying "all six registered
+  tables" was updated.
+
+## Item 2 — `build_share_bundle`'s stale docstring
+
+The Fix 1 commit widened the filter from `source = 'ai_escalation'` to
+`source IN db.AI_SOURCED` but left the docstring promising only
+"AI-escalation-sourced" entries — the one place a reader checks before
+trusting what a bundle contains. The summary line now says "AI-sourced"
+and a new paragraph spells out that this means every provenance in
+`db.AI_SOURCED`, why `approve_candidate()` provenances belong in it, and
+what filtering on `'ai_escalation'` alone used to drop. The module
+docstring and the scoping note carried the same stale wording and were
+updated with it.
+
+## Item 3 — `frozenset` for `INTAKE_SOURCES` / `AI_SOURCED`
+
+Checked every reference in `src/`, `test/`, `docs/`, and `findings/`
+before changing anything: the two names are only ever used for
+membership tests, `<=`, `sorted()`, and the single `|` that builds
+`AI_SOURCED`. Nothing mutates either set, so `frozenset` is safe.
+
+Done as prevention, per the brief. `intake.VALID_SOURCES` is an *alias*
+of `db.INTAKE_SOURCES`, not a copy, so `VALID_SOURCES.add(...)` would
+have widened what intake accepts while `AI_SOURCED` — built once at
+import time — stayed stale. That is the Fix 1 share-bundle divergence
+reintroduced at runtime, where the definition-time pinning test cannot
+see it. It is now a `TypeError` at the call site.
+
+- `frozenset | set` returns a `frozenset`, so `AI_SOURCED` is frozen too
+  without a second annotation (verified at runtime, not assumed).
+- `intake.submit_candidate`'s `ValueError` now interpolates
+  `sorted(VALID_SOURCES)`, so the message reads
+  `source must be one of ['agent_harness', ...]` rather than
+  `frozenset({...})` — and is deterministically ordered as a bonus. No
+  test asserts on that message text (checked).
+- New `test_source_vocabularies_are_immutable` pins both types and
+  asserts `VALID_SOURCES` has no `.add`.
+
+## Notes for the merge
+
+- `uv run pytest -q`: **492 passed**, green after each of the three
+  commits. `ruff` and `mypy` are not installed in this worktree's
+  environment (`uv run ruff` / `uv run mypy` fail to spawn), so per the
+  brief's split those checks run in the cursor worktree.
+- Item 9 of the polish brief (per-file-ignores in `pyproject.toml` for
+  `intake.py` / `sharing.py` / the two claude-owned test files) is a
+  **verify-after-merge** item. `pyproject.toml` is cursor-owned and was
+  not touched here. The relevant facts from this side: `intake.py` now
+  calls `sorted()` in one f-string and gained two comment lines;
+  `sharing.py` gained docstring lines only; `db.py`'s registry grew 11
+  entries; both claude-owned test files gained one test each plus an
+  `import re`.
