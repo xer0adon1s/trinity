@@ -269,7 +269,11 @@ class GtfobinsLookupScreen(ModalScreen[None]):
         with Vertical(id="gtfo-box"):
             yield Label("[bold]GTFOBins lookup[/bold]")
             yield Input(placeholder="binary name (e.g. find)", id="gtfo-input")
-            yield Static("", id="gtfo-result")
+            # Scrollable: real entries get long (ldconfig's summary is
+            # ~750 chars, which wraps well past the 20-row max-height and
+            # would otherwise push the Close button off-screen).
+            with VerticalScroll(id="gtfo-scroll"):
+                yield Static("", id="gtfo-result", markup=False)
             yield Button("Close", id="close")
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
