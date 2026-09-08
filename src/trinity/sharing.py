@@ -1,5 +1,5 @@
 """Opt-in community data sharing: exports a box's KB-worthy discoveries
-(new-to-Trinity matches, AI-escalation explanations that got confirmed
+(new-to-Trinity matches, AI-sourced explanations that got confirmed
 correct) in a shareable, anonymized format that could be PRed upstream
 to grow the shared KB/explain-seed libraries.
 
@@ -56,17 +56,24 @@ class ShareBundle:
 
 
 def build_share_bundle(conn: sqlite3.Connection, box_id: int) -> ShareBundle:
-    """Gathers THIS box's AI-escalation-sourced explanations/error-fixes
-    and any novel findings that had no local KB match (the exact gaps a
-    shared KB should grow to cover) -- stripped of anything box/target/
+    """Gathers THIS box's AI-sourced explanations/error-fixes and any
+    novel findings that had no local KB match (the exact gaps a shared
+    KB should grow to cover) -- stripped of anything box/target/
     operator-identifying.
+
+    "AI-sourced" means every provenance in db.AI_SOURCED, not just the
+    'ai_escalation' direct-write default: entries that arrived through
+    intake.py's approve_candidate() keep their real source
+    ('agent_harness'/'methods_live_draft'/'assimilator') and are just
+    as shareable. Filtering on 'ai_escalation' alone silently dropped
+    all of them.
 
     Scoping note: `command_explanations` and `error_patterns` are
     global caches (not box-scoped tables), so this only includes rows
     that were actually REFERENCED from this box's own timeline (i.e.
     genuinely encountered while working this box) rather than every
-    AI-escalation explanation ever cached on the machine across every
-    box ever worked -- exporting "this box's export" must not leak
+    AI-sourced explanation ever cached on the machine across every box
+    ever worked -- exporting "this box's export" must not leak
     unrelated engagements' cached data.
     """
     bundle = ShareBundle()
