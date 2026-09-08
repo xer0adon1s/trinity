@@ -407,29 +407,47 @@ CREATE TABLE IF NOT EXISTS show_me_attestation (
 """
 
 
-# Columns added to `suggestions` after its original CREATE TABLE shipped.
+# Columns added to a table after its original CREATE TABLE shipped.
 # `CREATE TABLE IF NOT EXISTS` does NOT retroactively add columns to an
 # already-existing table file -- an operator's real ~/.trinity/trinity.db
-# from before this column existed would otherwise blow up on the first
+# from before a column existed would otherwise blow up on the first
 # INSERT/SELECT that touches it. Additive-only, never destructive; each
 # tuple is (column_name, column_ddl_suffix).
-_SUGGESTIONS_ADDITIVE_COLUMNS = [
-    ("nudge", "TEXT"),
-    ("required_tool", "TEXT"),
-    ("finding_id", "INTEGER REFERENCES findings(id)"),
-]
-
-# PROTOTYPE columns on boxes. Same CREATE TABLE IF NOT EXISTS trap.
-_BOXES_ADDITIVE_COLUMNS = [
-    ("shell_level", "TEXT"),
-    ("difficulty", "TEXT"),
-]
-
-_ENGAGEMENT_ADDITIVE_COLUMNS = [
-    ("classification", "TEXT"),
-    ("report_version", "TEXT"),
-    ("distribution", "TEXT"),
-]
+#
+# EVERY table in SCHEMA belongs here, including ones with nothing to
+# migrate yet -- an empty list is the registration that makes the first
+# future column on that table Just Work. This used to be three
+# hand-copied PRAGMA blocks, which is precisely why the three tables
+# added later (assimilator_runs, show_me_runs, show_me_attestation) had
+# no entry at all: the first column ever added to one of them would have
+# silently no-op'd on every installed database. Add the table here the
+# moment you add it to SCHEMA, not the moment you first need to migrate
+# it.
+_ADDITIVE_COLUMNS: dict[str, list[tuple[str, str]]] = {
+    "suggestions": [
+        ("nudge", "TEXT"),
+        ("required_tool", "TEXT"),
+        ("finding_id", "INTEGER REFERENCES findings(id)"),
+    ],
+    # PROTOTYPE columns on boxes.
+    "boxes": [
+        ("shell_level", "TEXT"),
+        ("difficulty", "TEXT"),
+    ],
+    "engagement_meta": [
+        ("classification", "TEXT"),
+        ("report_version", "TEXT"),
+        ("distribution", "TEXT"),
+    ],
+    # Nothing added since these tables shipped -- registered so the
+    # first one that is added actually reaches existing databases.
+    # (The 6 extra Assimilator fields in docs/ASSIMILATOR_PROJECT.md §7
+    # are real feature scope tied to Show Me Mode's rebuild, and are
+    # deliberately NOT pre-added here.)
+    "assimilator_runs": [],
+    "show_me_runs": [],
+    "show_me_attestation": [],
+}
 
 
 def _ensure_additive_columns(conn: sqlite3.Connection) -> None:
@@ -438,24 +456,22 @@ def _ensure_additive_columns(conn: sqlite3.Connection) -> None:
     databases are always created fresh from the current SCHEMA string
     (see conftest.py), so this is a no-op for them -- it only matters
     for a real, previously-created ~/.trinity/trinity.db."""
-    existing = {row["name"] for row in conn.execute("PRAGMA table_info(suggestions)").fetchall()}
-    for column, ddl in _SUGGESTIONS_ADDITIVE_COLUMNS:
-        if column not in existing:
-            conn.execute(f"ALTER TABLE suggestions ADD COLUMN {column} {ddl}")
-
-    box_cols = {row["name"] for row in conn.execute("PRAGMA table_info(boxes)").fetchall()}
-    for column, ddl in _BOXES_ADDITIVE_COLUMNS:
-        if column not in box_cols:
-            conn.execute(f"ALTER TABLE boxes ADD COLUMN {column} {ddl}")
-
-    eng_tables = {
-        row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    }
-    if "engagement_meta" in eng_tables:
-        eng_cols = {row["name"] for row in conn.execute("PRAGMA table_info(engagement_meta)").fetchall()}
-        for column, ddl in _ENGAGEMENT_ADDITIVE_COLUMNS:
-            if column not in eng_cols:
-                conn.execute(f"ALTER TABLE engagement_meta ADD COLUMN {column} {ddl}")
+    for table, columns in _ADDITIVE_COLUMNS.items():
+        # The existence guard is uniform across every registered table:
+        # a database file old enough to predate the whole table must
+        # migrate cleanly rather than raising here. (SCHEMA's CREATE
+        # TABLE IF NOT EXISTS, run just before this in connect(), then
+        # creates it at its current definition -- with no columns to
+        # back-fill.)
+        exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+        ).fetchone()
+        if not exists:
+            continue
+        existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        for column, ddl in columns:
+            if column not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
     conn.commit()
 
 
