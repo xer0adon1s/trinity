@@ -20,8 +20,13 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel
 
+from trinity import db
+
 VALID_KINDS = {"explanation", "error_pattern", "kb_entry", "method"}
-VALID_SOURCES = {"agent_harness", "methods_live_draft", "assimilator"}
+# Defined once, in db.py, alongside db.AI_SOURCED -- sharing.py's
+# share-export filter selects on the latter, and the two must not drift
+# apart (if they do, approved candidates silently stop being exportable).
+VALID_SOURCES = db.INTAKE_SOURCES
 
 
 class IntakeCandidate(BaseModel):

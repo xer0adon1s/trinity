@@ -25,9 +25,15 @@ def scrub_identifying(text: str) -> str:
     unless we scrub here — suggestion commands are not in the bundle."""
     return _IPV4.sub("$TARGET", text)
 
+from trinity import db
 from trinity.state import get_state, set_state
 
 SHARING_ENABLED_KEY = "sharing_enabled"
+
+
+def _placeholders(values) -> str:
+    """`?,?,?` for a parameterized IN clause."""
+    return ",".join("?" for _ in values)
 
 
 def is_sharing_enabled(conn: sqlite3.Connection) -> bool:
@@ -74,11 +80,17 @@ def build_share_bundle(conn: sqlite3.Connection, box_id: int) -> ShareBundle:
         ).fetchall()
     }
     if explained_commands:
-        placeholders = ",".join("?" for _ in explained_commands)
+        # Every AI-sourced provenance, not just 'ai_escalation':
+        # intake.py's approve_candidate() preserves a candidate's real
+        # source ('agent_harness'/'methods_live_draft'/'assimilator'),
+        # so filtering on the direct-write-path default alone silently
+        # dropped every approved-candidate entry from the export.
+        ai_sources = sorted(db.AI_SOURCED)
         explanations = conn.execute(
             f"SELECT command, explanation FROM command_explanations "
-            f"WHERE source = 'ai_escalation' AND command IN ({placeholders})",
-            tuple(explained_commands),
+            f"WHERE source IN ({_placeholders(ai_sources)}) "
+            f"AND command IN ({_placeholders(explained_commands)})",
+            (*ai_sources, *explained_commands),
         ).fetchall()
         for row in explanations:
             bundle.explanation_candidates.append(
@@ -100,8 +112,11 @@ def build_share_bundle(conn: sqlite3.Connection, box_id: int) -> ShareBundle:
         # Timeline truncates the error text to 80 chars (see
         # cli/main.py's error_cmd), so match by prefix rather than
         # exact equality.
+        ai_sources = sorted(db.AI_SOURCED)  # see the note on the explanations query above
         error_rows = conn.execute(
-            "SELECT error_text, cause, fix FROM error_patterns WHERE source = 'ai_escalation'"
+            f"SELECT error_text, cause, fix FROM error_patterns "
+            f"WHERE source IN ({_placeholders(ai_sources)})",
+            tuple(ai_sources),
         ).fetchall()
         for row in error_rows:
             if any(row["error_text"].startswith(prefix) for prefix in diagnosed_errors):
@@ -109,6 +124,11 @@ def build_share_bundle(conn: sqlite3.Connection, box_id: int) -> ShareBundle:
                     {"error_text": row["error_text"], "cause": row["cause"], "fix": row["fix"]}
                 )
 
+    # Deliberately sourced from unmatched `findings`, never from
+    # `kb_entries` -- share the GAP (a product/version the local KB had
+    # no answer for), not the answer someone wrote for it. Approved
+    # `kb_entry` intake candidates are therefore unreachable here by
+    # design; that is not an oversight, do not "fix" it.
     unmatched = conn.execute(
         """
         SELECT source_tool, kind, service, product, version

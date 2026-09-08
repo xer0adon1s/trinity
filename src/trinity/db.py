@@ -10,6 +10,20 @@ from pathlib import Path
 
 DEFAULT_DB_PATH = Path.home() / ".trinity" / "trinity.db"
 
+# Sources a command_explanations/error_patterns row can carry.
+# 'ai_escalation' is the direct-write-path default (see explain.py's
+# save_explanation, errors.py's save_error_fix); the other three arrive
+# via intake.py's approve_candidate(), which preserves the candidate's
+# real provenance instead of flattening everything to 'ai_escalation'.
+# These two names are the single definition of that vocabulary:
+# intake.VALID_SOURCES is INTAKE_SOURCES, and sharing.py's share-export
+# filter selects on AI_SOURCED. Adding a new intake source here (and
+# only here) keeps the two halves from drifting apart -- when they did
+# drift, approved harness/assimilator entries silently vanished from
+# every share bundle.
+INTAKE_SOURCES = {"agent_harness", "methods_live_draft", "assimilator"}
+AI_SOURCED = INTAKE_SOURCES | {"ai_escalation"}
+
 SCHEMA = """
 -- One row per HTB/THM box or CTF target you're actively working.
 CREATE TABLE IF NOT EXISTS boxes (
@@ -118,16 +132,20 @@ END;
 
 -- Every command Trinity has ever explained + its ELI5 explanation, cached
 -- locally so the same flag combo never needs re-explaining (and never
--- costs a token twice). 'source' distinguishes pre-seeded/bulk-authored
--- entries (trinity_preseed) from ones an operator personally verified via
--- the escalation flow (ai_escalation) or hand-wrote (user_curated) — a
--- pre-seeded explanation not yet been checked against a live command is
--- worth trusting less than one an operator confirmed themselves.
+-- costs a token twice). 'source' records provenance: pre-seeded/bulk-
+-- authored entries (trinity_preseed) and hand-written ones (user_curated)
+-- sit alongside the AI-sourced ones (ai_escalation from the direct
+-- explain -> cache flow, plus agent_harness / methods_live_draft /
+-- assimilator arriving via intake.py's approve_candidate) — a pre-seeded
+-- explanation not yet checked against a live command is worth trusting
+-- less than one an operator confirmed themselves. See AI_SOURCED below
+-- for the set share-export treats as AI-sourced.
 CREATE TABLE IF NOT EXISTS command_explanations (
     id INTEGER PRIMARY KEY,
     command TEXT NOT NULL UNIQUE,     -- normalized command string
     explanation TEXT NOT NULL,        -- ELI5 explanation
-    source TEXT DEFAULT 'ai_escalation',  -- 'trinity_preseed', 'ai_escalation', 'user_curated'
+    source TEXT DEFAULT 'ai_escalation',  -- 'trinity_preseed' | 'user_curated' |
+                                           -- any of AI_SOURCED (see below)
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -223,7 +241,8 @@ CREATE TABLE IF NOT EXISTS error_patterns (
     error_text TEXT NOT NULL,         -- the error snippet/description matched on
     cause TEXT NOT NULL,               -- plain-English explanation of why it happens
     fix TEXT NOT NULL,                 -- the confirmed-working remedy
-    source TEXT DEFAULT 'ai_escalation',  -- 'trinity_preseed', 'ai_escalation', 'user_curated'
+    source TEXT DEFAULT 'ai_escalation',  -- 'trinity_preseed' | 'user_curated' |
+                                           -- any of AI_SOURCED (see below)
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 

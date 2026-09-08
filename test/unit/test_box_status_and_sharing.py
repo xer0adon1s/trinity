@@ -136,3 +136,116 @@ def test_build_share_bundle_excludes_finding_detail(conn):
     assert len(bundle.kb_candidates) == 1
     assert "detail" not in bundle.kb_candidates[0]
     assert "sensitive banner" not in json.dumps(bundle.kb_candidates)
+
+
+def test_valid_sources_subset_of_ai_sourced():
+    # Pinning test: intake's approved-candidate sources and sharing's
+    # export filter are two halves of one vocabulary. If a new intake
+    # source is added without adding it to db.AI_SOURCED, approved
+    # entries carrying it silently drop out of every share bundle --
+    # exactly the Fix 1 bug, caught at definition time rather than
+    # after an operator notices an empty export.
+    from trinity import db, intake
+
+    assert intake.VALID_SOURCES <= db.AI_SOURCED
+
+
+def test_direct_write_path_defaults_are_ai_sourced():
+    # The other half of the same vocabulary: the direct write paths
+    # (explain/error caching, not going through intake) default to a
+    # source that must also be share-exportable.
+    import inspect
+
+    from trinity import db
+    from trinity.errors import save_error_fix
+    from trinity.explain import save_explanation
+
+    assert inspect.signature(save_explanation).parameters["source"].default in db.AI_SOURCED
+    assert inspect.signature(save_error_fix).parameters["source"].default in db.AI_SOURCED
+
+
+def test_approved_intake_explanation_is_share_exportable(conn):
+    # Regression test for Fix 1, going through the REAL path
+    # (submit -> approve -> export) rather than inserting a
+    # command_explanations row directly. Inserting directly is why the
+    # original bug survived: every existing test hardcoded
+    # source='ai_escalation', which is precisely the value
+    # approve_candidate stopped writing.
+    from trinity.intake import approve_candidate, submit_candidate
+
+    box = create_box(conn, "IntakeShareBox")
+    command = "smbclient -L //fileserver.local -N"
+    candidate_id = submit_candidate(
+        conn,
+        "explanation",
+        {"command": command, "explanation": "lists SMB shares anonymously"},
+        source="agent_harness",
+        box_id=box.id,
+    )
+    approve_candidate(conn, candidate_id)
+    # The candidate landed with its real provenance, not 'ai_escalation'.
+    stored_source = conn.execute(
+        "SELECT source FROM command_explanations WHERE command = ?", (command,)
+    ).fetchone()["source"]
+    assert stored_source == "agent_harness"
+
+    conn.execute(
+        "INSERT INTO timeline (box_id, event_type, summary) VALUES (?, 'explanation', ?)",
+        (box.id, f"explained: {command}"),
+    )
+    conn.commit()
+
+    bundle = build_share_bundle(conn, box.id)
+    assert [c["command"] for c in bundle.explanation_candidates] == [command]
+
+
+def test_approved_intake_error_pattern_is_share_exportable(conn):
+    # Same regression, the error_patterns half of the WHERE clause.
+    from trinity.intake import approve_candidate, submit_candidate
+
+    box = create_box(conn, "IntakeShareErrorBox")
+    error_text = "NT_STATUS_ACCESS_DENIED listing \\\\*"
+    candidate_id = submit_candidate(
+        conn,
+        "error_pattern",
+        {"error_text": error_text, "cause": "anonymous listing refused", "fix": "supply credentials"},
+        source="assimilator",
+        box_id=box.id,
+    )
+    approve_candidate(conn, candidate_id)
+
+    conn.execute(
+        "INSERT INTO timeline (box_id, event_type, summary) VALUES (?, 'explanation', ?)",
+        (box.id, f"diagnosed error: {error_text}"),
+    )
+    conn.commit()
+
+    bundle = build_share_bundle(conn, box.id)
+    assert [c["error_text"] for c in bundle.error_candidates] == [error_text]
+
+
+def test_approved_intake_explanation_stays_box_scoped(conn):
+    # Widening the source filter must not widen the box scope: an
+    # approved non-'ai_escalation' explanation encountered while
+    # working box B must still be absent from box A's bundle.
+    from trinity.intake import approve_candidate, submit_candidate
+
+    box_a = create_box(conn, "IntakeScopeA")
+    box_b = create_box(conn, "IntakeScopeB")
+    command = "gobuster dir -u http://webhost.local -w /list.txt"
+    candidate_id = submit_candidate(
+        conn,
+        "explanation",
+        {"command": command, "explanation": "brute-forces web paths"},
+        source="methods_live_draft",
+        box_id=box_b.id,
+    )
+    approve_candidate(conn, candidate_id)
+    conn.execute(
+        "INSERT INTO timeline (box_id, event_type, summary) VALUES (?, 'explanation', ?)",
+        (box_b.id, f"explained: {command}"),
+    )
+    conn.commit()
+
+    assert build_share_bundle(conn, box_a.id).explanation_candidates == []
+    assert len(build_share_bundle(conn, box_b.id).explanation_candidates) == 1
