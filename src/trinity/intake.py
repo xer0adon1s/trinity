@@ -26,6 +26,8 @@ VALID_KINDS = {"explanation", "error_pattern", "kb_entry", "method"}
 # Defined once, in db.py, alongside db.AI_SOURCED -- sharing.py's
 # share-export filter selects on the latter, and the two must not drift
 # apart (if they do, approved candidates silently stop being exportable).
+# This is an alias of the same frozenset, not a copy: extending the
+# vocabulary is an edit to db.py, never a mutation through this name.
 VALID_SOURCES = db.INTAKE_SOURCES
 
 
@@ -54,7 +56,7 @@ def submit_candidate(
     if kind not in VALID_KINDS:
         raise ValueError(f"kind must be one of {VALID_KINDS}, got {kind!r}")
     if source not in VALID_SOURCES:
-        raise ValueError(f"source must be one of {VALID_SOURCES}, got {source!r}")
+        raise ValueError(f"source must be one of {sorted(VALID_SOURCES)}, got {source!r}")
 
     cursor = conn.execute(
         "INSERT INTO intake_candidates (kind, payload, source, box_id) VALUES (?, ?, ?, ?)",

@@ -150,6 +150,21 @@ def test_valid_sources_subset_of_ai_sourced():
     assert intake.VALID_SOURCES <= db.AI_SOURCED
 
 
+def test_source_vocabularies_are_immutable():
+    # intake.VALID_SOURCES is an alias of db.INTAKE_SOURCES, and
+    # db.AI_SOURCED is derived from it once at import time. If the
+    # underlying set were mutable, VALID_SOURCES.add("new_source")
+    # would widen what intake accepts while leaving AI_SOURCED (and so
+    # the share-export filter) stale -- the Fix 1 divergence again, but
+    # at runtime where no test can see it. frozenset makes that a
+    # TypeError at the call site.
+    from trinity import db, intake
+
+    assert isinstance(db.INTAKE_SOURCES, frozenset)
+    assert isinstance(db.AI_SOURCED, frozenset)
+    assert not hasattr(intake.VALID_SOURCES, "add")
+
+
 def test_direct_write_path_defaults_are_ai_sourced():
     # The other half of the same vocabulary: the direct write paths
     # (explain/error caching, not going through intake) default to a

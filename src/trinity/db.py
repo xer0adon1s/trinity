@@ -21,7 +21,12 @@ DEFAULT_DB_PATH = Path.home() / ".trinity" / "trinity.db"
 # only here) keeps the two halves from drifting apart -- when they did
 # drift, approved harness/assimilator entries silently vanished from
 # every share bundle.
-INTAKE_SOURCES = {"agent_harness", "methods_live_draft", "assimilator"}
+# frozen on purpose: intake.VALID_SOURCES is an ALIAS of INTAKE_SOURCES,
+# so a stray VALID_SOURCES.add(...) would mutate the vocabulary in place
+# while AI_SOURCED -- built once, here, at import time -- stayed stale.
+# That is the Fix 1 drift in miniature; frozenset makes it a TypeError at
+# the call site instead of a silently-shrinking share bundle.
+INTAKE_SOURCES = frozenset({"agent_harness", "methods_live_draft", "assimilator"})
 AI_SOURCED = INTAKE_SOURCES | {"ai_escalation"}
 
 SCHEMA = """
