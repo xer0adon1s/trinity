@@ -15,13 +15,13 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from trinity.match.engine import KBMatch, match_finding
+from trinity.notify import notify_critical
+from trinity.parsers.ad_recon import detect_ad_signals, parse_ad_recon_file
 from trinity.parsers.autorecon import walk_autorecon_results
 from trinity.parsers.enum4linux_ng import parse_enum4linux_ng_json
 from trinity.parsers.ffuf import parse_ffuf_json
 from trinity.parsers.gobuster import parse_gobuster_text
 from trinity.parsers.nikto import parse_nikto_json
-from trinity.notify import notify_critical
-from trinity.parsers.ad_recon import detect_ad_signals, parse_ad_recon_file
 from trinity.parsers.nmap import Finding, parse_nmap_xml
 from trinity.parsers.rustscan import parse_rustscan_text
 from trinity.parsers.whatweb import parse_whatweb_json
@@ -105,9 +105,9 @@ def detect_and_parse(path: Path) -> tuple[str, list[Finding]] | None:
             # Fallback for whatweb output saved under a non-JSON-ish
             # extension (e.g. whatweb_output.txt) -- still JSON Lines
             # content, just an unusual filename.
-            first_line = path.read_text(errors="ignore").strip().splitlines()
-            if first_line:
-                json.loads(first_line[0])  # sanity check it's JSON lines
+            lines = path.read_text(errors="ignore").strip().splitlines()
+            if lines:
+                json.loads(lines[0])  # sanity check it's JSON lines
                 return "whatweb", parse_whatweb_json(path)
             return None
 

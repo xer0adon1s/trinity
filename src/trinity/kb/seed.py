@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import sqlite3
 
-SEED_ENTRIES = [
+SEED_ENTRIES: list[dict[str, str | None]] = [
     {
         "source": "user_curated",
         "title": "vsftpd 2.3.4 backdoor (CVE-2011-2523)",

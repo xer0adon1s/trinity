@@ -5,7 +5,6 @@ Mocks trinity.agent_harness.ask_agent so these never depend on a real
 agent CLI being installed on the test machine."""
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest

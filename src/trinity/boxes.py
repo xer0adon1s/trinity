@@ -128,7 +128,7 @@ def set_status(conn: sqlite3.Connection, box_id: int, status: str) -> None:
     conn.commit()
 
     if status in ("rooted", "abandoned"):
-        from trinity.state import ACTIVE_BOX_ID, get_state, clear_state
+        from trinity.state import ACTIVE_BOX_ID, clear_state, get_state
         if get_state(conn, ACTIVE_BOX_ID) == str(box_id):
             clear_state(conn, ACTIVE_BOX_ID)
 

@@ -33,7 +33,7 @@ from trinity.boxes import get_box
 from trinity.phrasebook import phrase_for
 from trinity.suggest.engine import Suggestion
 from trinity.tools import build_install_guidance, is_tool_installed
-from trinity.wordlists import NO_WORDLIST_GUIDANCE, resolve_wordlist_in_command
+from trinity.wordlists import resolve_wordlist_in_command
 
 _WORDLIST_PLACEHOLDER = "/usr/share/wordlists/dirb/common.txt"
 

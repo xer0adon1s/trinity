@@ -3,7 +3,6 @@ from __future__ import annotations
 from trinity.boxes import create_box
 from trinity.frustration import ENCOURAGEMENT, checkpoint_text
 from trinity.rabbit_hole import detect_rabbit_hole, log_nudge, recent_nudge_count
-from trinity.timeline import log_event
 
 
 def _suggest(conn, box_id, command, phase="enum"):

@@ -87,7 +87,7 @@ def run_intro(conn: sqlite3.Connection) -> None:
         )
         if want_name:
             name = Prompt.ask(
-                f"Pick a hacker name" + (f" (was '{existing_name}')" if existing_name else ""),
+                "Pick a hacker name" + (f" (was '{existing_name}')" if existing_name else ""),
                 default=existing_name or "", show_default=bool(existing_name),
             ).strip()
             if name:
@@ -380,7 +380,7 @@ def launch(conn: sqlite3.Connection) -> Box | None:
     menu (resume / new / setup-again)."""
     if get_state(conn, SETUP_DONE) is None:
         run_intro(conn)
-        box = prompt_new_project(conn)
+        box: Box | None = prompt_new_project(conn)
     else:
         box = prompt_resume_or_new(conn)
 

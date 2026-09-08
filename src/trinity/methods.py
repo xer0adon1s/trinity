@@ -55,7 +55,7 @@ def _load_file(path: Path) -> BoxMethodsIndex | None:
     raw = yaml.safe_load(path.read_text()) or {}
     try:
         return BoxMethodsIndex.model_validate(raw)
-    except Exception:
+    except Exception:  # noqa: BLE001 -- malformed YAML/index entries are skipped
         return None
 
 

@@ -14,7 +14,6 @@ from trinity.agent_harness import (
     detect_agent,
     invoke_agent,
     is_agent_available,
-    is_omarchy,
 )
 
 

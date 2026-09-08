@@ -1,7 +1,6 @@
 """Tests for trinity.doctor — the health-check subsystem."""
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import patch
 
 from trinity.doctor import DoctorCheck, run_doctor

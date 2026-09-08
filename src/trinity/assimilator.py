@@ -26,7 +26,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
@@ -181,7 +181,7 @@ def finish_run(
         (
             result, int(self_lifted), json.dumps(others_lifted or []),
             int(already_known_hit), intake_candidate_id, verification_evidence,
-            datetime.now(timezone.utc).isoformat(), run_id,
+            datetime.now(UTC).isoformat(), run_id,
         ),
     )
     conn.commit()

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from trinity.boxes import create_box
 from trinity.hints import build_hint, get_hint, get_hint_level
-from trinity.suggest.engine import Suggestion, _suggest_for_finding
+from trinity.suggest.engine import _suggest_for_finding
 
 
 def _make_suggestion(conn, box_id: int, command: str = "gobuster dir ...") -> int:

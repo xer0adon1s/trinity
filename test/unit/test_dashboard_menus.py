@@ -8,7 +8,6 @@ the pixels" split test_dashboard.py already uses.
 """
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -101,7 +100,7 @@ def test_show_me_attestation_screen_advances_when_already_accepted(dashboard_app
     from trinity.tui.show_me_screens import ShowMeAttestationScreen
     app, conn, box = dashboard_app
     record_attestation(conn)
-    screen = ShowMeAttestationScreen(box, conn)
+    ShowMeAttestationScreen(box, conn)
     # compose() branches on has_attestation() -- just confirm it doesn't
     # render the raw attestation text a second time once already accepted.
     from trinity.show_me import has_attestation

@@ -1879,4 +1879,4 @@ if __name__ == "__main__":
         build()
         run_all()
     else:
-        sys.exit(f"usage: coverage_sim.py [build|run [box...]|all]")
+        sys.exit("usage: coverage_sim.py [build|run [box...]|all]")

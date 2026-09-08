@@ -30,7 +30,7 @@ import re
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 SESSIONS_DIR = Path.home() / ".trinity" / "sessions"
@@ -135,7 +135,7 @@ def apply_milestones(conn: sqlite3.Connection, box_id: int, hits: list[Milestone
 
 def session_log_path(box_name: str) -> Path:
     SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", box_name)
     return SESSIONS_DIR / f"{safe_name}_{stamp}.log"
 

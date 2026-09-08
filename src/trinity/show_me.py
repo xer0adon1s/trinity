@@ -31,7 +31,7 @@ import re
 import shlex
 import sqlite3
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
@@ -97,7 +97,7 @@ def record_attestation(conn: sqlite3.Connection) -> None:
     conn.execute(
         "INSERT INTO show_me_attestation (id, accepted_at) VALUES (1, ?) "
         "ON CONFLICT(id) DO UPDATE SET accepted_at = excluded.accepted_at",
-        (datetime.now(timezone.utc).isoformat(),),
+        (datetime.now(UTC).isoformat(),),
     )
     conn.commit()
 
@@ -210,7 +210,7 @@ def run_show_me(
         conn.commit()
         return result
 
-    for turn in range(MAX_AGENT_TURNS):
+    for _turn in range(MAX_AGENT_TURNS):
         if len(commands_run) >= MAX_COMMANDS:
             result.stop_reason = "max command cap reached"
             break
