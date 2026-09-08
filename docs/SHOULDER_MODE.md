@@ -1,7 +1,12 @@
 # Shoulder Mode — Design
 
-Status: DESIGN ONLY. Nothing in this document is built yet. This is
-an explicit, deliberate reversal of an earlier decision — see
+Status: BUILT AND TESTED. Implemented in `src/trinity/shoulder.py`
+(pty recording + milestone detection), wired to `trinity shoulder
+--box <name>` in `src/trinity/cli/main.py`, 39 passing unit tests
+across `test/unit/test_shoulder.py` and related files. This doc
+retains its original design rationale below; it is no longer a
+proposal. This was an explicit, deliberate reversal of an earlier
+decision — see
 "Relationship to the earlier veto" below before assuming this
 contradicts prior project history by accident.
 

@@ -1,7 +1,12 @@
 # Agent Harness — Design
 
-Status: DESIGN ONLY. Nothing in this document is built yet. This
-supersedes the earlier "no chat pane, no API key, ever" framing in
+Status: BUILT AND TESTED. Implemented in `src/trinity/agent_harness.py`
+(agent-CLI detection + bounded one-shot invocation) and
+`src/trinity/intake.py` (review-gate queue), with dedicated tests in
+`test/unit/test_agent_harness.py`, `test/unit/test_cli_agent_harness.py`,
+and `test/unit/test_intake.py`. This doc retains its original design
+rationale below; it is no longer a proposal. This supersedes the
+earlier "no chat pane, no API key, ever" framing in
 `docs/CLAUDE_CURSOR_DEBATE.md` and `docs/OPEN_DECISIONS.md`'s "LLM /
 chat pane" entry — that veto is now understood more precisely (see
 "What this is NOT" below), not simply reversed wholesale.
