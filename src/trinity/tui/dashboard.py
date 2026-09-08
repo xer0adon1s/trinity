@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from rich.text import Text
@@ -164,7 +165,19 @@ class TrinityDashboard(App):
 
         try:
             result = process_scan_file(self.conn, self.box.id, path)
-        except Exception as exc:  # noqa: BLE001 — surface any parse/DB
+        except ET.ParseError:
+            # The single most common cause, by far: an nmap run that
+            # reported "0 hosts up" (ICMP blocked, needs -Pn) writes a
+            # near-empty/truncated XML shell -- ET.parse's raw message
+            # ("no element found: line N, column 0") means nothing to a
+            # student and gives no path forward. Recognize the shape
+            # (empty file, or missing the closing </nmaprun> a real scan
+            # always has) and teach instead of just surfacing the
+            # exception -- this is exactly the class of dead-end the
+            # coaching loop exists to prevent.
+            self._append_feed(self._diagnose_empty_scan_xml(path))
+            return
+        except Exception as exc:  # noqa: BLE001 — surface any other parse/DB
             # error in the feed itself rather than crashing the dashboard;
             # a malformed/partial scan file should never take the whole
             # watch session down.
@@ -174,7 +187,17 @@ class TrinityDashboard(App):
         self._last_processed_hash[key] = content_hash
 
         if result is None:
-            return  # not a recognized scan format — silently ignored
+            # A genuinely EMPTY .xml doesn't contain "<nmaprun" at all
+            # (detect_and_parse's sniff never matches), so it never
+            # raises -- it silently falls through as "not recognized."
+            # That's correct for a stray unrelated .xml file, but a
+            # zero-byte scan.xml from a scan that failed before writing
+            # anything is exactly the same dead-end as the ET.ParseError
+            # case above, and deserves the same explanation rather than
+            # silence.
+            if path.suffix.lower() == ".xml" and not path.read_bytes().strip():
+                self._append_feed(self._diagnose_empty_scan_xml(path))
+            return  # not a recognized scan format — silently ignored otherwise
 
         self._last_activity = time.monotonic()
         self._silence_warned = False
@@ -188,6 +211,50 @@ class TrinityDashboard(App):
         # press `d` on something that visibly already happened.
         if result.tool == "gobuster" and result.findings:
             self._auto_accept_gobuster_suggestion()
+
+    def _diagnose_empty_scan_xml(self, path: Path) -> str:
+        """Explain WHY an nmap XML file failed to parse, instead of just
+        showing ET.ParseError's raw "no element found: line N, column 0"
+        -- which is meaningless to a student and gives no path forward.
+
+        By far the most common real-world cause: nmap printed "Note:
+        Host seems down. If it is really up, but blocking our ping
+        probes, try -Pn" and exited after writing only the XML
+        declaration/opening tags, no <host> data, no closing tag --
+        exactly what happens when ICMP is filtered (routine on HTB/THM)
+        but the operator hasn't added -Pn yet. Detect that shape
+        specifically so the message teaches the actual fix rather than
+        a generic "malformed XML" non-answer."""
+        try:
+            text = path.read_text(errors="replace")
+        except OSError:
+            text = ""
+
+        if not text.strip():
+            return (
+                f"[yellow]{path.name} is empty.[/yellow] Usually means nmap's scan "
+                "produced no output at all -- check the terminal where you ran it "
+                "for an error before the scan started."
+            )
+
+        looks_like_ping_failure = "</nmaprun>" not in text and "<host " not in text
+        if looks_like_ping_failure:
+            return (
+                f"[yellow]{path.name} looks like an incomplete scan[/yellow] -- no "
+                "host data was ever written. This is the normal shape of nmap's "
+                "\"Note: Host seems down\" case: the target is blocking ICMP ping "
+                "probes (very common on HTB/THM), so nmap gives up before scanning "
+                "ports at all. [bold]Re-run with -Pn[/bold] to skip the ping check "
+                "and scan anyway, e.g.:\n"
+                f"  nmap -sC -sV -Pn -oX {path.name} <target>"
+            )
+
+        return (
+            f"[yellow]{path.name} didn't parse as valid nmap XML.[/yellow] If the "
+            "scan was still running when this fired, it should self-correct on the "
+            "next save; if it's finished and still fails, the file may be truncated "
+            "or from a different tool -- check its contents."
+        )
 
     def _auto_accept_gobuster_suggestion(self) -> None:
         row = self.conn.execute(
