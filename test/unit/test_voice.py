@@ -10,11 +10,27 @@ from trinity.voice import (
 from trinity.voice_seed import ENTRIES
 
 
-def test_entries_have_no_duplicate_titles():
-    # ENTRIES is a dict, so this is really "the file parses to unique
-    # keys" -- but it also guards a future refactor that might
-    # accidentally build it as a list and reintroduce duplicates.
-    assert len(ENTRIES) > 0
+def test_voice_seed_is_1to1_with_kb_seed_entries(seeded_conn):
+    # Bidirectional coverage: catches BOTH a stale/typo'd voice_seed
+    # title (test_every_entry_joins_to_a_real_kb_seed_title below also
+    # catches this) AND the failure mode that will actually happen in
+    # practice -- someone adds a 7th kb/seed.py entry and forgets to
+    # write its Voice counterpart, which nothing else here would catch.
+    kb_titles = {
+        row["title"] for row in seeded_conn.execute("SELECT title FROM kb_entries").fetchall()
+    }
+    # kb/seed.py also seeds AD entries (kb.ad_seed) which the Voice
+    # corpus deliberately does not cover yet -- restrict this
+    # assertion to the exact starter corpus this file was written
+    # against, not every kb_entries row that ever exists.
+    from trinity.kb.seed import SEED_ENTRIES
+    seed_py_titles = {entry["title"] for entry in SEED_ENTRIES}
+    assert seed_py_titles <= kb_titles  # sanity: the fixture matches reality
+    assert set(ENTRIES) == seed_py_titles, (
+        "voice_seed.py's corpus has drifted from kb/seed.py's SEED_ENTRIES -- "
+        "add or remove an entry so the two stay 1:1 (Voice deliberately "
+        "doesn't cover kb.ad_seed's AD-specific entries yet)"
+    )
 
 
 def test_every_entry_has_all_three_parts_and_is_substantive():
@@ -116,6 +132,35 @@ def test_instance_paragraph_degrades_gracefully_without_port_or_product(conn):
     )
     assert text is not None
     assert "10.10.10.3" in text
+
+
+def test_instance_paragraph_never_prints_literal_none_for_product_without_version(conn):
+    # Regression: nmap routinely emits a product with no version (e.g.
+    # "Microsoft ftpd" with no version string), and that's exactly the
+    # shape most version-agnostic ('likely') KB matches fire on -- so
+    # this is a common case, not an edge case. f"{product} {version}"
+    # with version=None used to interpolate the literal string "None"
+    # into the one paragraph whose whole job is to be verified against
+    # the student's own terminal.
+    seed_voice_entries(conn)
+    text = get_voice_text(
+        conn, "Anonymous FTP login", "confirmed",
+        host="10.10.10.7", port=21, product="Microsoft ftpd", version=None,
+    )
+    assert text is not None
+    assert "None" not in text
+    assert "Microsoft ftpd" in text
+
+
+def test_instance_paragraph_port_without_host_keeps_the_port(conn):
+    # Regression: previously silently dropped the port entirely and
+    # fell back to "this target" when host was missing but port was
+    # present -- throwing away real data the renderer had.
+    from trinity.voice import _instance_paragraph
+
+    text = _instance_paragraph(None, 21, None, None)
+    assert "21" in text
+    assert "this target" not in text
 
 
 def test_voice_seeds_automatically_via_connect(tmp_path):

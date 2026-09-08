@@ -13,6 +13,7 @@ import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from rich.markup import escape
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
@@ -24,7 +25,7 @@ from trinity.coach import get_recommendation, set_accepted
 from trinity.db import connect
 from trinity.hints import get_hint
 from trinity.process import ProcessResult, process_scan_file
-from trinity.voice import get_voice_text
+from trinity.voice import NARRATABLE_CONFIDENCE, get_voice_text
 
 _SEVERITY_STYLE = {
     "critical": "bold red",
@@ -202,7 +203,15 @@ class TrinityDashboard(App):
 
         self._last_activity = time.monotonic()
         self._silence_warned = False
-        self._render_result(path, result)
+        try:
+            self._render_result(path, result)
+        except Exception as exc:  # noqa: BLE001 — a rendering bug (e.g. a
+            # markup-shaped banner string that slips past escaping) must
+            # never take the whole watch session down; the file is
+            # already marked processed above, so this can't loop, but it
+            # also must not silently swallow every finding in the scan --
+            # tell the operator something broke instead.
+            self._append_feed(f"[red]Error rendering {path.name}: {exc}[/red]")
 
         # Optional auto-accept (docs/CLAUDE_CURSOR_DEBATE.md, Part E:
         # "only if it is obvious, do not invent a contracts framework"):
@@ -285,14 +294,36 @@ class TrinityDashboard(App):
             confidence_note = " [dim](best guess)[/dim]" if top.confidence == "best_guess" else ""
             self._append_feed(f"  {label} — [{style}][{top.severity.upper()}][/{style}] {top.title}{confidence_note}")
 
-            voice_text = get_voice_text(
-                self.conn, top.title, top.confidence,
-                host=f.host, port=f.port, product=f.product, version=f.version,
+            # Narrate the best NARRATABLE match, not necessarily the
+            # headline one -- a verified searchsploit hit routinely
+            # outscores a hand-curated version-agnostic KB entry
+            # (0.95 vs 0.9) while still being best_guess confidence, so
+            # gating on matches[0] alone silently suppressed the
+            # authored entry every time a stronger-but-unvetted match
+            # existed (e.g. searchsploit installed + an exposed SSH
+            # port -- close to the default real-world case). Scan for
+            # the first match the Voice can actually speak to; if it's
+            # not the headline match, say which finding it's about so
+            # the student isn't confused by a paragraph describing a
+            # title they weren't shown.
+            voice_match = next(
+                (m for m in fr.matches if m.confidence in NARRATABLE_CONFIDENCE), None
+            )
+            voice_text = (
+                get_voice_text(
+                    self.conn, voice_match.title, voice_match.confidence,
+                    host=f.host, port=f.port, product=f.product, version=f.version,
+                )
+                if voice_match else None
             )
             if voice_text:
+                assert voice_match is not None  # implied by voice_text being non-None
+                attribution = (
+                    f" (on {escape(voice_match.title)})" if voice_match.title != top.title else ""
+                )
                 self._append_feed(
-                    "    [dim italic]Trinity explains:[/dim italic]\n"
-                    + "\n".join(f"    {line}" for line in voice_text.splitlines())
+                    f"    [dim italic]Trinity explains{attribution}:[/dim italic]\n"
+                    + "\n".join(f"    {escape(line)}" for line in voice_text.splitlines())
                 )
 
         for command in result.suggestions:

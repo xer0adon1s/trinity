@@ -64,8 +64,16 @@ def _instance_paragraph(host: str | None, port: int | None, product: str | None,
     what's on screen can be checked directly against their own scan.
     Guaranteed substitution (real string formatting), not a "please
     quote this back" instruction to a model that might not comply."""
-    where = f"{host}:{port}" if host and port else (host or "this target")
-    what = f"{product} {version}".strip() if product else None
+    if host and port:
+        where = f"{host}:{port}"
+    elif host:
+        where = host
+    elif port:
+        where = f"port {port}"
+    else:
+        where = "this target"
+
+    what = " ".join(p for p in (product, version) if p) or None
     if what:
         return f"On your scan, this showed up at {where} as {what}."
     return f"On your scan, this showed up at {where}."

@@ -424,7 +424,12 @@ CREATE TABLE IF NOT EXISTS finding_explanations (
     what_it_is TEXT NOT NULL,          -- paragraph 1: what this is
     why_it_happens TEXT NOT NULL,      -- paragraph 2: the mechanism/story
     what_to_watch_for TEXT NOT NULL,   -- paragraph 3: the generalizable lesson
-    source TEXT NOT NULL DEFAULT 'trinity_preseed',
+    source TEXT NOT NULL DEFAULT 'trinity_preseed',  -- reserved for
+    -- when v2 (live generation) lands: distinguishes reviewed corpus
+    -- rows from generated-cache rows so the two trust levels never
+    -- silently mix. Not read anywhere yet in v1 -- only trinity_preseed
+    -- rows exist -- but written now so v2 doesn't need a migration to
+    -- add a column that should have been there from the start.
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 """
@@ -512,12 +517,13 @@ def _ensure_additive_columns(conn: sqlite3.Connection) -> None:
 
 
 def _seed_brain(conn: sqlite3.Connection) -> None:
-    """Loads the KB, ELI5 explanation cache, and error-pattern library --
-    the three things a brand-new install needs to be useful on the very
-    first `trinity next`/`trinity explain`/`trinity error` call. Called
-    from connect() (every real invocation), not just `trinity init`, so
-    the wizard's happy path never hands someone an empty brain (see
-    docs/CLAUDE_CURSOR_DEBATE.md, Hole B). All three seed functions are
+    """Loads the KB, ELI5 explanation cache, error-pattern library, and
+    Trinity's Voice teaching corpus -- what a brand-new install needs
+    to be useful on the very first `trinity next`/`trinity explain`/
+    `trinity error`/`trinity watch` call. Called from connect() (every
+    real invocation), not just `trinity init`, so the wizard's happy
+    path never hands someone an empty brain (see
+    docs/CLAUDE_CURSOR_DEBATE.md, Hole B). All four seed functions are
     idempotent (INSERT-if-not-exists), so calling this on every connect()
     is cheap and never duplicates or overwrites a user's own entries."""
     from trinity.errors_seed import seed_error_patterns

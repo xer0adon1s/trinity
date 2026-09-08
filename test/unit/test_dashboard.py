@@ -152,6 +152,119 @@ def test_handle_file_narrates_a_confirmed_match_via_the_voice(db_path):
     joined = "\n".join(feed_messages)
     assert "Trinity explains:" in joined
     assert "backdoor" in joined.lower()
+    # The substituted instance data must actually be present, not just
+    # the header -- this is the "verify against your own scan" contract.
+    assert "10.10.10.3:21" in joined
+    assert "vsftpd 2.3.4" in joined
+    # This fixture has THREE findings whose matches clear the
+    # confidence gate (vsftpd exact-version match, plus the SSH and
+    # SMB findings' version-agnostic curated entries, once the
+    # matches[0]-only bug is fixed) and two that are exclusively
+    # best_guess searchsploit noise (Apache, second Samba port) --
+    # exactly the mix a real Lame scan produces.
+    assert joined.count("Trinity explains") == 3
+
+
+def test_render_result_narrates_the_best_narratable_match_not_just_the_headline(db_path):
+    # Regression: a verified searchsploit hit (score 0.95, best_guess
+    # confidence) routinely outranks a hand-curated version-agnostic KB
+    # entry (score 0.9, likely confidence) -- close to the default real-
+    # world shape whenever searchsploit is installed and a common
+    # service (like SSH) is exposed. Gating on matches[0] alone silently
+    # suppressed the authored entry every time this happened, which is
+    # most of the time. This test builds the exact scenario without
+    # requiring searchsploit to actually be installed on the test
+    # runner.
+    from pathlib import Path
+
+    from trinity.match.engine import KBMatch
+    from trinity.parsers.nmap import Finding
+    from trinity.process import FindingResult, ProcessResult
+    from trinity.tui.dashboard import TrinityDashboard
+
+    conn = connect(db_path)
+    box = create_box(conn, "MatchSelectionBox", target="10.10.10.3")
+
+    dashboard = TrinityDashboard.__new__(TrinityDashboard)
+    dashboard.box = box
+    dashboard.conn = conn
+    feed_messages = []
+    dashboard._append_feed = lambda markup: feed_messages.append(markup)
+
+    class _FakeSuggestions:
+        def append(self, *a, **k):
+            pass
+
+    dashboard.query_one = lambda *a, **k: _FakeSuggestions()
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.3", port=22,
+        service="ssh", product="OpenSSH", version="4.7p1 Debian 8ubuntu1",
+    )
+    matches = [
+        KBMatch(kb_id=None, title="OpenSSH 2.3 < 7.7 - Username Enumeration (PoC)",
+                summary="x", source="searchsploit", score=0.95, severity="medium"),
+        KBMatch(kb_id=4, title="SSH version banner grabbing for known CVEs",
+                summary="x", source="user_curated", score=0.9, severity="info"),
+    ]
+    result = ProcessResult(
+        tool="nmap", findings=[FindingResult(finding=finding, matches=matches)], suggestions=[],
+    )
+
+    dashboard._render_result(Path("scan.xml"), result)
+
+    joined = "\n".join(feed_messages)
+    assert "Trinity explains" in joined
+    # It must say which finding it's narrating, since it isn't the
+    # headline match the operator was shown on the line above.
+    assert "on SSH version banner grabbing for known CVEs" in joined
+
+
+def test_render_result_escapes_rich_markup_in_banner_text(db_path):
+    # Regression: a banner string shaped like Rich markup (e.g. a
+    # bracketed version tag, or a stray closing-tag-looking substring)
+    # previously either silently deleted the bracketed text from the
+    # output, or raised MarkupError and crashed _handle_file's caller
+    # entirely -- outside the try/except that's supposed to protect
+    # the watch worker from exactly this class of bad input. Finding
+    # data comes from the SCANNED BOX, which on a CTF/pentest target is
+    # attacker-controlled.
+    from pathlib import Path
+
+    from trinity.match.engine import KBMatch
+    from trinity.parsers.nmap import Finding
+    from trinity.process import FindingResult, ProcessResult
+    from trinity.tui.dashboard import TrinityDashboard
+
+    conn = connect(db_path)
+    box = create_box(conn, "MarkupEscapeBox", target="10.10.10.7")
+
+    dashboard = TrinityDashboard.__new__(TrinityDashboard)
+    dashboard.box = box
+    dashboard.conn = conn
+    feed_messages = []
+    dashboard._append_feed = lambda markup: feed_messages.append(markup)
+
+    class _FakeSuggestions:
+        def append(self, *a, **k):
+            pass
+
+    dashboard.query_one = lambda *a, **k: _FakeSuggestions()
+
+    finding = Finding(
+        source_tool="nmap", kind="port", host="10.10.10.7", port=21,
+        service="ftp", product="Microsoft ftpd [/dim]", version=None,
+    )
+    matches = [KBMatch(kb_id=2, title="Anonymous FTP login", summary="x",
+                       source="user_curated", score=0.9, severity="medium")]
+    result = ProcessResult(
+        tool="nmap", findings=[FindingResult(finding=finding, matches=matches)], suggestions=[],
+    )
+
+    dashboard._render_result(Path("scan.xml"), result)  # must not raise
+
+    joined = "\n".join(feed_messages)
+    assert "[/dim]" in joined  # literal text preserved, not silently deleted
 
 
 def test_handle_file_reprocesses_genuinely_changed_content(db_path, tmp_path):

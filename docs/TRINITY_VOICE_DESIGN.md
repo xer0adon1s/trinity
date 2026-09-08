@@ -125,7 +125,11 @@ substitution, not requested).
 
 ### Voice module (`src/trinity/voice.py`)
 
-- `get_voice_text(conn, kb_title, finding) -> str | None`: looks up
+- `get_voice_text(conn, kb_title, confidence, *, host, port, product, version) -> str | None`
+  (confidence and the instance fields passed explicitly, not a whole
+  `Finding`/`KBMatch` object -- keeps the confidence gate inside the
+  function itself as a hard choke point no caller can accidentally
+  skip, rather than trusting every call site to check it first): looks up
   the authored entry by `kb_title`, and if found, renders all four
   parts (3 authored paragraphs + 1 locally-assembled instance
   paragraph) into one formatted block. Returns `None` on no entry (the
@@ -149,18 +153,43 @@ path, not a one-time batch job.
 
 ### UI: dashboard integration
 
-`_render_result` (`tui/dashboard.py`) already iterates each finding's
-top `KBMatch` to render the one-line feed entry. v1 adds: when a
-finding's top match is `confirmed` or `likely` confidence (never
-`best_guess` -- an unvetted searchsploit hit dressed up in confident
-instructor prose would launder its own uncertainty) and a
-`finding_explanations` entry exists for that KB title, render the
-Voice's text as an expandable/inline block under that finding's feed
-line, styled distinctly (dim italic header, e.g. "Trinity explains:")
-from the plain match-line above it. No new AI-invocation UI is needed
-in v1 (no "Analyzing..." state, since there's no live call) -- the
-spinner from the original design is deferred to v2 along with the live
-call it exists to cover.
+`_render_result` (`tui/dashboard.py`) scans each finding's matches
+(not just the headline `matches[0]` -- see revision notes below) for
+the first one that clears the confidence gate (`confirmed`/`likely`,
+never `best_guess`) and has an authored entry, then renders the
+Voice's text as an inline block under that finding's feed line, styled
+distinctly (dim italic header, e.g. "Trinity explains:") from the
+plain match-line above it. If the narrated match differs from the
+headline match shown on the line above (which happens whenever a
+higher-scored but `best_guess` searchsploit hit outranks a curated
+KB entry -- a common real-world shape once searchsploit is installed),
+the header names which finding it's explaining
+("Trinity explains (on <title>):") so the student isn't confused by a
+paragraph about a title they weren't shown. No new AI-invocation UI is
+needed in v1 (no "Analyzing..." state, since there's no live call) --
+the spinner from the original design is deferred to v2 along with the
+live call it exists to cover.
+
+**Scope note (v1, as actually built):** rendering is unconditionally
+inline, not "expandable" as an earlier draft of this doc said -- there
+is no collapse/toggle yet. This is fine at 6 corpus entries; revisit if
+the corpus grows enough that a scan surfacing several narratable
+findings at once produces a wall of text. **Also TUI-only**: v1's only
+caller of `get_voice_text` is the watch dashboard. `trinity next`,
+`trinity explain`, and the report renderers do not surface Voice text
+yet -- a real, deliberate v1 scope cut, not an oversight, tracked here
+so it isn't rediscovered as a gap later.
+
+**Naming note:** v2's still-deferred design below (see "Deferred: v2
+design") originally proposed a `finding_explanations` table keyed on
+`(service, product, version, cve_or_technique_id)`. v1 has taken that
+table name with a different key (`kb_title UNIQUE`). When v2 is
+actually scoped, it needs either a different table name for the live-
+generated cache, or a `source` discriminator column distinguishing
+reviewed-corpus rows from generated-cache rows within one table --
+the two categories have very different trust levels and should not
+silently share write/read paths. Flagging now so it's a naming
+decision, not a migration surprise, when v2 starts.
 
 ### What v1 explicitly does NOT do
 
@@ -175,6 +204,8 @@ call it exists to cover.
   already hold for hand-authored content -- the author is responsible
   for not spoiling later phases, exactly like `hints.py`'s existing
   `nudge` authoring discipline.
+- Does not surface Voice text anywhere outside `trinity watch`'s
+  dashboard (see the UI section's scope note above).
 
 ## Deferred: v2 design (live AI generation, original ask)
 
