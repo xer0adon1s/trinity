@@ -422,15 +422,16 @@ CREATE TABLE IF NOT EXISTS show_me_attestation (
 # no entry at all: the first column ever added to one of them would have
 # silently no-op'd on every installed database. Add the table here the
 # moment you add it to SCHEMA, not the moment you first need to migrate
-# it.
+# it -- test_db_migration.py's registry-coverage test fails the build if
+# you forget.
 _ADDITIVE_COLUMNS: dict[str, list[tuple[str, str]]] = {
-    "suggestions": [
-        ("nudge", "TEXT"),
-        ("required_tool", "TEXT"),
-        ("finding_id", "INTEGER REFERENCES findings(id)"),
-    ],
-    # PROTOTYPE columns on boxes.
+    # Registered in SCHEMA order. An empty list means "nothing has been
+    # added since this table shipped", NOT "this table is exempt".
+    # (The 6 extra Assimilator fields in docs/ASSIMILATOR_PROJECT.md §7
+    # are real feature scope tied to Show Me Mode's rebuild, and are
+    # deliberately NOT pre-added here.)
     "boxes": [
+        # PROTOTYPE columns on boxes.
         ("shell_level", "TEXT"),
         ("difficulty", "TEXT"),
     ],
@@ -439,11 +440,22 @@ _ADDITIVE_COLUMNS: dict[str, list[tuple[str, str]]] = {
         ("report_version", "TEXT"),
         ("distribution", "TEXT"),
     ],
-    # Nothing added since these tables shipped -- registered so the
-    # first one that is added actually reaches existing databases.
-    # (The 6 extra Assimilator fields in docs/ASSIMILATOR_PROJECT.md §7
-    # are real feature scope tied to Show Me Mode's rebuild, and are
-    # deliberately NOT pre-added here.)
+    "findings": [],
+    "kb_entries": [],
+    "command_explanations": [],
+    "suggestions": [
+        ("nudge", "TEXT"),
+        ("required_tool", "TEXT"),
+        ("finding_id", "INTEGER REFERENCES findings(id)"),
+    ],
+    "timeline": [],
+    "local_state": [],
+    "hint_state": [],
+    "error_patterns": [],
+    "loot": [],
+    "unlock_state": [],
+    "intake_candidates": [],
+    "sync_state": [],
     "assimilator_runs": [],
     "show_me_runs": [],
     "show_me_attestation": [],

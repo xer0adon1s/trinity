@@ -1,6 +1,7 @@
 """On-disk schema shims: additive columns and auto-seed on connect()."""
 from __future__ import annotations
 
+import re
 import sqlite3
 
 import pytest
@@ -92,10 +93,22 @@ CREATE TABLE engagement_meta (
 """
 
 
+def test_registry_covers_every_schema_table():
+    # The registry's contract is "EVERY table in SCHEMA belongs here,
+    # including ones with nothing to migrate yet". That claim was once
+    # only true of 6 of the 17 tables, which is exactly how the three
+    # Show-Me-era tables ended up unmigratable. Pin it so adding a
+    # CREATE TABLE to SCHEMA without registering it fails here rather
+    # than silently no-op'ing on someone's installed database years
+    # later.
+    schema_tables = set(re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", SCHEMA))
+    assert schema_tables == set(_ADDITIVE_COLUMNS)
+
+
 @pytest.mark.parametrize("table", sorted(_ADDITIVE_COLUMNS))
 def test_registry_migrates_every_registered_table(table, tmp_path, monkeypatch):
-    # Covers all six registered tables from one body, including the
-    # three whose real column list is (correctly) still empty: a probe
+    # Covers every registered table from one body, including the many
+    # whose real column list is (correctly) still empty: a probe
     # column is injected into the registry, so this asserts the
     # MECHANISM reaches the table, not that any particular column
     # exists yet.
