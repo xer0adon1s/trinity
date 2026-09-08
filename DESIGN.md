@@ -126,10 +126,25 @@ started `trinity watch`/`shoulder` against; Trinity never reaches into
 unrelated terminals or reads persistent shell history files.
 
 This shapes every future feature decision: anything that would replace
-the student doing the actual work (auto-running exploits, auto-solving
-a box) is explicitly out of scope. Trinity teaches and assists — up to
-and including watching closely and reacting in real time — but it does
-not do the box *for* you.
+the student doing the actual work, INVISIBLY OR BY DEFAULT (auto-
+running exploits, auto-solving a box) is explicitly out of scope.
+Trinity teaches and assists — up to and including watching closely and
+reacting in real time — but it does not silently do the box *for* you.
+
+**2026-09 update — a narrow, explicit, disclosed exception exists.**
+Show Me Mode (`docs/SHOW_ME_MODE.md`) reverses part of this for
+genuine capability-gap cases: Trinity's own agent may execute a
+solve attempt live, in ITS OWN separate session/window against the
+target — never the student's own terminal — then hands the student
+the exact working recipe to run themselves. Nothing counts as
+progress, and nothing enters the student's own report/timeline, until
+the STUDENT runs it in their own window. This is "watch a worked
+example, then do it yourself," not "AI silently does your homework" —
+the rail this section protects is against invisible/automatic
+solving, not against a disclosed, always-available, opt-in worked-
+example feature the student explicitly invokes. See
+`docs/OPEN_DECISIONS.md`'s "Auto-run scans or exploits" entry for the
+full reasoning and the explicit Decision.
 
 ## Platform-agnostic by design
 
@@ -303,8 +318,13 @@ actually scheduled.
 ## Explicitly out of scope
 
 - Any paid tier, account system, or licensing gate.
-- Auto-running exploits or auto-solving boxes — Trinity assists, the
-  student does the work.
+- Auto-running exploits or auto-solving boxes BY DEFAULT OR SILENTLY —
+  Trinity assists, the student does the work. **Narrow, explicit
+  exception:** Show Me Mode (`docs/SHOW_ME_MODE.md`) lets Trinity's
+  own agent attempt one step live in ITS OWN session against the
+  target, always visible, always operator-invoked, never the
+  student's own terminal, never counted as the student's own work
+  until they run it themselves. See `docs/OPEN_DECISIONS.md`.
 - Reproducing any platform's trademarked logo/branding.
 - Hard restrictions on what platforms can be used — the registry is
   meant to be extended, not to gatekeep.

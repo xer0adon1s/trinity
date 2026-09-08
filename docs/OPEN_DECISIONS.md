@@ -103,8 +103,10 @@ managers was not part of that conversation and stays vetoed.
 
 ## Auto-run scans or exploits
 
-**Rail. The silence alarm is the adjacent, and it is already
-drafted as advisory-only.**
+**Reversed in part — see `docs/SHOW_ME_MODE.md`. Trinity's own agent
+may execute a live solve attempt, but in ITS OWN separate session,
+never the student's terminal, and never counted as the student's work
+until they run the resulting recipe themselves.**
 
 Trinity recommending `nmap -sC -sV -oX scan.xml $TARGET` is
 in scope. Trinity starting that nmap, or firing an exploit
@@ -116,10 +118,70 @@ watch dashboard — except the dangerous half (exec).
 A dry-run that shows argv and refuses to exec is just
 `trinity next` again. Cursor would not prototype a runner.
 
-**Decision:** _unset_
+**What changed:** the original veto was written before Trinity was
+explicitly conceived as pairing with an agentic OS (see DESIGN.md's
+2026-09 rewrite). Alexander's call: some retired boxes genuinely
+require live exploitation Trinity's static match/suggest engine cannot
+walk a student through (BloodHound-style AD path analysis, multi-step
+credential chains) — those boxes are permanent dead ends without SOME
+escape hatch, and the honest fix is a disclosed one, not silently
+telling a stuck student "sorry, can't help." Alexander's explicit
+framing, verbatim: Show Me Mode should be **break-glass in philosophy,
+but always accessible in the tool** — not gated behind proving you're
+"stuck enough" first, because that gate doesn't stop a determined
+cheater (they'd just ask their own AI directly, bypassing Trinity
+entirely) and only adds friction for legitimate use. "We're trusting
+people to use this the right way. If they were going to cheat they'd
+just use AI to solve everything anyway."
 
-**Alexander's notes:**
+**The key mechanical distinction that makes this a narrower reversal
+than "Trinity solves boxes":** the agent's live execution happens in
+its OWN session/pane against the target, never injected into the
+student's own terminal. Nothing is added to the student's own
+timeline/report as their own work until the STUDENT runs the resulting
+recipe themselves, in their own window. This is "watch a worked
+example, then do it yourself" — closer to a textbook worked example
+than to an autograder solving the homework. The rail this entry
+protects against is invisible/automatic/default solving; a disclosed,
+always-available, operator-invoked worked-example feature is a
+different thing, same as Agent Harness (below) was found to be a
+narrower reversal than "add AI chat" once precisely specified.
 
+**Also explicitly decided:** no hardcoded per-box "is this a legit
+practice target" allowlist. Every comparable offensive-security tool
+(Metasploit, Burp, nmap, Cobalt Strike) relies on the operator's own
+authorization/ToS agreement, not a built-in target bouncer — a
+hardcoded allowlist would hold Trinity to a stricter standard than the
+industry it models itself on, and it's mechanically defeatable anyway
+(Trinity's platform registry is user-extensible by design). Show Me
+Mode instead requires an explicit authorization attestation (same
+legal shape as any pentest tool's terms-of-use acknowledgment, logged
+once), not a curated box list.
+
+**Decision: implement, as designed in `docs/SHOW_ME_MODE.md`** — own-
+session execution, always-available (no stuck-detection gate), full
+per-invocation disclosure, report tagging that cannot be suppressed,
+authorization-attestation gate (not a hardcoded target allowlist).
+Auto-run into the STUDENT's own terminal remains a hard rail; that
+part of the original veto stands unchanged.
+
+**Also decided: Show Me Mode IS Assimilator (`docs/ASSIMILATOR_PROJECT.md`),
+triggered live.** These are not two features — one engine
+(diagnose/hypothesize/verify/land a fix), two triggers: Doc's offline
+batch sweep of the Coverage Sim corpus, and a student's live
+`trinity show-me` invocation against a real box. Both feed the same
+leverage ledger and the same Update Framework review queue. Recorded
+here so a future session doesn't treat them as separate systems that
+happen to share code.
+
+**Alexander's notes:** "its break glass in philosophy, but always
+accessible in a tool. We're trusting people to use this the right way.
+if they were going to cheat they would just use AI to solve
+everything. thats my thinking." / "we're trusting that people are
+using our terms not hard coding a preventitive. just like every other
+cybersec tool." / "trinity would run those commands in HER OWN
+WINDOW, not the user window. once it works, user would do it in their
+window."
 
 ---
 
