@@ -74,6 +74,8 @@ class TrinityDashboard(App):
         ("s", "mark_skip", "Skip"),
         ("h", "show_hint", "Hint"),
         ("c", "copy_rec", "Copy rec"),
+        ("t", "open_tools", "Tools"),
+        ("a", "open_advanced", "Advanced"),
     ]
     SILENCE_SECONDS = 15 * 60
 
@@ -258,6 +260,23 @@ class TrinityDashboard(App):
             return
         self.copy_to_clipboard(rec.top.command)
         self._append_feed(f"[dim]Copied:[/dim] {rec.top.command}")
+
+    def action_open_tools(self) -> None:
+        """`t` key: the Tools menu (src/trinity/tui/show_me_screens.py)
+        -- action-oriented, mid-session utilities including Show Me
+        Mode ("Assimilate Attack Vector"). Was CLI-only before this;
+        this is the actual in-dashboard reach point Alexander asked
+        for so testers never have to drop out of watch to use it."""
+        from trinity.tui.show_me_screens import ToolsMenuScreen
+        self.push_screen(ToolsMenuScreen())
+
+    def action_open_advanced(self) -> None:
+        """`a` key: the Advanced Options menu -- config-oriented
+        settings that change how Trinity behaves going forward (mode,
+        hacker name, report generation), distinct from Tools' one-shot
+        actions per Alexander's explicit split."""
+        from trinity.tui.show_me_screens import AdvancedOptionsScreen
+        self.push_screen(AdvancedOptionsScreen())
 
     def _check_silence(self) -> None:
         """PROTOTYPE (2.4): if watch is up and no file has landed, remind
